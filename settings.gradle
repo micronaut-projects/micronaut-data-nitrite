@@ -3,19 +3,50 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
+    plugins {
+        id 'io.micronaut.minimal.application' version '5.0.2'
+        id 'org.jetbrains.kotlin.jvm' version '2.4.20'
+        id 'org.jetbrains.kotlin.kapt' version '2.4.20'
+        id 'org.jetbrains.kotlin.plugin.allopen' version '2.4.20'
+    }
 }
 
 plugins {
     id 'io.micronaut.build.shared.settings' version '8.0.1'
 }
 
-rootProject.name = 'project-template-parent'
+rootProject.name = 'data-nitrite-parent'
 
-include 'project-template'
-include 'project-template-bom'
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+
+include 'data-nitrite'
+include 'data-nitrite-bom'
+if (providers.gradleProperty('includeDataTck').map { it.toBoolean() }.getOrElse(false)
+    && file('jakarta-data-tck/nitrite').isDirectory()) {
+    include 'jakarta-data-tck:nitrite'
+}
+
+gradle.afterProject { proj ->
+    if (proj.projectDir.name == 'data-nitrite') {
+        proj.apply from: "$rootDir/data-nitrite/tck.gradle"
+    }
+}
+include 'doc-examples:nitrite-example-groovy'
+include 'doc-examples:nitrite-example-java'
+include 'doc-examples:nitrite-example-kotlin'
 
 enableFeaturePreview 'TYPESAFE_PROJECT_ACCESSORS'
 
 micronautBuild {
+    useStandardizedProjectNames = true
     importMicronautCatalog()
+    importMicronautCatalog("micronaut-kotlin")
+    importMicronautCatalog("micronaut-serde")
+    importMicronautCatalog("micronaut-sql")
+    importMicronautCatalog("micronaut-testresources")
+    importMicronautCatalog("micronaut-validation")
 }

@@ -1,3 +1,13 @@
 plugins {
     id "io.micronaut.build.internal.parent"
 }
+
+project(':micronaut-data-nitrite').plugins.withId('java') {
+    tasks.named('javadoc', Javadoc) {
+        classpath += project(':micronaut-data-nitrite').sourceSets.main.compileClasspath
+    }
+}
+
+tasks.named('javadoc', Javadoc) {
+    exclude '**/example/**'
+}

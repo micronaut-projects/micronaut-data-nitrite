@@ -1,0 +1,31 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm"
+    id "org.jetbrains.kotlin.kapt"
+    id "org.jetbrains.kotlin.plugin.allopen"
+    id "io.micronaut.minimal.application"
+}
+
+application {
+    mainClass = "example.ApplicationKt"
+}
+
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    runtime "netty"
+    testRuntime "junit5"
+}
+
+dependencies {
+    kapt libs.micronaut.data.document.processor
+
+    implementation projects.micronautDataNitrite
+    implementation libs.nitrite.spatial
+    implementation libs.jackson.datatype.jts
+    implementation mnSql.jakarta.persistence.api
+    implementation mnKotlin.micronaut.kotlin.runtime
+
+    runtimeOnly mnLogging.logback.classic
+    runtimeOnly mn.snakeyaml
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
+}
+

@@ -1,0 +1,26 @@
+plugins {
+    id "io.micronaut.minimal.application"
+}
+
+application {
+    mainClass = "example.Application"
+}
+
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    runtime "netty"
+    testRuntime "junit5"
+}
+
+dependencies {
+    annotationProcessor libs.micronaut.data.document.processor
+
+    implementation projects.micronautDataNitrite
+    implementation libs.nitrite.spatial
+    implementation libs.jackson.datatype.jts
+    implementation mnSql.jakarta.persistence.api
+
+    runtimeOnly mnLogging.logback.classic
+    runtimeOnly mn.snakeyaml
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
+}

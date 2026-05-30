@@ -16,11 +16,22 @@
 # a managed version (a version which alias starts with "managed-"
 
 [versions]
-micronaut = "5.1.12"
+micronaut = "5.0.7"
+micronaut-platform = "5.0.6"
 micronaut-docs = "3.0.0"
-micronaut-test = "4.6.2"
+micronaut-test = "5.0.1"
+micronaut-data = "5.0.6"
+micronaut-kotlin = "5.0.0"
+micronaut-serde = "3.0.0"
+micronaut-sql = "7.0.2"
+micronaut-testresources = "4.0.0"
+micronaut-validation = "5.0.0"
 groovy = "4.0.24"
 spock = "2.3-groovy-4.0"
+nitrite = "4.3.2"
+jackson-datatype-jts = "2.21.0"
+managed-javax-persistence = "2.2"
+managed-jakarta-data = "1.1.0-M3"
 
 # Managed versions appear in the BOM
 # managed-somelib = "1.0"
@@ -29,11 +40,29 @@ spock = "2.3-groovy-4.0"
 [libraries]
 # Core
 micronaut-core = { module = 'io.micronaut:micronaut-core-bom', version.ref = 'micronaut' }
+micronaut-test = { module = "io.micronaut.test:micronaut-test-bom", version.ref = "micronaut-test" }
+micronaut-data = { module = "io.micronaut.data:micronaut-data-bom", version.ref = "micronaut-data" }
+micronaut-kotlin = { module = "io.micronaut.kotlin:micronaut-kotlin-bom", version.ref = "micronaut-kotlin" }
+micronaut-serde = { module = "io.micronaut.serde:micronaut-serde-bom", version.ref = "micronaut-serde" }
+micronaut-sql = { module = "io.micronaut.sql:micronaut-sql-bom", version.ref = "micronaut-sql" }
+micronaut-testresources = { module = "io.micronaut.testresources:micronaut-test-resources-bom", version.ref = "micronaut-testresources" }
+micronaut-validation = { module = "io.micronaut.validation:micronaut-validation-bom", version.ref = "micronaut-validation" }
+micronaut-docs = { module = "io.micronaut.docs:micronaut-docs-asciidoc-config-props", version.ref = "micronaut-docs" }
+micronaut-data-document-processor = { module = "io.micronaut.data:micronaut-data-document-processor", version.ref = "micronaut-data" }
+micronaut-data-runtime = { module = "io.micronaut.data:micronaut-data-runtime", version.ref = "micronaut-data" }
+micronaut-data-document-model = { module = "io.micronaut.data:micronaut-data-document-model", version.ref = "micronaut-data" }
+micronaut-data-connection = { module = "io.micronaut.data:micronaut-data-connection", version.ref = "micronaut-data" }
+micronaut-data-tck = { module = "io.micronaut.data:micronaut-data-tck", version.ref = "micronaut-data" }
+micronaut-data-document-tck = { module = "io.micronaut.data:micronaut-data-document-tck", version.ref = "micronaut-data" }
+micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor", version.ref = "micronaut-data" }
 
 #
 # Managed dependencies appear in the BOM
 #
 # managed-somelib = { module = "group:artifact", version.ref = "managed-somelib" }
+managed-javax-persistence-api = { module = "javax.persistence:javax.persistence-api", version.ref = "managed-javax-persistence" }
+jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.ref = "managed-jakarta-data" }
+managed-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.ref = "managed-jakarta-data" }
 
 #
 # Imported BOMs, also appearing in the generated BOM
@@ -41,6 +70,14 @@ micronaut-core = { module = 'io.micronaut:micronaut-core-bom', version.ref = 'mi
 # boms-somebom = { module = "com.foo:somebom", version.ref = "managed-somebom" }
 
 # Other libraries used by the project but non managed
+
+nitrite = { module = "org.dizitart:nitrite", version.ref = "nitrite" }
+nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter", version.ref = "nitrite" }
+nitrite-jackson-mapper = { module = "org.dizitart:nitrite-jackson-mapper", version.ref = "nitrite" }
+nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter", version.ref = "nitrite" }
+nitrite-spatial = { module = "org.dizitart:nitrite-spatial", version.ref = "nitrite" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
+jackson-datatype-jts = { module = "com.graphhopper.external:jackson-datatype-jts", version.ref = "jackson-datatype-jts" }
 
 # micronaut-bom = { module = "io.micronaut:micronaut-bom", version.ref = "micronaut" }
 # jdoctor = { module = "me.champeau.jdoctor:jdoctor-core", version.ref="jdoctor" }
