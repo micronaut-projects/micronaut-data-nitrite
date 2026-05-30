@@ -1,0 +1,13 @@
+plugins {
+    id "io.micronaut.build.internal.data-micronaut-benchmark"
+}
+
+dependencies {
+    annotationProcessor libs.micronaut.data.document.processor
+    implementation projects.micronautDataNitrite
+    implementation libs.nitrite.rocksdb.adapter
+    implementation libs.nitrite.spatial
+    runtimeOnly mn.snakeyaml
+
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
+}

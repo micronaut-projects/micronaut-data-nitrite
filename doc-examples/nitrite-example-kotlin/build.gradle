@@ -25,7 +25,9 @@ dependencies {
     implementation mnKotlin.micronaut.kotlin.runtime
 
     runtimeOnly mnLogging.logback.classic
+
     runtimeOnly mn.snakeyaml
+
     testRuntimeOnly mnSerde.micronaut.serde.jackson
 }
 

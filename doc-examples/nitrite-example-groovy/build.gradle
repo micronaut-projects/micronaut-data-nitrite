@@ -24,7 +24,9 @@ dependencies {
     implementation mnSql.jakarta.persistence.api
 
     runtimeOnly mnLogging.logback.classic
+
     runtimeOnly mn.snakeyaml
+
     testRuntimeOnly mnSerde.micronaut.serde.jackson
 }
 
