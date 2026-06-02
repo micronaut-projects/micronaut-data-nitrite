@@ -17,11 +17,14 @@ dependencies {
     // Override app plugin version
     compileOnly libs.micronaut.data.processor
     compileOnly libs.micronaut.data.document.processor
+    compileOnly projects.micronautDataNitrite
 
     implementation projects.micronautDataNitrite
     implementation libs.nitrite.spatial
     implementation libs.jackson.datatype.jts
     implementation mnSql.jakarta.persistence.api
+
+    testCompileOnly mn.micronaut.inject.groovy
 
     runtimeOnly mnLogging.logback.classic
 
@@ -29,4 +32,3 @@ dependencies {
 
     testRuntimeOnly mnSerde.micronaut.serde.jackson
 }
-
