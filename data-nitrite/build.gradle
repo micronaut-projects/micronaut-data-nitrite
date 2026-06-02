@@ -92,7 +92,8 @@ tasks.register('rocksDbPresentTest', Test) {
     useJUnitPlatform()
     testClassesDirs = sourceSets.rocksDbPresentTest.output.classesDirs
     classpath = sourceSets.rocksDbPresentTest.runtimeClasspath
-    shouldRunAfter test
+    mustRunAfter test
+    onlyIf { tasks.named('test').get().state.failure == null }
 }
 
 tasks.register('spatialPresentTest', Test) {
@@ -100,8 +101,11 @@ tasks.register('spatialPresentTest', Test) {
     useJUnitPlatform()
     testClassesDirs = sourceSets.spatialPresentTest.output.classesDirs
     classpath = sourceSets.spatialPresentTest.runtimeClasspath
-    shouldRunAfter test
+    mustRunAfter test
+    onlyIf { tasks.named('test').get().state.failure == null }
 }
+
+test.finalizedBy rocksDbPresentTest, spatialPresentTest
 
 tasks.named('check') {
     dependsOn tasks.named('rocksDbPresentTest')
