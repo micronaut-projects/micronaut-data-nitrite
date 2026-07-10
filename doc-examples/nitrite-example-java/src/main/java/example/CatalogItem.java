@@ -24,6 +24,7 @@ public class CatalogItem {
         this.sku = sku;
         this.name = name;
     }
+    // end::unique-index[]
 
     public String getId() {
         return id;
@@ -48,5 +49,6 @@ public class CatalogItem {
     public void setName(String name) {
         this.name = name;
     }
+// tag::unique-index[]
 }
 // end::unique-index[]
