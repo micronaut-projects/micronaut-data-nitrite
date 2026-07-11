@@ -3,6 +3,8 @@ plugins {
     id "groovy"
 }
 
+
+
 // Source sets for testing with optional dependencies present
 sourceSets {
     rocksDbPresentTest {
@@ -111,4 +113,10 @@ tasks.named('check') {
 // Disable baseline check for new module until first release
 tasks.named("findBaseline").configure {
     enabled = false
+}
+
+spotless {
+    java {
+        target 'src/main/java/**/*.java', 'src/test/java/**/*.java', 'src/rocksDbPresentTest/java/**/*.java', 'src/spatialPresentTest/java/**/*.java'
+    }
 }
