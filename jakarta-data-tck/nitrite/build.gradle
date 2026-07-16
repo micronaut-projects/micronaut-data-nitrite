@@ -1,0 +1,26 @@
+plugins {
+    id "java-library"
+    id "io.micronaut.build.internal.data-nitrite-base"
+}
+
+dependencies {
+
+    testImplementation projects.micronautJakartaDataTck.micronautSupport
+    testImplementation projects.micronautDataNitrite
+    testImplementation libs.micronaut.data.document.processor
+    testImplementation mnValidation.micronaut.validation.processor
+    testImplementation mnValidation.micronaut.validation
+
+    testRuntimeOnly mnTest.junit.jupiter.engine
+    testRuntimeOnly mnLogging.logback.classic
+    testRuntimeOnly mn.snakeyaml
+
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
+}
+
+test {
+    scanForTestClasses true
+    systemProperty("junit.jupiter.extensions.autodetection.enabled", "true")
+    useJUnitPlatform()
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+}
