@@ -40,6 +40,16 @@ configurations {
 }
 
 dependencies {
+    components {
+        withModule("org.dizitart:nitrite-spatial") {
+            allVariants {
+                withDependencies {
+                    removeAll { it.group == "tools.jackson.core" && it.name == "jackson-databind" }
+                }
+            }
+        }
+    }
+
     annotationProcessor libs.micronaut.data.document.processor
     annotationProcessor mn.micronaut.inject.java
     annotationProcessor mn.micronaut.graal
