@@ -73,7 +73,6 @@ managed-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.r
 
 nitrite = { module = "org.dizitart:nitrite", version.ref = "nitrite" }
 nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter", version.ref = "nitrite" }
-nitrite-jackson-mapper = { module = "org.dizitart:nitrite-jackson-mapper", version.ref = "nitrite" }
 nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter", version.ref = "nitrite" }
 nitrite-spatial = { module = "org.dizitart:nitrite-spatial", version.ref = "nitrite" }
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
