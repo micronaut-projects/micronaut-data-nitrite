@@ -28,7 +28,7 @@ micronaut-testresources = "4.0.0"
 micronaut-validation = "5.1.0"
 groovy = "4.0.24"
 spock = "2.3-groovy-4.0"
-nitrite = "4.4.3"
+nitrite = "5.0.0"
 jackson-datatype-jts = "2.21.0"
 managed-javax-persistence = "2.2"
 managed-jakarta-data = "1.1.0-M3"
@@ -71,10 +71,11 @@ managed-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.r
 
 # Other libraries used by the project but non managed
 
-nitrite = { module = "org.dizitart:nitrite", version.ref = "nitrite" }
-nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter", version.ref = "nitrite" }
-nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter", version.ref = "nitrite" }
-nitrite-spatial = { module = "org.dizitart:nitrite-spatial", version.ref = "nitrite" }
+nitrite-bom = { module = "org.dizitart:nitrite-bom", version.ref = "nitrite" }
+nitrite = { module = "org.dizitart:nitrite" }
+nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter" }
+nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter" }
+nitrite-spatial = { module = "org.dizitart:nitrite-spatial" }
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
 jackson-datatype-jts = { module = "com.graphhopper.external:jackson-datatype-jts", version.ref = "jackson-datatype-jts" }
 

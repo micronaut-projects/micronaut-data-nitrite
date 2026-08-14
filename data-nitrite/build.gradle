@@ -59,6 +59,12 @@ dependencies {
     api libs.micronaut.data.document.model
     api libs.micronaut.data.connection
 
+    // The Nitrite BOM manages the version of every org.dizitart artifact. Configurations that do
+    // not extend `api` need it imported explicitly, otherwise the versionless dependencies below
+    // cannot be resolved.
+    api platform(libs.nitrite.bom)
+    compileOnly platform(libs.nitrite.bom)
+
     api libs.nitrite
     api libs.nitrite.mvstore.adapter
     compileOnly libs.nitrite.rocksdb.adapter
@@ -82,8 +88,11 @@ dependencies {
     testImplementation mnTest.micronaut.test.spock
 
     // Optional dependency tests - ROCKSDB adapter (only for rocksDbPresentTest source set)
+    rocksDbPresentTestRuntimeOnly platform(libs.nitrite.bom)
     rocksDbPresentTestRuntimeOnly libs.nitrite.rocksdb.adapter
     // Optional dependency tests - Spatial module (only for spatialPresentTest source set)
+    spatialPresentTestCompileOnly platform(libs.nitrite.bom)
+    spatialPresentTestRuntimeOnly platform(libs.nitrite.bom)
     spatialPresentTestCompileOnly libs.nitrite.spatial
     spatialPresentTestRuntimeOnly libs.nitrite.spatial
     spatialPresentTestAnnotationProcessor projects.micronautDataNitrite
@@ -120,9 +129,8 @@ tasks.named('check') {
     dependsOn tasks.named('spatialPresentTest')
 }
 
-// Disable baseline check for new module until first release
-tasks.named("findBaseline").configure {
-    enabled = false
+micronautBuild {
+    binaryCompatibility.enabledAfter("5.2.0")
 }
 
 spotless {
