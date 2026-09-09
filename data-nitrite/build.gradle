@@ -96,6 +96,8 @@ dependencies {
     testAnnotationProcessor projects.micronautDataNitrite
     testAnnotationProcessor mn.micronaut.inject.java
     testAnnotationProcessor mnTest.micronaut.test.spock
+    // Micronaut's processors use SLF4J while compiling the test source sets.
+    testAnnotationProcessor mnLogging.logback.classic
 
     testImplementation mnSql.jakarta.persistence.api
     testImplementation libs.managed.jakarta.data.api
@@ -120,6 +122,7 @@ dependencies {
     generatedQueryTestAnnotationProcessor mn.micronaut.inject.java
 
     testRuntimeOnly mnSerde.micronaut.serde.jackson
+    testRuntimeOnly mnLogging.logback.classic
 }
 
 test {

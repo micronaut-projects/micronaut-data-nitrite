@@ -18,6 +18,7 @@ dependencies {
     compileOnly libs.micronaut.data.processor
     compileOnly libs.micronaut.data.document.processor
     compileOnly projects.micronautDataNitrite
+    compileOnly mnLogging.logback.classic
 
     implementation projects.micronautDataNitrite
     implementation(libs.nitrite.spatial) {

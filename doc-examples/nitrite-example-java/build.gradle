@@ -16,6 +16,8 @@ micronaut {
 dependencies {
     annotationProcessor libs.micronaut.data.document.processor
     annotationProcessor projects.micronautDataNitrite
+    annotationProcessor mnLogging.logback.classic
+    testAnnotationProcessor mnLogging.logback.classic
 
     implementation projects.micronautDataNitrite
     implementation(libs.nitrite.spatial) {

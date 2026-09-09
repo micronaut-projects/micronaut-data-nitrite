@@ -18,6 +18,7 @@ micronaut {
 dependencies {
     kapt libs.micronaut.data.document.processor
     kapt projects.micronautDataNitrite
+    kapt mnLogging.logback.classic
 
     implementation projects.micronautDataNitrite
     implementation mnKotlin.micronaut.kotlin.runtime
