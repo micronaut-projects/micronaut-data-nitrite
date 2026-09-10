@@ -17,6 +17,7 @@ package io.micronaut.data.nitrite.model.query.builder.compile;
 
 import io.micronaut.data.model.PersistentPropertyPath;
 import io.micronaut.data.model.jpa.criteria.impl.expression.LiteralExpression;
+import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.model.query.builder.NitriteExpressionHandler;
 import io.micronaut.data.nitrite.model.query.builder.NitriteQueryState;
 import io.micronaut.data.nitrite.model.query.builder.RuntimeExpressionHandler;
@@ -26,7 +27,9 @@ import io.micronaut.data.nitrite.runtime.query.PatternConverter;
 import jakarta.persistence.criteria.Expression;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -71,8 +74,15 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
         PersistentPropertyPath propertyPath) {
 
         if (rightExpression instanceof LiteralExpression<?> literal) {
-            String ciPrefix = ignoreCase ? "(?i)" : "";
             Object val = unwrapLiteral(literal);
+            if (startsWith && !endsWith && !ignoreCase && !isLike) {
+                // A pure prefix match is a lexicographic range, not a pattern: NitriteFilterBuilder
+                // turns this into an indexed GTE/LT pair instead of RegexFilter's per-document scan.
+                Map<String, Object> range = new LinkedHashMap<>(1);
+                range.put(NitriteInternalKeys.RANGE_PREFIX, ValueConverter.toFilterValueStatic(val));
+                return range;
+            }
+            String ciPrefix = ignoreCase ? "(?i)" : "";
             String pattern = val != null ? val.toString() : "";
             if (isLike) {
                 pattern = PatternConverter.convertLikeToRegex(pattern, resolveEscapeChar(escapeExpression));

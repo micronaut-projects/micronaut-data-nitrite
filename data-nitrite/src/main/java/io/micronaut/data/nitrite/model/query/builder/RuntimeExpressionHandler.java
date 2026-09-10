@@ -82,6 +82,15 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
         Object paramPlaceholder = rightExpression instanceof LiteralExpression<?> literal
             ? ValueConverter.toFilterValueStatic(unwrapLiteral(literal))
             : resolveValue(queryState, propertyPath, rightExpression);
+
+        if (startsWith && !endsWith && !ignoreCase && !isLike) {
+            // A pure prefix match is a lexicographic range, not a pattern: NitriteFilterBuilder
+            // turns this into an indexed GTE/LT pair instead of RegexFilter's per-document scan.
+            Map<String, Object> range = new LinkedHashMap<>(1);
+            range.put(NitriteInternalKeys.RANGE_PREFIX, paramPlaceholder);
+            return range;
+        }
+
         String paramStr;
         if (paramPlaceholder instanceof Map<?, ?> m
             && m.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER)) {

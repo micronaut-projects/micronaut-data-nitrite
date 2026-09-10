@@ -1,6 +1,7 @@
 package io.micronaut.data.nitrite.model.query.builder.compile
 
 import io.micronaut.data.model.jpa.criteria.impl.expression.LiteralExpression
+import io.micronaut.data.nitrite.model.query.NitriteInternalKeys
 import io.micronaut.data.nitrite.model.query.builder.NitriteQueryState
 import spock.lang.Specification
 
@@ -34,8 +35,9 @@ class CompileExpressionHandlerUnitSpec extends Specification {
         handler.handleRegex("name", false, false, false, false, new LiteralExpression('J\\_hn\\%'), true, new LiteralExpression('\\' as char), queryState, null) == '(?s)^J_hn%$'
         handler.handleRegex("name", false, false, false, false, new LiteralExpression('J\\_hn\\%'), true, new LiteralExpression("\\"), queryState, null) == '(?s)^J_hn%$'
 
-        // startsWith = true
-        handler.handleRegex("name", false, false, true, false, literal, false, null, queryState, null) == '^\\QJohn\\E.*'
+        // startsWith = true, plain: an indexed prefix range, not a regex.
+        handler.handleRegex("name", false, false, true, false, literal, false, null, queryState, null) ==
+            [(NitriteInternalKeys.RANGE_PREFIX): "John"]
 
         // endsWith = true
         handler.handleRegex("name", false, false, false, true, literal, false, null, queryState, null) == '.*\\QJohn\\E$'

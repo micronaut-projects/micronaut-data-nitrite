@@ -45,6 +45,8 @@ public final class NitriteInternalKeys {
     public static final String REGEX_ENDS_WITH = "$mn_regex_ends_with";
     /** Case-insensitive parameterized regex flag. */
     public static final String REGEX_IGNORE_CASE = "$mn_regex_ignore_case";
+    /** A pure prefix match's value, built as an indexed range instead of a regex scan. */
+    public static final String RANGE_PREFIX = "$mn_range_prefix";
     /** Numeric negation update flag. */
     public static final String NEGATE = "$mn_negate";
     /** Numeric reciprocal update flag. */

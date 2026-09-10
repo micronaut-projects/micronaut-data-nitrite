@@ -88,6 +88,9 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.WITHIN
 @Internal
 public final class NitriteFilterBuilder {
 
+    /** Matches any string value, which is what every string starting with an empty prefix means. */
+    private static final String EMPTY_PREFIX_REGEX = "^";
+
     private final NitriteEntityMapper entityMapper;
     private final ValueResolver valueResolver;
     private final SpatialFilterFactory spatialFactory;
@@ -450,7 +453,12 @@ public final class NitriteFilterBuilder {
             }
             throw malformedOperand(BETWEEN, f, "expected a two-element range, got " + v);
         });
-        r.put(REGEX, (e, f, v, p, n) -> NitriteFilterUtils.regex(f, resolveRegexValue(v, p, n)));
+        r.put(REGEX, (e, f, v, p, n) -> {
+            if (v instanceof Map<?, ?> map && map.containsKey(NitriteInternalKeys.RANGE_PREFIX)) {
+                return buildPrefixRangeFilter(e, f, map.get(NitriteInternalKeys.RANGE_PREFIX), p, n);
+            }
+            return NitriteFilterUtils.regex(f, resolveRegexValue(v, p, n));
+        });
         r.put(LIKE,  (e, f, v, p, n) -> {
             Object resolved = valueResolver.resolveValue(v, p, n);
             return NitriteFilterUtils.regex(f, resolved != null ? PatternConverter.convertLikeToRegex(resolved.toString()) : "");
@@ -621,6 +629,55 @@ public final class NitriteFilterBuilder {
             case LTE -> NitriteFilterUtils.lte(field, comparable);
             default -> throw malformedOperand(op, field, "unsupported ordering operator");
         };
+    }
+
+    /**
+     * Builds a pure prefix match as an indexed range instead of {@link NitriteFilterUtils#regex}'s
+     * per-document scan: {@code RegexFilter} has no {@code applyOnIndex}, so it always walks the
+     * whole collection, while a lexicographic {@code GTE}/{@code LT} pair on the same (indexed)
+     * field lets the query planner seek instead of scan.
+     */
+    private Filter buildPrefixRangeFilter(RuntimePersistentEntity<?> entity, String field, @Nullable Object rawPrefix, Object[] params, Map<String, Object> namedParameters) {
+        Object resolved = valueResolver.resolveValue(rawPrefix, params, namedParameters);
+        Object coerced = coerceValue(entity, field, resolved);
+        if (!(coerced instanceof String prefix)) {
+            throw malformedOperand(REGEX, field, "startsWith prefix must be a string: " + coerced);
+        }
+        if (prefix.isEmpty()) {
+            // Every string starts with the empty prefix, and only a string does: a range would have
+            // to compare the field against values of other types to say so. Keep the regex here.
+            return NitriteFilterUtils.regex(field, EMPTY_PREFIX_REGEX);
+        }
+        String upperBound = prefixUpperBound(prefix);
+        Filter atOrAfterPrefix = NitriteFilterUtils.gte(field, prefix);
+        return upperBound == null
+            ? atOrAfterPrefix
+            : Filter.and(atOrAfterPrefix, NitriteFilterUtils.lt(field, upperBound));
+    }
+
+    /**
+     * The exclusive upper bound of the strings starting with {@code prefix}, under the UTF-16
+     * code-unit ordering {@link String#compareTo} uses: the prefix with its last character
+     * incremented, carrying over any trailing {@link Character#MAX_VALUE}.
+     *
+     * <p>Appending {@code MAX_VALUE} would not do - it excludes a value that carries the prefix,
+     * continues with {@code MAX_VALUE} and then has more characters still.
+     *
+     * @param prefix a non-empty prefix
+     * @return the exclusive upper bound, or {@code null} when the prefix is all {@code MAX_VALUE}
+     *         and every string at or after it therefore carries the prefix already
+     */
+    private static @Nullable String prefixUpperBound(String prefix) {
+        char[] chars = prefix.toCharArray();
+        int i = chars.length - 1;
+        while (i >= 0 && chars[i] == Character.MAX_VALUE) {
+            i--;
+        }
+        if (i < 0) {
+            return null;
+        }
+        chars[i]++;
+        return new String(chars, 0, i + 1);
     }
 
     private Filter buildBetweenFilter(RuntimePersistentEntity<?> entity, String field, @Nullable Object lower, @Nullable Object upper) {

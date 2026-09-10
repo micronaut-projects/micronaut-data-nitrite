@@ -150,7 +150,8 @@ class NitriteCriteriaUnitSpec extends Specification {
 
         where:
             desc                       | build                                                                          | expected
-            "startsWith"               | { r, cb -> cb.startsWithString(r.get("name"), cb.literal("Al")) }              | regex("^", ".*", false)
+            // A plain startsWith is an indexed prefix range, not a regex - see buildPrefixRangeFilter.
+            "startsWith"               | { r, cb -> cb.startsWithString(r.get("name"), cb.literal("Al")) }              | '''{name:{$regex:{$mn_range_prefix:{$mn_qp:0}}}}'''
             "startsWithIgnoreCase"     | { r, cb -> cb.startsWithStringIgnoreCase(r.get("name"), cb.literal("Al")) }    | regex("^", ".*", true)
             "endsWith"                 | { r, cb -> cb.endingWithString(r.get("name"), cb.literal("Al")) }              | regex(".*", "\$", false)
             "endsWithIgnoreCase"       | { r, cb -> cb.endingWithStringIgnoreCase(r.get("name"), cb.literal("Al")) }    | regex(".*", "\$", true)

@@ -52,6 +52,18 @@ class PersonRepositorySpec extends Specification {
         results[0].name == "Alice"
     }
 
+    void "test criteria startsWith hits the indexed prefix range, not a regex scan"() {
+        given:
+        personRepository.saveAll([new Person("Alice", 20), new Person("Alicia", 25), new Person("Bob", 40)])
+
+        when:
+        def spec = { root, cb -> ((PersistentEntityCriteriaBuilder) cb).startsWithString(root.get("name"), cb.literal("Ali")) } as PredicateSpecification<Person>
+        def results = personRepository.findAll(spec)
+
+        then:
+        results*.name.toSet() == ["Alice", "Alicia"].toSet()
+    }
+
     void "test criteria endsWith hits visitEndsWith"() {
         given:
         personRepository.saveAll([new Person("Alice", 20), new Person("Charlie", 30), new Person("Bob", 40)])

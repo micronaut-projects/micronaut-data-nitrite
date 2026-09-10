@@ -1,9 +1,27 @@
 package io.micronaut.data.nitrite.model.query.builder
 
 import io.micronaut.data.model.jpa.criteria.impl.expression.LiteralExpression
+import io.micronaut.data.nitrite.model.query.NitriteInternalKeys
 import spock.lang.Specification
 
 class RuntimeExpressionHandlerUnitSpec extends Specification {
+
+    void "handleRegex builds an indexed prefix range instead of a regex for a plain startsWith"() {
+        given:
+        def handler = new RuntimeExpressionHandler()
+        def queryState = new NitriteQueryState()
+
+        expect:
+        // startsWith only (no endsWith/ignoreCase/isLike): a lexicographic range, not a pattern.
+        handler.handleRegex("name", false, false, true, false, new LiteralExpression("Ali"), false, null, queryState, null) ==
+            [(NitriteInternalKeys.RANGE_PREFIX): "Ali"]
+
+        // Any other combination still falls back to a regex, unchanged.
+        handler.handleRegex("name", true, false, true, false, new LiteralExpression("Ali"), false, null, queryState, null) ==
+            '(?i)^\\QAli\\E.*'
+        handler.handleRegex("name", false, false, true, true, new LiteralExpression("Ali"), false, null, queryState, null) ==
+            '^\\QAli\\E$'
+    }
 
     void "handleRegex unwraps literal expressions for runtime LIKE"() {
         given:
