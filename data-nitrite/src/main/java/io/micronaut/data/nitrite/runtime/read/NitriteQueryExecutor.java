@@ -140,7 +140,9 @@ public final class NitriteQueryExecutor {
         this.filterBuilder = filterBuilder;
         this.generatedQueryParser = new GeneratedQueryParser(
             (entity, propertyPath, operators) ->
-                filterBuilder.buildFieldFilter(entity, propertyPath, operators, EMPTY_PARAMS, Map.of()));
+                filterBuilder.buildFieldFilter(entity, propertyPath, operators, EMPTY_PARAMS, Map.of()),
+            (entity, predicate, params) ->
+                filterBuilder.buildFilterFromJson(entity, predicate, params, Map.of()));
         this.collectionFactory = collectionFactory;
         this.entityFactory = entityFactory;
         this.findOptionsFactory = findOptionsFactory;
@@ -228,7 +230,8 @@ public final class NitriteQueryExecutor {
             String queryStr = nq.getQuery();
             boolean isCountQuery = methodName.startsWith("count") ||
                 (nq.getOperationType() != null && nq.getOperationType() == StoredQuery.OperationType.COUNT) ||
-                (queryStr != null && queryStr.contains(NitriteQueryOperators.COUNT));
+                (queryStr != null && (queryStr.contains(NitriteQueryOperators.COUNT)
+                    || GeneratedQueryParser.isCountProjection(queryStr)));
             if (isCountQuery) {
                 if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
                     return (R) handleDistinctCount(coll, filter, queryStr);
@@ -286,7 +289,7 @@ public final class NitriteQueryExecutor {
 
         // Handle native single-field projection (result type differs from root entity)
         if (!nq.getResultType().equals(nq.getRootEntity())) {
-            String fieldName = queryParser.extractProjectionField(nq.getQuery());
+            String fieldName = projectedFields.size() == 1 ? projectedFields.getFirst() : null;
             if (fieldName == null) {
                 fieldName = nativeProjectionHandler.extractFieldName(nq.getQuery(), methodName);
             }
@@ -435,7 +438,8 @@ public final class NitriteQueryExecutor {
             String queryStr = nq.getQuery();
             boolean isCountQuery = methodName.startsWith("count") ||
                 (nq.getOperationType() != null && nq.getOperationType() == StoredQuery.OperationType.COUNT) ||
-                (queryStr != null && queryStr.contains(NitriteQueryOperators.COUNT));
+                (queryStr != null && (queryStr.contains(NitriteQueryOperators.COUNT)
+                    || GeneratedQueryParser.isCountProjection(queryStr)));
             if (isCountQuery) {
                 if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
                     return Collections.singletonList((R) handleDistinctCount(coll, filter, queryStr));
@@ -504,19 +508,14 @@ public final class NitriteQueryExecutor {
 
         // Handle native single-field projection
         if (!nq.getResultType().equals(nq.getRootEntity()) && !nq.isDtoProjection()) {
-            projectedFields = null;
-            String projectField = queryParser.extractProjectionField(query);
-            if (projectField != null) {
-                projectedFields = List.of(projectField);
-            }
-            if (projectedFields == null) {
+            if (projectedFields.isEmpty()) {
                 String fieldName = nativeProjectionHandler.extractFieldName(query, methodName);
                 if (fieldName != null) {
                     projectedFields = List.of(fieldName);
                 }
             }
 
-            if (projectedFields != null) {
+            if (!projectedFields.isEmpty()) {
                 var cursor = read(coll, filter, findOptions, cursorLimit, find.sortPlan());
                 RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
                 return projectionMapper.mapResults(cursor, projectedFields, entity, nq.getResultType(), false);
@@ -615,9 +614,9 @@ public final class NitriteQueryExecutor {
             }
         }
         if (updateOperations.isEmpty()) {
-            Map<String, Object> generatedSet = extractGeneratedSet(nq, jsonParams);
-            if (!generatedSet.isEmpty()) {
-                return Map.of(NitriteQueryOperators.SET, generatedSet);
+            Map<String, Object> generatedUpdate = extractGeneratedUpdate(nq, jsonParams);
+            if (!generatedUpdate.isEmpty()) {
+                return generatedUpdate;
             }
         }
         if (updateOperations.keySet().stream().noneMatch(key -> key.startsWith("$"))) {
@@ -626,8 +625,8 @@ public final class NitriteQueryExecutor {
         return updateOperations;
     }
 
-    private Map<String, Object> extractGeneratedSet(NitritePreparedQuery<?, Number> nq, Object[] jsonParams) {
-        return generatedQueryParser.parseSet(nq.getQuery(), entityFactory.apply(nq.getRootEntity()), jsonParams);
+    private Map<String, Object> extractGeneratedUpdate(NitritePreparedQuery<?, Number> nq, Object[] jsonParams) {
+        return generatedQueryParser.parseUpdate(nq.getQuery(), entityFactory.apply(nq.getRootEntity()), jsonParams);
     }
 
     /**
@@ -824,6 +823,10 @@ public final class NitriteQueryExecutor {
 
     private List<String> getProjectedFields(NitritePreparedQuery<?, ?> nq) {
         List<String> projectedFields = queryParser.extractProjectionFields(nq.getQuery());
+        if (!projectedFields.isEmpty()) {
+            return projectedFields;
+        }
+        projectedFields = GeneratedQueryParser.parseProjectionFields(nq.getQuery());
         if (!projectedFields.isEmpty()) {
             return projectedFields;
         }

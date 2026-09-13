@@ -19,6 +19,7 @@ import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.model.Sort;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
+import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import org.dizitart.no2.filters.Filter;
 
@@ -33,27 +34,37 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.BETWEEN;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.DIVIDE;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.EQ;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.EXPR;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.GT;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.GTE;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.IN;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.INC;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.LIKE;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.LT;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.LTE;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.MUL;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.MULTIPLY;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.NE;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.NIN;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.NOT;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.NOT_NULL;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.NULL;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.SET;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.STR_LEN_CP;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.TO_LOWER;
+import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.VALUE;
 
 /**
  * Parses the SQL-shaped query string that reaches the Nitrite runtime when a query was not built
  * as a Nitrite JSON filter, for example an update declared through {@code @Query} in JPQL form.
  *
- * <p>Only the predicate forms the module can execute are accepted — comparison, {@code LIKE},
- * {@code BETWEEN}, {@code IN} and {@code IS NULL} against a bound parameter or a literal. Anything
- * else is rejected with a message naming the offending fragment, so an unsupported query fails
- * loudly instead of silently matching or updating the wrong documents.
+ * <p>Predicates are translated to the module's native field filters where possible. Computed
+ * comparisons such as {@code LOWER(name) = LOWER(:p1)}, {@code LENGTH(name) = :p1}, and
+ * field-to-field comparisons are routed through the module's expression evaluator. Anything else
+ * is rejected with a message naming the offending fragment, so an unsupported query fails loudly
+ * instead of silently matching or updating the wrong documents.
  *
  * @since 5.2.0
  */
@@ -62,6 +73,8 @@ public final class GeneratedQueryParser {
 
     private static final String WHERE_KEYWORD = " WHERE ";
     private static final String SET_KEYWORD = " SET ";
+    private static final String SELECT_KEYWORD = "SELECT ";
+    private static final String FROM_KEYWORD = " FROM ";
     private static final String PARAMETER_PREFIX = ":p";
 
     /**
@@ -90,11 +103,17 @@ public final class GeneratedQueryParser {
         "[A-Za-z0-9_.]+\\s+BETWEEN\\s+[^\\s]+", Pattern.CASE_INSENSITIVE);
     private static final Pattern ASSIGNMENT_PATTERN = Pattern.compile(
         "([A-Za-z0-9_.]+)\\s*=\\s*(.+)", Pattern.DOTALL);
+    private static final Pattern UPDATE_EXPRESSION_PATTERN = Pattern.compile(
+        "\\(?\\s*([A-Za-z0-9_.]+)\\s*([+\\-*/])\\s*(.+?)\\s*\\)?", Pattern.DOTALL);
+    private static final Pattern FUNCTION_PATTERN = Pattern.compile(
+        "([A-Za-z]+)\\((.*)\\)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern FIELD_PATTERN = Pattern.compile("[A-Za-z0-9_.]+");
 
     /** The compiled form of a query carrying no {@code WHERE} clause. */
     private static final CompiledPredicate NO_PREDICATE = params -> null;
 
     private final LeafFilterFactory leafFilterFactory;
+    private final PredicateFilterFactory predicateFilterFactory;
 
     /**
      * Predicates compiled from a query string, keyed by entity and query text.
@@ -115,7 +134,19 @@ public final class GeneratedQueryParser {
      * @param leafFilterFactory builds the filter for a single resolved predicate
      */
     public GeneratedQueryParser(LeafFilterFactory leafFilterFactory) {
+        this(leafFilterFactory, null);
+    }
+
+    /**
+     * Create a parser that can also execute computed predicates.
+     *
+     * @param leafFilterFactory builds a filter for a field predicate
+     * @param predicateFilterFactory builds a filter for a computed predicate map
+     */
+    public GeneratedQueryParser(LeafFilterFactory leafFilterFactory,
+                                @Nullable PredicateFilterFactory predicateFilterFactory) {
         this.leafFilterFactory = leafFilterFactory;
+        this.predicateFilterFactory = predicateFilterFactory;
     }
 
     /**
@@ -204,6 +235,49 @@ public final class GeneratedQueryParser {
     }
 
     /**
+     * Parses the property fields selected by a generated SQL-shaped query.
+     *
+     * @param query the full query string
+     * @return selected property fields, or an empty list for an entity/count/constant selection
+     */
+    public static List<String> parseProjectionFields(String query) {
+        int selectStart = indexOfKeyword(query, SELECT_KEYWORD);
+        int fromStart = indexOfKeyword(query, FROM_KEYWORD);
+        if (selectStart < 0 || fromStart < 0 || fromStart <= selectStart) {
+            return List.of();
+        }
+        String clause = query.substring(selectStart + SELECT_KEYWORD.length(), fromStart).trim();
+        if (clause.regionMatches(true, 0, "DISTINCT ", 0, 9)) {
+            clause = clause.substring(9).trim();
+        }
+        List<String> fields = new ArrayList<>();
+        for (String selection : splitTopLevel(clause, ",")) {
+            String expression = selection.trim().replaceFirst("(?i)\\s+AS\\s+[A-Za-z0-9_]+$", "");
+            if (!FIELD_PATTERN.matcher(expression).matches() || expression.endsWith("_")) {
+                return List.of();
+            }
+            fields.add(stripAlias(expression));
+        }
+        return fields;
+    }
+
+    /**
+     * Whether a generated query selects a count rather than entity rows.
+     *
+     * @param query the full query string
+     * @return true for a {@code SELECT COUNT(...)} query
+     */
+    public static boolean isCountProjection(String query) {
+        int selectStart = indexOfKeyword(query, SELECT_KEYWORD);
+        int fromStart = indexOfKeyword(query, FROM_KEYWORD);
+        if (selectStart < 0 || fromStart < 0 || fromStart <= selectStart) {
+            return false;
+        }
+        String selection = query.substring(selectStart + SELECT_KEYWORD.length(), fromStart).trim();
+        return selection.regionMatches(true, 0, "COUNT(", 0, 6) && selection.endsWith(")");
+    }
+
+    /**
      * Parses the {@code SET} clause of a generated update.
      *
      * @param query  the full query string
@@ -233,6 +307,57 @@ public final class GeneratedQueryParser {
     }
 
     /**
+     * Parses a generated update into the update operators understood by the Nitrite executor.
+     * Self-referential arithmetic assignments are retained as increment/multiply operations so
+     * their value is computed from each stored document rather than once up front.
+     *
+     * @param query the full update query
+     * @param entity the root entity
+     * @param params the positional parameter values
+     * @return update operations keyed by Nitrite operator
+     */
+    public Map<String, Object> parseUpdate(String query, RuntimePersistentEntity<?> entity, Object[] params) {
+        int setStart = indexOfKeyword(query, SET_KEYWORD);
+        if (setStart < 0) {
+            return Map.of();
+        }
+        int whereStart = indexOfKeyword(query, WHERE_KEYWORD);
+        String clause = query.substring(setStart + SET_KEYWORD.length(),
+            whereStart < 0 ? query.length() : whereStart);
+        Map<String, Map<String, Object>> operations = new LinkedHashMap<>();
+        for (String assignment : splitTopLevel(clause, ",")) {
+            Matcher matcher = ASSIGNMENT_PATTERN.matcher(assignment.trim());
+            if (!matcher.matches()) {
+                throw unsupported(assignment.trim(), "assignment");
+            }
+            String field = resolveField(matcher.group(1), entity);
+            String operand = matcher.group(2).trim();
+            Matcher update = UPDATE_EXPRESSION_PATTERN.matcher(operand);
+            if (update.matches() && resolveField(update.group(1), entity).equals(field)) {
+                String operator = switch (update.group(2)) {
+                    case "+", "-" -> INC;
+                    default -> MUL;
+                };
+                Object value = resolveOperand(update.group(3), params, assignment.trim());
+                if ("-".equals(update.group(2)) || "/".equals(update.group(2))) {
+                    Map<String, Object> wrapped = new LinkedHashMap<>();
+                    wrapped.put(VALUE, value);
+                    wrapped.put("-".equals(update.group(2))
+                        ? NitriteInternalKeys.NEGATE : NitriteInternalKeys.RECIPROCATE, true);
+                    value = wrapped;
+                }
+                operations.computeIfAbsent(operator, ignored -> new LinkedHashMap<>()).put(field, value);
+            } else {
+                operations.computeIfAbsent(SET, ignored -> new LinkedHashMap<>())
+                    .put(field, resolveOperand(operand, params, assignment.trim()));
+            }
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.putAll(operations);
+        return result;
+    }
+
+    /**
      * Parses one predicate into a form that still needs its parameters. Every decision that depends
      * only on the query text - the splitting, the regex match, the operator, the field reference -
      * is made here; the returned {@link CompiledPredicate} does no more than resolve operands and
@@ -244,6 +369,11 @@ public final class GeneratedQueryParser {
      */
     private CompiledPredicate compilePredicate(String expression, RuntimePersistentEntity<?> entity) {
         String predicate = stripOuterParentheses(expression.trim());
+
+        if (predicate.regionMatches(true, 0, "NOT(", 0, 4) && predicate.endsWith(")")) {
+            CompiledPredicate inner = compilePredicate(predicate.substring(4, predicate.length() - 1), entity);
+            return params -> inner.bind(params).not();
+        }
 
         List<String> operands = splitTopLevel(predicate, " OR ");
         if (operands.size() > 1) {
@@ -286,7 +416,7 @@ public final class GeneratedQueryParser {
             String operand = inMatcher.group(3);
             String operator = inMatcher.group(2) == null ? IN : NIN;
             return params -> leafFilter(entity, reference, predicate, operator,
-                toValueList(resolveOperand(operand, params, predicate)));
+                resolveOperandList(operand, params, predicate));
         }
 
         Matcher likeMatcher = LIKE_PATTERN.matcher(predicate);
@@ -303,12 +433,29 @@ public final class GeneratedQueryParser {
         }
 
         Matcher matcher = COMPARISON_PATTERN.matcher(predicate);
-        if (!matcher.matches()) {
+        if (matcher.matches()) {
+            String reference = matcher.group(1);
+            String operand = matcher.group(3);
+            String operator = comparisonOperator(matcher.group(2));
+            if (isSimpleOperand(operand)) {
+                return params -> leafFilter(entity, reference, predicate, operator,
+                    resolveOperand(operand, params, predicate));
+            }
+        }
+
+        Comparison comparison = splitComparison(predicate);
+        if (comparison == null || predicateFilterFactory == null) {
             throw unsupported(predicate, "predicate");
         }
-        String reference = matcher.group(1);
-        String operand = matcher.group(3);
-        String operator = switch (matcher.group(2)) {
+        Object left = compileExpressionOperand(comparison.left(), entity, predicate);
+        Object right = compileExpressionOperand(comparison.right(), entity, predicate);
+        Map<String, Object> expressionFilter = Map.of(
+            EXPR, Map.of(comparisonOperator(comparison.operator()), List.of(left, right)));
+        return params -> predicateFilterFactory.build(entity, expressionFilter, params);
+    }
+
+    private static String comparisonOperator(String operator) {
+        return switch (operator) {
             case "=" -> EQ;
             case "!=", "<>" -> NE;
             case ">" -> GT;
@@ -316,8 +463,100 @@ public final class GeneratedQueryParser {
             case "<" -> LT;
             default -> LTE;
         };
-        return params -> leafFilter(entity, reference, predicate, operator,
-            resolveOperand(operand, params, predicate));
+    }
+
+    private static boolean isSimpleOperand(String operand) {
+        String value = operand.trim();
+        return value.startsWith(PARAMETER_PREFIX)
+            || value.startsWith("'")
+            || "NULL".equalsIgnoreCase(value)
+            || "TRUE".equalsIgnoreCase(value)
+            || "FALSE".equalsIgnoreCase(value)
+            || value.matches("[-+]?\\d+(?:\\.\\d+)?");
+    }
+
+    private Object compileExpressionOperand(String operand, RuntimePersistentEntity<?> entity, String fragment) {
+        String value = stripOuterParentheses(operand.trim());
+        Matcher function = FUNCTION_PATTERN.matcher(value);
+        if (function.matches()) {
+            Object inner = compileExpressionOperand(function.group(2), entity, fragment);
+            if ("LOWER".equalsIgnoreCase(function.group(1))) {
+                return Map.of(TO_LOWER, inner);
+            }
+            if ("LENGTH".equalsIgnoreCase(function.group(1))) {
+                return Map.of(STR_LEN_CP, inner);
+            }
+            throw unsupported(fragment, "expression");
+        }
+        BinaryExpression binary = splitBinaryExpression(value);
+        if (binary != null) {
+            Object left = compileExpressionOperand(binary.left(), entity, fragment);
+            Object right = compileExpressionOperand(binary.right(), entity, fragment);
+            return switch (binary.operator()) {
+                case "*" -> Map.of(MULTIPLY, List.of(left, right));
+                case "/" -> Map.of(DIVIDE, List.of(left, right));
+                default -> throw unsupported(fragment, "expression");
+            };
+        }
+        if (value.startsWith(PARAMETER_PREFIX)) {
+            String index = value.substring(PARAMETER_PREFIX.length());
+            if (!index.isEmpty() && index.chars().allMatch(Character::isDigit)) {
+                int position = Integer.parseInt(index) - 1;
+                if (position >= 0) {
+                    return NitriteInternalKeys.QUERY_PARAMETER_PREFIX + position;
+                }
+            }
+            throw unsupported(fragment, "parameter reference");
+        }
+        if (isSimpleOperand(value)) {
+            return resolveOperand(value, new Object[0], fragment);
+        }
+        if (FIELD_PATTERN.matcher(value).matches()) {
+            return "$" + resolveField(value, entity);
+        }
+        throw unsupported(fragment, "expression");
+    }
+
+    private static @Nullable Comparison splitComparison(String expression) {
+        for (String operator : List.of("!=", "<>", ">=", "<=", "=", ">", "<")) {
+            int index = indexOfTopLevel(expression, operator);
+            if (index >= 0) {
+                return new Comparison(expression.substring(0, index).trim(), operator,
+                    expression.substring(index + operator.length()).trim());
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable BinaryExpression splitBinaryExpression(String expression) {
+        for (String operator : List.of("*", "/", "+", "-")) {
+            int index = indexOfTopLevel(expression, operator);
+            if (index > 0) {
+                return new BinaryExpression(expression.substring(0, index).trim(), operator,
+                    expression.substring(index + 1).trim());
+            }
+        }
+        return null;
+    }
+
+    private static int indexOfTopLevel(String expression, String token) {
+        int depth = 0;
+        boolean[] inLiteral = {false};
+        for (int i = 0; i <= expression.length() - token.length(); i++) {
+            i = skipLiterals(expression, i, inLiteral);
+            if (i > expression.length() - token.length()) {
+                break;
+            }
+            char ch = expression.charAt(i);
+            if (ch == '(') {
+                depth++;
+            } else if (ch == ')') {
+                depth--;
+            } else if (depth == 0 && expression.startsWith(token, i)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -359,12 +598,32 @@ public final class GeneratedQueryParser {
         };
     }
 
+    private List<?> resolveOperandList(String operands, Object[] params, String fragment) {
+        List<Object> values = new ArrayList<>();
+        for (String operand : splitTopLevel(operands, ",")) {
+            values.addAll(toValueList(resolveOperand(operand, params, fragment)));
+        }
+        return values;
+    }
+
     /**
      * Resolves an operand that must be a bound positional parameter or a literal. An expression
      * such as {@code priority + 1} is rejected rather than dropped.
      */
     private @Nullable Object resolveOperand(String operand, Object[] params, String fragment) {
         String value = operand.trim();
+        Matcher function = FUNCTION_PATTERN.matcher(value);
+        if (function.matches() && "CONCAT".equalsIgnoreCase(function.group(1))) {
+            StringBuilder result = new StringBuilder();
+            for (String argument : splitTopLevel(function.group(2), ",")) {
+                Object resolved = resolveOperand(argument, params, fragment);
+                if (resolved == null) {
+                    return null;
+                }
+                result.append(resolved);
+            }
+            return result.toString();
+        }
         if (value.startsWith(PARAMETER_PREFIX)) {
             String index = value.substring(PARAMETER_PREFIX.length());
             if (!index.chars().allMatch(Character::isDigit) || index.isEmpty()) {
@@ -586,6 +845,18 @@ public final class GeneratedQueryParser {
          * @return the filter, or {@code null} when the path cannot be resolved
          */
         @Nullable Filter build(RuntimePersistentEntity<?> entity, String propertyPath, Map<String, Object> operators);
+    }
+
+    /** Builds a computed predicate from the provider's expression-filter representation. */
+    @FunctionalInterface
+    public interface PredicateFilterFactory {
+        Filter build(RuntimePersistentEntity<?> entity, Map<String, Object> predicate, Object[] params);
+    }
+
+    private record Comparison(String left, String operator, String right) {
+    }
+
+    private record BinaryExpression(String left, String operator, String right) {
     }
     /**
      * A predicate whose text has been parsed and whose parameters have not yet been bound.

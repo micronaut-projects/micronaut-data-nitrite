@@ -46,9 +46,13 @@ class GeneratedQueryParserSpec extends Specification {
         // Leaf predicates are resolved by the module's own filter builder, exactly as the runtime wires it.
         def filterBuilder = new NitriteFilterBuilder(
                 new NitriteEntityMapper(ConversionService.SHARED, null, runtimeEntityRegistry))
-        new GeneratedQueryParser({ entity, path, operators ->
-            filterBuilder.buildFieldFilter(entity, path, operators, new Object[0], [:])
-        } as GeneratedQueryParser.LeafFilterFactory)
+        new GeneratedQueryParser(
+                { entity, path, operators ->
+                    filterBuilder.buildFieldFilter(entity, path, operators, new Object[0], [:])
+                } as GeneratedQueryParser.LeafFilterFactory,
+                { entity, predicate, params ->
+                    filterBuilder.buildFilterFromJson(entity, predicate, params, [:])
+                } as GeneratedQueryParser.PredicateFilterFactory)
     }
 
     private List<String> typesMatching(String query, Object... params) {
@@ -159,6 +163,42 @@ class GeneratedQueryParserSpec extends Specification {
         typesMatching("UPDATE Event SET payload = :p1 WHERE processed IS NULL", "x").size() == 5
     }
 
+    void "IN resolves each generated operand"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.type IN (:p1,'gamma',:p2)",
+                "alpha", "beta") == ["alpha", "beta", "gamma"]
+    }
+
+    void "LIKE resolves a generated CONCAT pattern"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.payload LIKE CONCAT('%',:p1,'%')",
+                "hello") == ["alpha", "gamma"]
+    }
+
+    void "computed expressions use the document expression evaluator"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE LOWER(event_.type) = LOWER(:p1)",
+                "ALPHA") == ["alpha"]
+        typesMatching("SELECT event_ FROM Event event_ WHERE LENGTH(event_.payload) = :p1", 7) ==
+                ["alpha AND beta", "beta"]
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.priority = event_.priority").size() == 5
+    }
+
+    void "NOT negates a generated predicate group"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE NOT((event_.priority >= :p1 AND event_.priority <= :p2))",
+                20, 40) == ["alpha", "alpha's AND beta"]
+    }
+
+    void "generated selections distinguish fields and counts from entity selections"() {
+        expect:
+        GeneratedQueryParser.parseProjectionFields(
+                "SELECT event_.type AS type,event_.priority AS priority FROM Event event_") == ["type", "priority"]
+        GeneratedQueryParser.parseProjectionFields("SELECT event_ FROM Event event_").empty
+        GeneratedQueryParser.isCountProjection("SELECT COUNT(event_) FROM Event event_")
+        !GeneratedQueryParser.isCountProjection("SELECT event_.priority FROM Event event_")
+    }
+
     void "an unsupported predicate is rejected with an explanatory message"() {
         when:
         typesMatching("UPDATE Event SET payload = :p1 WHERE UPPER(type) = :p2", "x", "ALPHA")
@@ -179,6 +219,16 @@ class GeneratedQueryParserSpec extends Specification {
 
         then:
         assignments == ["payload": "updated", "priority": 99]
+    }
+
+    void "generated arithmetic assignments retain their per-document operation"() {
+        given:
+        def entity = runtimeEntityRegistry.getEntity(Event)
+
+        expect:
+        parser().parseUpdate(
+                "UPDATE Event event_ SET event_.priority=(event_.priority + :p1),event_.payload=:p2",
+                entity, [5, "updated"] as Object[]) == ["\$inc": [priority: 5], "\$set": [payload: "updated"]]
     }
 
     void "an assignment that is not a bound parameter is rejected instead of silently dropped"() {
