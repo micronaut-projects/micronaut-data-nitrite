@@ -374,7 +374,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            persistentEntity, conversionService, entityMapper, this, entityValue, NitriteEntityOperations.OperationType.INSERT);
+            persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.INSERT);
         op.persist();
         return op.getEntity();
     }
@@ -396,7 +396,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     public <T> T updateOne(NitriteOperationContext ctx, T entityValue, RuntimePersistentEntity<T> persistentEntity) {
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            persistentEntity, conversionService, entityMapper, this, entityValue, NitriteEntityOperations.OperationType.UPDATE);
+            persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.UPDATE);
         op.update();
         return op.getEntity();
     }
@@ -538,7 +538,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            getEntity(operation.getRootEntity()), conversionService, entityMapper, this,
+            getEntity(operation.getRootEntity()), conversionService, entityMapper, this, this,
             operation.getEntity(), NitriteEntityOperations.OperationType.DELETE);
         op.delete();
         return (int) op.getAffectedCount();

@@ -19,6 +19,7 @@ import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.nitrite.runtime.NameUtils;
 import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.common.util.Comparables;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -152,11 +153,15 @@ public final class CollectionAggregator {
         }
 
         // Generic fallback for other Comparable types
-        if (first instanceof Comparable) {
+        if (first instanceof Comparable<?>) {
+            List<Comparable<?>> comparableValues = values.stream()
+                .filter(Comparable.class::isInstance)
+                .<Comparable<?>>map(value -> (Comparable<?>) value)
+                .toList();
             if ("Max".equals(aggFunc)) {
-                return values.stream().max((a, b) -> ((Comparable<Object>) a).compareTo(b)).orElse(null);
+                return comparableValues.stream().max(Comparables::compare).orElse(null);
             } else if ("Min".equals(aggFunc)) {
-                return values.stream().min((a, b) -> ((Comparable<Object>) a).compareTo(b)).orElse(null);
+                return comparableValues.stream().min(Comparables::compare).orElse(null);
             }
         }
 

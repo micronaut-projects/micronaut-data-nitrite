@@ -156,7 +156,7 @@ public final class NitriteCriteriaExecutor {
      */
     public <R> @Nullable R findOne(@NonNull CriteriaQuery<R> query) {
         CriteriaReadPlan plan = prepareRead(query, -1, -1);
-        Class<R> resultType = (Class<R>) plan.resultType();
+        Class<R> resultType = query.getResultType();
 
         // A numeric result type alone does not imply a count: max/min/sum/avg also produce a
         // $group stage, so the selection decides which aggregate to execute.
@@ -169,7 +169,7 @@ public final class NitriteCriteriaExecutor {
             if (aggregate == null) {
                 return null;
             }
-            return conversionService.convert(aggregate, resultType).orElse((R) aggregate);
+            return conversionService.convertRequired(aggregate, resultType);
         }
         // Handle count queries specially
         if (Long.class.equals(resultType) || long.class.equals(resultType)) {
@@ -182,10 +182,11 @@ public final class NitriteCriteriaExecutor {
                         .filter(Objects::nonNull)
                         .distinct()
                         .count();
-                    return (R) Long.valueOf(count);
+                    return conversionService.convertRequired(count, resultType);
                 }
             }
-            return (R) Long.valueOf(readDocuments(plan, plan.innerJoin()).documents().size());
+            return conversionService.convertRequired(
+                readDocuments(plan, plan.innerJoin()).documents().size(), resultType);
         }
 
         DocumentRead read = readDocuments(plan, plan.projectedFields().isEmpty() || plan.innerJoin());
@@ -221,7 +222,7 @@ public final class NitriteCriteriaExecutor {
      */
     public <T> List<T> findAll(@NonNull CriteriaQuery<T> query, int offset, int limit) {
         CriteriaReadPlan plan = prepareRead(query, offset, limit);
-        Class<T> type = (Class<T>) plan.resultType();
+        Class<T> type = query.getResultType();
         DocumentRead read = readDocuments(plan, plan.projectedFields().isEmpty() || plan.innerJoin());
         List<T> results = mapDocuments(read.documents(), plan, type);
         if (plan.projectedFields().isEmpty()) {

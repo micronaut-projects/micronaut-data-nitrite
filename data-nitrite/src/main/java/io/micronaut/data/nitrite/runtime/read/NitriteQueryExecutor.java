@@ -217,8 +217,10 @@ public final class NitriteQueryExecutor {
     public <T, R> @Nullable R findOne(@NonNull PreparedQuery<T, R> q, NitritePreparedQuery<T, R> nq) {
         NitriteCollection coll = collectionFactory.apply(nq.getRootEntity());
         if (nq.getUpdateMap() != null) {
-            Optional<Number> result = executeUpdate((PreparedQuery<?, Number>) nq, (NitritePreparedQuery<?, Number>) nq);
-            return isNumericResultType(nq.getResultType()) ? (R) result.orElse(0L) : null;
+            Optional<Number> result = executeUpdate(q, nq);
+            return isNumericResultType(nq.getResultType())
+                ? valueConverter.convertWithTemporalHandling(result.orElse(0L), nq.getResultType())
+                : null;
         }
 
         Filter filter = nq.getNitriteFilter();
@@ -234,9 +236,11 @@ public final class NitriteQueryExecutor {
                     || GeneratedQueryParser.isCountProjection(queryStr)));
             if (isCountQuery) {
                 if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
-                    return (R) handleDistinctCount(coll, filter, queryStr);
+                    return valueConverter.convertWithTemporalHandling(
+                        handleDistinctCount(coll, filter, queryStr), nq.getResultType());
                 }
-                return (R) Long.valueOf(coll.find(filter).size());
+                return valueConverter.convertWithTemporalHandling(
+                    Long.valueOf(coll.find(filter).size()), nq.getResultType());
             }
         }
 
@@ -303,7 +307,7 @@ public final class NitriteQueryExecutor {
         }
 
         // Handle full entity load
-        R entity = (R) entityMapperHandler.loadEntity(doc, nq.getRootEntity());
+        R entity = nq.getResultType().cast(entityMapperHandler.loadEntity(doc, nq.getRootEntity()));
 
         // Fetch joined associations if specified
         Set<JoinPath> joinPaths = nq.getJoinPaths();
@@ -442,9 +446,11 @@ public final class NitriteQueryExecutor {
                     || GeneratedQueryParser.isCountProjection(queryStr)));
             if (isCountQuery) {
                 if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
-                    return Collections.singletonList((R) handleDistinctCount(coll, filter, queryStr));
+                    return Collections.singletonList(valueConverter.convertWithTemporalHandling(
+                        handleDistinctCount(coll, filter, queryStr), nq.getResultType()));
                 }
-                return List.of((R) Long.valueOf(coll.find(filter).size()));
+                return List.of(valueConverter.convertWithTemporalHandling(
+                    Long.valueOf(coll.find(filter).size()), nq.getResultType()));
             }
         }
 
@@ -526,7 +532,7 @@ public final class NitriteQueryExecutor {
         var cursor = read(coll, filter, findOptions, cursorLimit, find.sortPlan());
         List<R> results = new ArrayList<>();
         for (Document doc : cursor) {
-            results.add((R) entityMapperHandler.loadEntity(doc, nq.getRootEntity()));
+            results.add(nq.getResultType().cast(entityMapperHandler.loadEntity(doc, nq.getRootEntity())));
         }
 
         // Fetch joined associations if specified
@@ -545,7 +551,7 @@ public final class NitriteQueryExecutor {
      * @param nq the nitrite prepared query
      * @return optional containing the number of updated entities
      */
-    public Optional<Number> executeUpdate(@NonNull PreparedQuery<?, Number> q, NitritePreparedQuery<?, Number> nq) {
+    public Optional<Number> executeUpdate(@NonNull PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq) {
         Object[] jsonParams = buildJsonParameterValues(nq);
         Map<String, Object> namedParameters = buildNamedParameterValues(nq);
 
@@ -599,7 +605,7 @@ public final class NitriteQueryExecutor {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> buildUpdateOperations(NitritePreparedQuery<?, Number> nq, Object[] jsonParams) {
+    private Map<String, Object> buildUpdateOperations(NitritePreparedQuery<?, ?> nq, Object[] jsonParams) {
         Map<String, Object> updateOperations = new LinkedHashMap<>();
         if (nq.getUpdateMap() != null) {
             updateOperations.putAll(nq.getUpdateMap());
@@ -625,7 +631,7 @@ public final class NitriteQueryExecutor {
         return updateOperations;
     }
 
-    private Map<String, Object> extractGeneratedUpdate(NitritePreparedQuery<?, Number> nq, Object[] jsonParams) {
+    private Map<String, Object> extractGeneratedUpdate(NitritePreparedQuery<?, ?> nq, Object[] jsonParams) {
         return generatedQueryParser.parseUpdate(nq.getQuery(), entityFactory.apply(nq.getRootEntity()), jsonParams);
     }
 

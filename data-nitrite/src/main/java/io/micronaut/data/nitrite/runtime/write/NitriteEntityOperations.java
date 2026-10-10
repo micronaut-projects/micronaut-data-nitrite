@@ -31,7 +31,6 @@ import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMeta;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
-import io.micronaut.data.runtime.event.DefaultEntityEventContext;
 import io.micronaut.data.runtime.operations.internal.AbstractSyncEntityOperations;
 import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations;
 import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper;
@@ -42,9 +41,8 @@ import org.dizitart.no2.filters.Filter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 
 /**
  * Internal entity operations for Nitrite with automatic event firing and version handling.
@@ -83,6 +81,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
     private final ObjectRepositoryWriter<T> repositoryWriter;
     private final NitriteEntityMapper entityMapper;
     private final NitriteOperationsHelper helper;
+    private final SyncCascadeOperationsHelper<NitriteOperationContext> cascadeHelper;
     private OperationType operationType;
     private @Nullable Object preVersionValue;
     private long affectedCount;
@@ -109,6 +108,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
      * @param conversionService the conversion service
      * @param entityMapper the entity mapper
      * @param helper the operations helper
+     * @param cascadeHelper the cascade operations helper
      * @param entity the entity to operate on
      * @param operationType the operation type
      */
@@ -120,12 +120,14 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             ConversionService conversionService,
             NitriteEntityMapper entityMapper,
             NitriteOperationsHelper helper,
+            SyncCascadeOperationsHelper<NitriteOperationContext> cascadeHelper,
             T entity,
             OperationType operationType) {
         super(ctx, cascadeOperations, entityEventListener, persistentEntity, conversionService, entity, operationType == OperationType.INSERT);
         this.entityMapper = entityMapper;
         this.repositoryWriter = new ObjectRepositoryWriter<>(entityMapper, persistentEntity);
         this.helper = helper;
+        this.cascadeHelper = cascadeHelper;
         this.collection = helper.getCollection(persistentEntity.getIntrospection().getBeanType());
         this.operationType = operationType;
     }
@@ -343,41 +345,51 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void persistNewCascadeChildren(NitriteEntityMeta<T> meta) {
         for (RuntimeAssociation<T> assoc : meta.cascadeProps()) {
-            RuntimePersistentEntity<Object> associatedEntity =
-                (RuntimePersistentEntity<Object>) assoc.getAssociatedEntity();
-            if (!associatedEntity.hasIdentity() || associatedEntity.hasCompositeIdentity()) {
-                continue;
+            persistNewCascadeChildren(assoc, assoc.getAssociatedEntity());
+        }
+    }
+
+    private <A> void persistNewCascadeChildren(
+            RuntimeAssociation<T> assoc,
+            RuntimePersistentEntity<A> associatedEntity) {
+        if (!associatedEntity.hasIdentity() || associatedEntity.hasCompositeIdentity()) {
+            return;
+        }
+        RuntimePersistentProperty<A> associatedId = associatedEntity.getIdentity();
+        BeanProperty<A, Object> backRefProperty = null;
+        String mappedBy = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
+        if (mappedBy != null) {
+            RuntimePersistentProperty<A> backProp = associatedEntity.getPropertyByName(mappedBy);
+            if (backProp != null) {
+                backRefProperty = backProp.getProperty();
             }
-            RuntimePersistentProperty<Object> associatedId = associatedEntity.getIdentity();
-            BeanProperty<Object, Object> backRefProperty = null;
-            String mappedBy = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
-            if (mappedBy != null) {
-                RuntimePersistentProperty<?> backProp = associatedEntity.getPropertyByName(mappedBy);
-                if (backProp != null) {
-                    backRefProperty = (BeanProperty<Object, Object>) backProp.getProperty();
-                }
+        }
+        Object value = assoc.getProperty().get(entity);
+        if (value instanceof Iterable<?> iterable) {
+            for (Object rawChild : iterable) {
+                persistNewCascadeChild(rawChild, associatedEntity, associatedId, backRefProperty);
             }
-            Object value = assoc.getProperty().get(entity);
-            if (value instanceof Iterable<?> iterable) {
-                for (Object child : iterable) {
-                    if (child != null && backRefProperty != null && backRefProperty.get(child) == null) {
-                        backRefProperty.set(child, entity);
-                    }
-                    if (child != null && associatedId.getProperty().get(child) == null) {
-                        ((SyncCascadeOperationsHelper<NitriteOperationContext>) helper).persistOne(ctx, child, associatedEntity);
-                    }
-                }
-            } else if (value != null) {
-                if (backRefProperty != null && backRefProperty.get(value) == null) {
-                    backRefProperty.set(value, entity);
-                }
-                if (associatedId.getProperty().get(value) == null) {
-                    ((SyncCascadeOperationsHelper<NitriteOperationContext>) helper).persistOne(ctx, value, associatedEntity);
-                }
-            }
+        } else {
+            persistNewCascadeChild(value, associatedEntity, associatedId, backRefProperty);
+        }
+    }
+
+    private <A> void persistNewCascadeChild(
+            @Nullable Object rawChild,
+            RuntimePersistentEntity<A> associatedEntity,
+            RuntimePersistentProperty<A> associatedId,
+            @Nullable BeanProperty<A, Object> backRefProperty) {
+        if (rawChild == null) {
+            return;
+        }
+        A child = associatedEntity.getIntrospection().getBeanType().cast(rawChild);
+        if (backRefProperty != null && backRefProperty.get(child) == null) {
+            backRefProperty.set(child, entity);
+        }
+        if (associatedId.getProperty().get(child) == null) {
+            cascadeHelper.persistOne(ctx, child, associatedEntity);
         }
     }
 
@@ -408,18 +420,29 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             if (value instanceof Iterable<?> iterable) {
                 // No ArrayList copy needed - persistBatch accepts Iterable directly
                 if (iterable.iterator().hasNext()) {
-                    @SuppressWarnings("unchecked")
-                    Iterable<Object> iterableObjects = (Iterable<Object>) iterable;
-                    ((SyncCascadeOperationsHelper<NitriteOperationContext>) helper).persistBatch(ctx, iterableObjects, (RuntimePersistentEntity<Object>) assoc.getAssociatedEntity(), x -> false);
+                    persistBatch(iterable, assoc.getAssociatedEntity());
                 }
             } else if (value != null) {
-                ((SyncCascadeOperationsHelper<NitriteOperationContext>) helper).persistOne(ctx, value, (RuntimePersistentEntity<Object>) assoc.getAssociatedEntity());
+                persistOne(value, assoc.getAssociatedEntity());
             }
         }
 
         boolean result = super.triggerPrePersist();
         LOG.debug("triggerPrePersist: result={}", result);
         return result;
+    }
+
+    private <A> void persistBatch(Iterable<?> values, RuntimePersistentEntity<A> associatedEntity) {
+        Class<A> type = associatedEntity.getIntrospection().getBeanType();
+        Iterable<A> typedValues = () -> StreamSupport.stream(values.spliterator(), false)
+            .map(type::cast)
+            .iterator();
+        cascadeHelper.persistBatch(ctx, typedValues, associatedEntity, ignored -> false);
+    }
+
+    private <A> void persistOne(Object value, RuntimePersistentEntity<A> associatedEntity) {
+        A typedValue = associatedEntity.getIntrospection().getBeanType().cast(value);
+        cascadeHelper.persistOne(ctx, typedValue, associatedEntity);
     }
 
     @Override
@@ -434,25 +457,6 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         if ((operationType == OperationType.UPDATE || operationType == OperationType.DELETE) && triggerMeta.versionProp() != null) {
             preVersionValue = triggerMeta.versionProp().getProperty().get(entity);
         }
-        final DefaultEntityEventContext<T> event = new DefaultEntityEventContext<>(persistentEntity, entity);
-        boolean vetoed = !fn.apply((EntityEventContext<Object>) event);
-        if (vetoed) {
-            return true;
-        }
-        T newEntity = event.getEntity();
-        if (!Objects.equals(entity, newEntity)) {
-            entity = newEntity;
-        }
-        return false;
-    }
-
-    @Override
-    protected void triggerPost(Consumer<EntityEventContext<Object>> fn) {
-        final DefaultEntityEventContext<T> event = new DefaultEntityEventContext<>(persistentEntity, entity);
-        fn.accept((EntityEventContext<Object>) event);
-        T newEntity = event.getEntity();
-        if (!Objects.equals(entity, newEntity)) {
-            entity = newEntity;
-        }
+        return super.triggerPre(fn);
     }
 }
