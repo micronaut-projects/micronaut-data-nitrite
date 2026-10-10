@@ -204,7 +204,11 @@ The spatial module enables:
 IMPORTANT: With Nitrite 5.4.0, spatial-index queries on a reopened MVStore file can fail with
 `ClassCastException` (`DefaultSpatial` to `MVSpatialKey`) inside the upstream adapter. Geometry
 values themselves can be read after reopening. Persistent spatial-index queries on MVStore
-require an upstream adapter fix; the in-memory spatial verification does not cover that case.
+require an adapter release containing the persisted-key fix; the in-memory spatial verification
+does not cover that case. When verifying an adapter containing the fix, add
+`-PverifySpatialIndexReopen=true` to the dedicated JVM or native verification command to exercise
+persisted spatial queries, updates and deletes. This regression is opt-in while the BOM pins the
+affected 5.4.0 release.
 
 The module is loaded automatically when it is on the classpath and is simply absent when it is not. A module that is present but cannot be initialized fails at startup rather than being skipped, so spatial indexes and filters are never silently unavailable.
 

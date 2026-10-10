@@ -1,6 +1,10 @@
 {
   "reflection": [
     {
+      "type": "org.dizitart.no2.index.BoundingBox",
+      "serializable": true
+    },
+    {
       "type": "org.locationtech.jts.geom.Coordinate",
       "serializable": true
     },
