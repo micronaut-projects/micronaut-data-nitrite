@@ -22,9 +22,7 @@ dependencies {
 
     implementation projects.micronautDataNitrite
     implementation mnKotlin.micronaut.kotlin.runtime
-    implementation(libs.nitrite.spatial) {
-        exclude group: "tools.jackson.core", module: "jackson-databind"
-    }
+    implementation projects.micronautDataNitriteSpatial
     implementation mnSql.jakarta.persistence.api
 
     runtimeOnly mnLogging.logback.classic

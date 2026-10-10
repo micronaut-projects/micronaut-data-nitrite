@@ -12,7 +12,7 @@ dependencies {
 
     testImplementation libs.micronaut.jakarta.data.support.tck
     testImplementation projects.micronautDataNitrite
-    testImplementation libs.jakarta.data.api
+    testImplementation libs.managed.jakarta.data.api
     testImplementation libs.jakarta.data.tck
     testImplementation libs.jakarta.persistence.tck.api
     testImplementation libs.apiguardian.api

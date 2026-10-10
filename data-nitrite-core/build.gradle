@@ -1,0 +1,28 @@
+plugins {
+    id "io.micronaut.build.internal.data-nitrite-module"
+}
+
+dependencies {
+    annotationProcessor libs.micronaut.data.document.processor
+    annotationProcessor mn.micronaut.inject.java
+    annotationProcessor mn.micronaut.graal
+    annotationProcessor libs.micronaut.docs
+
+    api libs.micronaut.data.runtime
+    api libs.micronaut.data.document.model
+    api libs.micronaut.data.connection
+
+    // The Nitrite BOM manages the version of every org.dizitart artifact. Configurations that do
+    // not extend `api` need it imported explicitly, otherwise the versionless dependencies below
+    // cannot be resolved.
+    api platform(libs.boms.nitrite)
+    compileOnly platform(libs.boms.nitrite)
+
+    api libs.nitrite
+    api libs.managed.javax.persistence.api
+    compileOnly mnSql.jakarta.persistence.api
+
+    compileOnly mn.micronaut.inject.groovy
+
+    compileOnly libs.managed.jakarta.data.api
+}

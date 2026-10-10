@@ -4,3 +4,6 @@
 - .rsync-filter
 - template-cleanup.yml
 - skills-validation.yml
+
+# Repository-owned verification; preserve it during template sync.
+- nitrite-verification.yml

@@ -23,6 +23,6 @@ If you need to mark the current transaction rollback-only after some condition, 
 
 === Entity Events
 
-Nitrite supports entity lifecycle events (see <<entityEvents, Entity Events>>). Event callbacks such as `@PrePersist`, `@PostPersist`, `@PreUpdate`, `@PostUpdate`, `@PreRemove`, and `@PostRemove` are triggered during transactional operations.
+Nitrite supports entity lifecycle events (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#entityEvents[Entity Events]). Event callbacks such as `@PrePersist`, `@PostPersist`, `@PreUpdate`, `@PostUpdate`, `@PreRemove`, and `@PostRemove` are triggered during transactional operations.
 
 NOTE: When cascade operations are used, child entity events are triggered before parent entity events (children before parent for cascade operations).

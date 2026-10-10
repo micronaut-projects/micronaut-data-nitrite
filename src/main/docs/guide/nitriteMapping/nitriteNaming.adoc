@@ -25,26 +25,26 @@ Nitrite supports common Java value types including enums, Java time values, `Big
 
 snippet::example.ExampleEvent[project-base="doc-examples/nitrite-example", source="main", tags="event-type-mapping"]
 
-<1> Enum values persist as their name string
-<2> Java time values (`LocalDate`, `LocalDateTime`, `Instant`) are normalized for stable storage and querying
-<3> `BigDecimal` preserves precision
-<4> Byte arrays store binary data directly
-<5> Lists persist as JSON arrays
-<6> Maps support both simple values and nested embeddable/introspected values
-<7> `Optional`-wrapped values unwrap transparently
-<8> Embedded objects are inlined in the owning document
+* Enum values persist as their name string
+* Java time values (`LocalDate`, `LocalDateTime`, `Instant`) are normalized for stable storage and querying
+* `BigDecimal` preserves precision
+* Byte arrays store binary data directly
+* Lists persist as JSON arrays
+* Maps support both simple values and nested embeddable/introspected values
+* `Optional`-wrapped values unwrap transparently
+* Embedded objects are inlined in the owning document
 
 The following executable example saves and reloads an entity using those types:
 
 snippet::example.ExampleEventRepositorySpec[project-base="doc-examples/nitrite-example", source="test", tags="type-mapping-usage"]
 
-<1> Enum round-trips by name
-<2> Date/time values round-trip through their normalized storage representation
-<3> `BigDecimal` precision is preserved
-<4> Byte arrays round-trip exactly
-<5> Maps of simple and nested introspected values round-trip
-<6> `Optional`-wrapped values round-trip and unwrap transparently
-<7> Embedded objects round-trip inline
+* Enum round-trips by name
+* Date/time values round-trip through their normalized storage representation
+* `BigDecimal` precision is preserved
+* Byte arrays round-trip exactly
+* Maps of simple and nested introspected values round-trip
+* `Optional`-wrapped values round-trip and unwrap transparently
+* Embedded objects round-trip inline
 
 == Example Entity
 

@@ -58,41 +58,16 @@ configurations {
 }
 
 dependencies {
-    components {
-        withModule("org.dizitart:nitrite-spatial") {
-            allVariants {
-                withDependencies {
-                    removeAll { it.group == "tools.jackson.core" && it.name == "jackson-databind" }
-                }
-            }
-        }
-    }
 
-    annotationProcessor libs.micronaut.data.document.processor
-    annotationProcessor mn.micronaut.inject.java
-    annotationProcessor mn.micronaut.graal
-    annotationProcessor libs.micronaut.docs
 
-    api libs.micronaut.data.runtime
-    api libs.micronaut.data.document.model
-    api libs.micronaut.data.connection
+    api projects.micronautDataNitriteCore
+    api projects.micronautDataNitriteMvstore
 
-    // The Nitrite BOM manages the version of every org.dizitart artifact. Configurations that do
-    // not extend `api` need it imported explicitly, otherwise the versionless dependencies below
-    // cannot be resolved.
-    api platform(libs.nitrite.bom)
-    compileOnly platform(libs.nitrite.bom)
-
-    api libs.nitrite
-    api libs.nitrite.mvstore.adapter
-    compileOnly libs.nitrite.rocksdb.adapter
-    compileOnly libs.nitrite.spatial
-    api libs.managed.javax.persistence.api
+    // Compile-only APIs remain available to the compatibility artifact's test sources.
     compileOnly mnSql.jakarta.persistence.api
-
+    compileOnly libs.managed.jakarta.data.api
     compileOnly mn.micronaut.inject.groovy
 
-    compileOnly libs.jakarta.data.api
     testAnnotationProcessor libs.micronaut.data.document.processor
     testAnnotationProcessor projects.micronautDataNitrite
     testAnnotationProcessor mn.micronaut.inject.java
@@ -109,13 +84,13 @@ dependencies {
     testImplementation mnTest.micronaut.test.spock
 
     // Optional dependency tests - ROCKSDB adapter (only for rocksDbPresentTest source set)
-    rocksDbPresentTestRuntimeOnly platform(libs.nitrite.bom)
-    rocksDbPresentTestRuntimeOnly libs.nitrite.rocksdb.adapter
+    rocksDbPresentTestRuntimeOnly platform(libs.boms.nitrite)
+    rocksDbPresentTestRuntimeOnly projects.micronautDataNitriteRocksdb
     // Optional dependency tests - Spatial module (only for spatialPresentTest source set)
-    spatialPresentTestCompileOnly platform(libs.nitrite.bom)
-    spatialPresentTestRuntimeOnly platform(libs.nitrite.bom)
-    spatialPresentTestCompileOnly libs.nitrite.spatial
-    spatialPresentTestRuntimeOnly libs.nitrite.spatial
+    spatialPresentTestCompileOnly platform(libs.boms.nitrite)
+    spatialPresentTestRuntimeOnly platform(libs.boms.nitrite)
+    spatialPresentTestCompileOnly projects.micronautDataNitriteSpatial
+    spatialPresentTestRuntimeOnly projects.micronautDataNitriteSpatial
     spatialPresentTestAnnotationProcessor projects.micronautDataNitrite
 
     // No micronautDataNitrite here by design - see the generatedQueryTest source set.

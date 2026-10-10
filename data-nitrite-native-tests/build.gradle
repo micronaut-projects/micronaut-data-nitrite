@@ -1,0 +1,70 @@
+plugins {
+    id "java"
+    id "io.micronaut.application"
+}
+
+// This project is verification only: it does not apply the publishing/module conventions.
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    testRuntime "junit5"
+}
+
+def backend = providers.gradleProperty('nativeBackend').getOrElse('all')
+def backends = ['all', 'in-memory', 'mvstore', 'rocksdb', 'spatial']
+if (!backends.contains(backend)) {
+    throw new GradleException("nativeBackend must be one of ${backends}; got '${backend}'")
+}
+
+if (backend in ['all', 'spatial']) {
+    sourceSets.test.java.srcDir 'src/spatialTest/java'
+}
+
+dependencies {
+    testAnnotationProcessor libs.micronaut.data.document.processor
+    testAnnotationProcessor projects.micronautDataNitriteCore
+    testAnnotationProcessor mn.micronaut.inject.java
+    testAnnotationProcessor mn.micronaut.graal
+    testAnnotationProcessor mnLogging.logback.classic
+    testImplementation projects.micronautDataNitriteCore
+    testImplementation mnSql.jakarta.persistence.api
+    testRuntimeOnly mnLogging.logback.classic
+    if (backend in ['all', 'mvstore']) {
+        testRuntimeOnly projects.micronautDataNitriteMvstore
+    }
+    if (backend in ['all', 'rocksdb']) {
+        testRuntimeOnly projects.micronautDataNitriteRocksdb
+    }
+    if (backend in ['all', 'spatial']) {
+        testImplementation projects.micronautDataNitriteSpatial
+        testRuntimeOnly mnSerde.micronaut.serde.jackson
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty 'nitrite.native.backend', backend
+    systemProperty 'micronaut.test.resources.enabled', 'false'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+graalvmNative {
+    toolchainDetection = false
+    metadataRepository {
+        enabled = true
+    }
+    binaries {
+        test {
+            buildArgs.add('--enable-native-access=ALL-UNNAMED')
+            runtimeArgs.add('-Dnitrite.native.backend=' + backend)
+            runtimeArgs.add('-Dmicronaut.test.resources.enabled=false')
+        }
+    }
+}
+
+tasks.register('nativeCheck') {
+    group = 'verification'
+    description = 'Compile and execute the dedicated Nitrite tests in a native process'
+    dependsOn tasks.named('nativeTest')
+}
+
+// Ordinary check always exercises this project on the JVM. Native execution is explicit.

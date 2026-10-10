@@ -5,7 +5,7 @@ Nitrite datasources are bound from `micronaut.nitrite.*` properties. Each dataso
 
 The following settings are supported for each datasource:
 
-- `db-path`: Path to the database file. If not provided, an in-memory database is created.
+- `db-path`: Path to the database file. `MVSTORE` without a path uses pure in-memory storage; `ROCKSDB` requires a path. `IN_MEMORY` ignores the path.
 - `storage-mode`: The storage engine to use. Supported values are:
     * `MVSTORE`: (Default) MVStore-backed persistent database.
     * `IN_MEMORY`: Pure in-memory database (equivalent to leaving `db-path` empty).
@@ -61,7 +61,7 @@ micronaut:
       create-indexes: true
 ----
 
-If no `micronaut.nitrite` configuration is present at all, an in-memory datasource named `default` is created implicitly, so a repository works without any configuration. If a datasource is configured but supplies no `db-path`, an in-memory database is used for it.
+If no `micronaut.nitrite` configuration is present at all, an in-memory datasource named `default` is created implicitly, so a repository works without any configuration. A configured `MVSTORE` datasource without a `db-path` also uses in-memory storage. `ROCKSDB` always requires a path.
 
 == Multiple Datasources
 
@@ -100,13 +100,13 @@ NitriteTransactionOperations auditTransactions =
 
 == Optional Modules
 
-Micronaut Data Nitrite supports optional Nitrite modules that provide additional functionality:
+Select the Micronaut integration modules described in <<nitriteQuickStart, Quick Start>>. Each brings core and its upstream Nitrite library transitively; the BOM aligns their versions.
 
 === ROCKSDB Storage Engine
 
-To use the `ROCKSDB` storage mode, add the Nitrite ROCKSDB adapter dependency:
+To use the `ROCKSDB` storage mode, add the Micronaut RocksDB integration dependency:
 
-dependency:org.dizitart:nitrite-rocksdb-adapter[scope="runtime"]
+dependency:io.micronaut.data:micronaut-data-nitrite-rocksdb[scope="implementation"]
 
 Then configure the storage mode:
 
@@ -119,17 +119,17 @@ micronaut:
       storage-mode: ROCKSDB
 ----
 
-`ROCKSDB` requires a `db-path`; unlike `MVSTORE` it cannot fall back to in-memory storage, so a missing path fails at startup. Configuring `ROCKSDB` without the adapter on the classpath also fails at startup, naming the missing adapter class.
+`ROCKSDB` requires a `db-path`; unlike `MVSTORE` it cannot fall back to in-memory storage, so a missing path fails at startup. Configuring `ROCKSDB` without `micronaut-data-nitrite-rocksdb` fails at startup and names the required integration. Adding that integration brings RocksDB JNI transitively. A persistent `MVSTORE` datasource similarly requires `micronaut-data-nitrite-mvstore`, already included by the default artifact.
 
 See the https://nitrite.dizitart.com/java-sdk/modules/store-modules/rocksdb/index.html[Nitrite ROCKSDB Adapter documentation] for more details.
 
 === Spatial Module
 
-To use spatial queries with Geometry types (points, polygons, etc.), add the Nitrite spatial module:
+To use spatial queries with Geometry types (points, polygons, etc.), add the Micronaut spatial integration:
 
-dependency:org.dizitart:nitrite-spatial[scope="runtime"]
+dependency:io.micronaut.data:micronaut-data-nitrite-spatial[scope="implementation"]
 
-Micronaut Data Nitrite serializes JTS Geometry values through its built-in Micronaut Serde codec; no Jackson JTS module is required.
+The integration brings core, Nitrite spatial and JTS transitively. It supplies the Micronaut Serde codec for Geometry values; no Jackson JTS module is required.
 
 The spatial module enables:
 
@@ -138,7 +138,7 @@ The spatial module enables:
 
 The module is loaded automatically when it is on the classpath and is simply absent when it is not. A module that is present but cannot be initialized fails at startup rather than being skipped, so spatial indexes and filters are never silently unavailable.
 
-See <<nitriteSpatial>> for detailed usage. See the https://nitrite.dizitart.com/java-sdk/modules/spatial/index.html[Nitrite Spatial Module documentation] and https://nitrite.dizitart.com/java-sdk/filter/index.html#spatial-filters[Spatial Filters documentation] for more details.
+See <<nitriteSpatial, Spatial Queries>> for detailed usage. See the https://nitrite.dizitart.com/java-sdk/modules/spatial/index.html[Nitrite Spatial Module documentation] and https://nitrite.dizitart.com/java-sdk/filter/index.html#spatial-filters[Spatial Filters documentation] for more details.
 
 === Object Mapping
 

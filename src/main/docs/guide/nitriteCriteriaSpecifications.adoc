@@ -1,5 +1,5 @@
 [[nitriteCriteriaSpecifications]]
-Micronaut Data Nitrite supports repositories that use the Jakarta Persistence Criteria API (see <<criteriaSpecifications, Shared Criteria API documentation>>).
+Micronaut Data Nitrite supports repositories that use the Jakarta Persistence Criteria API (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#criteriaSpecifications[Shared Criteria API documentation]).
 
 Nitrite executes Criteria queries by encoding the criteria model into a JSON filter document that is evaluated by the Nitrite runtime.
 

@@ -7,8 +7,8 @@ It is still a Nitrite-backed embedded store, not a MongoDB compatibility layer. 
 
 - Nitrite is not a BSON/driver-native query-document store like MongoDB.
 - MongoDB-specific features such as aggregation pipelines, BSON filters, and Mongo-only annotations are out of scope for this module.
-- Persistent storage engines other than the default MVStore (for example, RocksDB) require additional Nitrite adapter dependencies in your build configuration.
-- If you need full MongoDB feature parity, use Micronaut Data MongoDB instead (see <<mongo>>).
+- Persistent storage engines other than the default MVStore (for example, RocksDB) require the corresponding Micronaut Nitrite integration dependencies in your build configuration.
+- If you need full MongoDB feature parity, use Micronaut Data MongoDB instead (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#mongo[Micronaut Data MongoDB]).
 
 == Feature Overview
 
@@ -22,7 +22,7 @@ Micronaut Data Nitrite supports the following features for embedded document sto
 * <<nitriteTransactions, Transaction management>> with programmatic transactions
 * <<nitriteConfiguration, Multiple datasources>>, each with its own storage mode
 * <<nitriteSpatial, Spatial queries>> with Geometry types (requires spatial module)
-* Entity lifecycle events (see <<entityEvents, Shared Entity Events>>)
+* Entity lifecycle events (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#entityEvents[Shared Entity Events])
 
 For details and examples, see the respective sections above.
 

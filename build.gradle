@@ -3,6 +3,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 plugins {
     id "io.micronaut.build.internal.parent"
     id "io.micronaut.minimal.application" apply false
+    id "io.micronaut.application" apply false
     id "org.jetbrains.kotlin.jvm" apply false
     id "org.jetbrains.kotlin.kapt" apply false
     id "org.jetbrains.kotlin.plugin.allopen" apply false
@@ -18,7 +19,7 @@ repositories {
 
 project(':micronaut-data-nitrite').plugins.withId('java') {
     tasks.named('javadoc', Javadoc) {
-        classpath += project(':micronaut-data-nitrite').sourceSets.main.compileClasspath
+        classpath += project(':micronaut-data-nitrite-core').sourceSets.main.compileClasspath
     }
 }
 
@@ -29,11 +30,14 @@ tasks.named('javadoc', Javadoc) {
 tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
-project(':micronaut-data-nitrite') {
-    def generatedSources = project.layout.buildDirectory.dir('generated').get().asFile.toPath()
-    tasks.withType(Checkstyle).configureEach {
-        doFirst {
-            setSource(source.files.findAll { !it.toPath().startsWith(generatedSources) })
+subprojects { subproject ->
+    plugins.withId('java') {
+        def generatedSources = subproject.layout.buildDirectory.dir('generated').get().asFile.toPath()
+        tasks.withType(Checkstyle).configureEach {
+            onlyIf { source.files.any { !it.toPath().startsWith(generatedSources) } }
+            doFirst {
+                setSource(source.files.findAll { !it.toPath().startsWith(generatedSources) })
+            }
         }
     }
 }

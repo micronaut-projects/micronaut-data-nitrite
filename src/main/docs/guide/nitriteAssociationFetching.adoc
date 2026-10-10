@@ -63,8 +63,8 @@ The `@Join` annotation triggers a batch fetch that:
 
 snippet::example.BookRepositoryExample[project-base="doc-examples/nitrite-example", source="main", tags="many-to-many-fetch"]
 
-<1> `@Join("students")` on `findAll()` triggers batch fetching
-<2> Students collection is already populated, no additional queries
+* `@Join("students")` on `findAll()` triggers batch fetching
+* Students collection is already populated, no additional queries
 
 NOTE: For bidirectional `MANY_TO_MANY` associations, persist relationship changes through the owning side. Fetching can still be declared on repository methods for either side when the association metadata identifies the owning side.
 
@@ -121,4 +121,4 @@ If the supplied `:value` parses as a `UUID`, the filter matches the stored forei
 
 snippet::example.WidgetOrderRepositorySpec[project-base="doc-examples/nitrite-example", source="test", tags="uuid-association-usage"]
 
-For more complex association fetching patterns, consider using the Criteria API (see <<nitriteCriteriaSpecifications>>).
+For more complex association fetching patterns, consider using the Criteria API (see <<nitriteCriteriaSpecifications, Repositories with Criteria API>>).

@@ -5,6 +5,7 @@ pluginManagement {
     }
     plugins {
         id 'io.micronaut.minimal.application' version '5.0.2'
+        id 'io.micronaut.application' version '5.0.2'
         id 'org.jetbrains.kotlin.jvm' version '2.4.20'
         id 'org.jetbrains.kotlin.kapt' version '2.4.20'
         id 'org.jetbrains.kotlin.plugin.allopen' version '2.4.20'
@@ -30,6 +31,11 @@ dependencyResolutionManagement {
 
 include 'data-nitrite'
 include 'data-nitrite-bom'
+include 'data-nitrite-core'
+include 'data-nitrite-mvstore'
+include 'data-nitrite-rocksdb'
+include 'data-nitrite-spatial'
+include 'data-nitrite-native-tests'
 if (providers.gradleProperty('includeDataTck').map { it.toBoolean() }.getOrElse(false)
     && file('jakarta-data-tck/nitrite').isDirectory()) {
     include 'jakarta-data-tck:nitrite'

@@ -20,7 +20,7 @@ micronaut = "5.2.12"
 micronaut-platform = "5.1.5"
 micronaut-docs = "3.0.0"
 micronaut-test = "5.1.1"
-micronaut-data = "5.2.2"
+managed-micronaut-data = "5.2.2"
 micronaut-kotlin = "5.1.0"
 micronaut-serde = "3.2.2"
 micronaut-sql = "7.2.0"
@@ -28,7 +28,7 @@ micronaut-testresources = "4.3.0"
 micronaut-validation = "5.2.0"
 groovy = "5.1.2"
 spock = "2.3-groovy-4.0"
-nitrite = "5.4.0"
+managed-nitrite = "5.4.0"
 apiguardian = "1.1.2"
 jakarta-persistence-tck = "4.0.0-M6"
 jackson-datatype-jts = "2.21.0"
@@ -43,41 +43,39 @@ managed-jakarta-data = "1.1.0-M4"
 # Core
 micronaut-core = { module = 'io.micronaut:micronaut-core-bom', version.ref = 'micronaut' }
 micronaut-test = { module = "io.micronaut.test:micronaut-test-bom", version.ref = "micronaut-test" }
-micronaut-data = { module = "io.micronaut.data:micronaut-data-bom", version.ref = "micronaut-data" }
 micronaut-kotlin = { module = "io.micronaut.kotlin:micronaut-kotlin-bom", version.ref = "micronaut-kotlin" }
 micronaut-serde = { module = "io.micronaut.serde:micronaut-serde-bom", version.ref = "micronaut-serde" }
 micronaut-sql = { module = "io.micronaut.sql:micronaut-sql-bom", version.ref = "micronaut-sql" }
 micronaut-testresources = { module = "io.micronaut.testresources:micronaut-test-resources-bom", version.ref = "micronaut-testresources" }
 micronaut-validation = { module = "io.micronaut.validation:micronaut-validation-bom", version.ref = "micronaut-validation" }
 micronaut-docs = { module = "io.micronaut.docs:micronaut-docs-asciidoc-config-props", version.ref = "micronaut-docs" }
-micronaut-data-document-processor = { module = "io.micronaut.data:micronaut-data-document-processor", version.ref = "micronaut-data" }
-micronaut-data-runtime = { module = "io.micronaut.data:micronaut-data-runtime", version.ref = "micronaut-data" }
-micronaut-data-document-model = { module = "io.micronaut.data:micronaut-data-document-model", version.ref = "micronaut-data" }
-micronaut-data-connection = { module = "io.micronaut.data:micronaut-data-connection", version.ref = "micronaut-data" }
-micronaut-data-tck = { module = "io.micronaut.data:micronaut-data-tck", version.ref = "micronaut-data" }
-micronaut-data-document-tck = { module = "io.micronaut.data:micronaut-data-document-tck", version.ref = "micronaut-data" }
-micronaut-jakarta-data-support-tck = { module = "io.micronaut.data:micronaut-jakarta-data-support-tck", version.ref = "micronaut-data" }
+micronaut-data-document-processor = { module = "io.micronaut.data:micronaut-data-document-processor", version.ref = "managed-micronaut-data" }
+micronaut-data-runtime = { module = "io.micronaut.data:micronaut-data-runtime", version.ref = "managed-micronaut-data" }
+micronaut-data-document-model = { module = "io.micronaut.data:micronaut-data-document-model", version.ref = "managed-micronaut-data" }
+micronaut-data-connection = { module = "io.micronaut.data:micronaut-data-connection", version.ref = "managed-micronaut-data" }
+micronaut-data-tck = { module = "io.micronaut.data:micronaut-data-tck", version.ref = "managed-micronaut-data" }
+micronaut-data-document-tck = { module = "io.micronaut.data:micronaut-data-document-tck", version.ref = "managed-micronaut-data" }
+micronaut-jakarta-data-support-tck = { module = "io.micronaut.data:micronaut-jakarta-data-support-tck", version.ref = "managed-micronaut-data" }
 jakarta-data-tck = { module = "jakarta.data:jakarta.data-tck", version.ref = "managed-jakarta-data" }
 jakarta-persistence-tck-api = { module = "jakarta.persistence:jakarta.persistence-api", version.ref = "jakarta-persistence-tck" }
 apiguardian-api = { module = "org.apiguardian:apiguardian-api", version.ref = "apiguardian" }
-micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor", version.ref = "micronaut-data" }
+micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor", version.ref = "managed-micronaut-data" }
 
 #
 # Managed dependencies appear in the BOM
 #
 # managed-somelib = { module = "group:artifact", version.ref = "managed-somelib" }
 managed-javax-persistence-api = { module = "javax.persistence:javax.persistence-api", version.ref = "managed-javax-persistence" }
-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.ref = "managed-jakarta-data" }
 managed-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.ref = "managed-jakarta-data" }
 
 #
 # Imported BOMs, also appearing in the generated BOM
 #
-# boms-somebom = { module = "com.foo:somebom", version.ref = "managed-somebom" }
+boms-micronaut-data = { module = "io.micronaut.data:micronaut-data-bom", version.ref = "managed-micronaut-data" }
+boms-nitrite = { module = "org.dizitart:nitrite-bom", version.ref = "managed-nitrite" }
 
 # Other libraries used by the project but non managed
 
-nitrite-bom = { module = "org.dizitart:nitrite-bom", version.ref = "nitrite" }
 nitrite = { module = "org.dizitart:nitrite" }
 nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter" }
 nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter" }

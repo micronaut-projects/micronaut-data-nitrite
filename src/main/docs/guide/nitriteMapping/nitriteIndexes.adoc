@@ -41,7 +41,7 @@ Nitrite-specific indexes can be declared with ann:data.nitrite.annotation.FullTe
 
 Use `@FullTextIndex` on string fields that should be queried with Nitrite's `$text` filter in JSON `@Query` methods.
 
-Spatial indexes are covered in <<nitriteSpatial>>.
+Spatial indexes are covered in <<nitriteSpatial, Spatial Queries>>.
 
 === Indexes and Sorting
 
@@ -59,7 +59,7 @@ dropped. Ordering, null placement and tie-breaking are unaffected.
 The default `AUTO` strategy uses this cursor-side behavior for MVSTORE and in-memory storage. It
 keeps the bound on the Nitrite find for ROCKSDB, whose bounded indexed path is faster in the
 benchmark. Set `sorted-read-strategy` to `CURSOR` or `DATABASE` to force one strategy for all
-storage modes; see <<nitriteConfiguration>>.
+storage modes; see <<nitriteConfiguration, Configuration>>.
 
 For a single-result read this changes nothing a caller can observe: a `Top`/`First` query returns
 the first record, and any other single-result query still reads a second record to detect a

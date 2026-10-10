@@ -21,9 +21,7 @@ dependencies {
     compileOnly mnLogging.logback.classic
 
     implementation projects.micronautDataNitrite
-    implementation(libs.nitrite.spatial) {
-        exclude group: "tools.jackson.core", module: "jackson-databind"
-    }
+    implementation projects.micronautDataNitriteSpatial
     implementation mnSql.jakarta.persistence.api
 
     testCompileOnly mn.micronaut.inject.groovy

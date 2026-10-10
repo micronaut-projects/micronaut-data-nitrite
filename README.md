@@ -19,6 +19,27 @@ See the [Snapshot Documentation](https://micronaut-projects.github.io/micronaut-
 
 Examples can be found in the [examples](https://github.com/micronaut-projects/micronaut-data-nitrite/tree/master/examples) directory. -->
 
+## Modules and verification
+
+`micronaut-data-nitrite` includes core repository support and the MVStore integration. Applications
+can instead select `micronaut-data-nitrite-core` with `micronaut-data-nitrite-rocksdb`,
+`micronaut-data-nitrite-mvstore`, or `micronaut-data-nitrite-spatial`. Import
+`micronaut-data-nitrite-bom` for aligned versions. Storage configuration properties are unchanged.
+
+The nonpublished `data-nitrite-native-tests` project exercises generated repositories, queries,
+transaction rollback, persistent store reopening, spatial indexes, and geometry serialization.
+`check` includes its JVM tests; native compilation and execution are explicit:
+
+```sh
+jenv exec ./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
+```
+
+The default test classpath includes all integrations. To verify an isolated classpath, append
+`-PnativeBackend=in-memory`, `mvstore`, `rocksdb`, or `spatial`. Unselected backend tests are
+skipped; the in-memory and provider-selection checks still run. These focused native tests
+complement the existing JVM repository and TCK suites. The standalone examples retain their
+minimal application plugins.
+
 ## Snapshots and Releases
 
 Snapshots are automatically published to [Sonatype Snapshots](https://s01.oss.sonatype.org/content/repositories/snapshots/io/micronaut/) using [GitHub Actions](https://github.com/micronaut-projects/micronaut-data-nitrite/actions).

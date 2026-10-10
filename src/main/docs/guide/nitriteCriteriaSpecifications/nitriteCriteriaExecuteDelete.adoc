@@ -1,5 +1,5 @@
 [[nitriteCriteriaExecuteDelete]]
-This section complements the shared Criteria API guide (see <<criteriaExecuteDelete, Deleting>>).
+This section complements the shared Criteria API guide (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#criteriaExecuteDelete[Deleting]).
 
 With Nitrite, criteria deletes are encoded as JSON filters and executed as remove operations against Nitrite collections.
 
