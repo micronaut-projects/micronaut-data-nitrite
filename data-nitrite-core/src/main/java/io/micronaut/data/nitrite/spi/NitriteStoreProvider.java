@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.spi;
 
+import io.micronaut.context.BeanLocator;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import org.dizitart.no2.common.module.NitriteModule;
 
@@ -37,4 +38,16 @@ public interface NitriteStoreProvider {
      * @return the configured module
      */
     NitriteModule createModule(NitriteConfiguration configuration, File file);
+
+    /**
+     * Creates a module with application-provided builder customization.
+     * Existing providers retain their two-argument implementation by default.
+     * @param configuration datasource settings
+     * @param file prepared database path
+     * @param beanLocator application beans
+     * @return the configured module
+     */
+    default NitriteModule createModule(NitriteConfiguration configuration, File file, BeanLocator beanLocator) {
+        return createModule(configuration, file);
+    }
 }

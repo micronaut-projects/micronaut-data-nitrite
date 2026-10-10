@@ -15,12 +15,15 @@
  */
 package io.micronaut.data.nitrite.rocksdb;
 
+import io.micronaut.context.BeanLocator;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.spi.NitriteStoreProvider;
 import org.dizitart.no2.common.module.NitriteModule;
 import org.dizitart.no2.rocksdb.RocksDBModule;
+import org.dizitart.no2.rocksdb.RocksDBModuleBuilder;
 
 import java.io.File;
+import java.util.Comparator;
 
 /**
  * RocksDB integration for a persistent datasource.
@@ -38,5 +41,13 @@ public final class RocksDbProvider implements NitriteStoreProvider {
     @Override
     public NitriteModule createModule(NitriteConfiguration configuration, File file) {
         return RocksDBModule.withConfig().filePath(file).build();
+    }
+    @Override
+    public NitriteModule createModule(NitriteConfiguration configuration, File file, BeanLocator beanLocator) {
+        RocksDBModuleBuilder builder = RocksDBModule.withConfig().filePath(file);
+        beanLocator.getBeansOfType(RocksDbModuleCustomizer.class).stream()
+            .sorted(Comparator.comparingInt(RocksDbModuleCustomizer::getOrder))
+            .forEach(customizer -> customizer.customize(configuration, builder));
+        return builder.build();
     }
 }

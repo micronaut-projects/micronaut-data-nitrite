@@ -19,15 +19,23 @@ The following settings are supported for each datasource:
 - `mvstore-page-split-size`: The MVStore page split size in bytes. Unset by default, which leaves the
 Nitrite adapter's own value in place. Only read when `storage-mode` is `MVSTORE`.
 +
-Nitrite 5.3.0 sets this to `16` bytes where its own javadoc documents 16 KB, so a leaf page splits as
-soon as it holds more than one entry and the cost of a write climbs with the size of the collection.
-Set it to `16384` to get the documented default. H2 clamps the value to
-`(cacheSize / cacheConcurrency) >> 4`, which makes 64 KB the practical ceiling, and an existing file
-keeps the page shape it was written with until those pages are rewritten.
+Nitrite 5.4.0 defaults to 16 KB (`16384` bytes). The explicit `16384` workaround for
+Nitrite 5.3.0 is no longer needed; an existing override remains valid. H2 clamps the value to
+`(cacheSize / cacheConcurrency) >> 4`. Existing pages keep their shape until rewritten.
 
 The remaining MVStore settings are unset by default and, like the one above, are read only for
 `MVSTORE`. An unset value leaves the adapter's own default in place:
 
+- `mvstore-retention-time`: Chunk retention time in milliseconds. Unset preserves H2's default
+of 45 seconds. Space reclamation waits for this window; close still compacts synchronously.
+- `mvstore-versions-to-keep`: Number of old versions retained. Unset preserves H2's default of five.
+Setting both retention and versions-to-keep to zero restores the earlier behaviour that can leave
+an unreadable store.
+- `mvstore-allowed-classes`: Additional semicolon-separated JEP 290 patterns for application
+classes stored as Java serialized values, for example `com.example.model.**`. Nitrite 5.4.0 allows
+Nitrite and JDK classes by default. The spatial integration adds `org.locationtech.jts.geom.**`
+when installed; application classes attached as geometry user data still need their own patterns.
+A process-wide `jdk.serialFilter` can still reject classes allowed here.
 - `mvstore-cache-size`: Read cache size in MB (adapter default: 16).
 - `mvstore-cache-concurrency`: Number of read cache segments (adapter default: 16). H2 clamps the
 page split size to `(cacheSize / cacheConcurrency) >> 4`, so this bounds `mvstore-page-split-size`.
@@ -62,6 +70,60 @@ micronaut:
 ----
 
 If no `micronaut.nitrite` configuration is present at all, an in-memory datasource named `default` is created implicitly, so a repository works without any configuration. A configured `MVSTORE` datasource without a `db-path` also uses in-memory storage. `ROCKSDB` always requires a path.
+
+=== Backend Builder Customization
+
+For settings that require Java objects, register a Micronaut bean implementing
+`MvStoreModuleCustomizer` from `micronaut-data-nitrite-mvstore` or `RocksDbModuleCustomizer`
+from `micronaut-data-nitrite-rocksdb`. The customizer receives the datasource configuration and
+its fresh upstream builder before the module is built. It runs only for a persistent datasource
+using that backend; `MVSTORE` without a path uses pure in-memory storage.
+
+Customizers run after datasource properties, in ascending `getOrder()` order (default: zero).
+Use distinct orders when customizers set the same option; later customizers override earlier ones.
+Each bean is invoked for every datasource of its backend. Check `configuration.getName()` to
+restrict it to one datasource:
+
+[source,java]
+----
+import io.micronaut.data.nitrite.conf.NitriteConfiguration;
+import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer;
+import jakarta.inject.Singleton;
+import org.dizitart.no2.mvstore.MVStoreModuleBuilder;
+
+@Singleton
+class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
+    @Override
+    public void customize(NitriteConfiguration configuration, MVStoreModuleBuilder builder) {
+        if ("audit".equals(configuration.getName())) {
+            builder.autoCommitBufferSize(4096);
+        }
+    }
+}
+----
+
+The MVStore hook exposes the entire upstream builder, including `fileStore` and store event
+listeners. The RocksDB hook exposes `Options`, `DBOptions`, `ColumnFamilyOptions`, custom object
+formatters and store event listeners. Keep supplied resources alive until the database closes;
+RocksDB closes the native options it uses. Customizing the deserialization patterns replaces the
+patterns assembled from datasource properties and spatial support, so preserve the geometry
+patterns when using spatial values.
+
+=== Nitrite 5.4.0 Upgrade Behaviour
+
+Custom Java serialized document values require the `mvstore-allowed-classes` setting when read
+from an MVStore file. Normal entity properties mapped to documents, maps and JDK values do not
+need an application allowlist. Values passed through without conversion, including values from
+custom converters or direct Nitrite collection access, may need one.
+
+Unique indexes migrate from lists of IDs to a single-ID layout on first access. Back up a database
+before upgrading if it may need to be opened by an earlier Nitrite release.
+
+`find()` and `getById()` return structurally copied documents. Change stored data through explicit
+updates; mutating a returned list, map, array, date or calendar does not persist a change. Unknown
+mutable value types, including JTS geometries, can still be shared. Update a geometry through a
+repository operation instead of mutating its coordinates in place. Each result and write now pays
+for the structural copy.
 
 == Multiple Datasources
 

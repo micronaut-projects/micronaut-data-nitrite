@@ -15,14 +15,19 @@
  */
 package io.micronaut.data.nitrite.mvstore;
 
+import io.micronaut.context.BeanLocator;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.spi.NitriteStoreProvider;
+import io.micronaut.data.nitrite.spi.NitriteProviders;
+import io.micronaut.data.nitrite.spi.NitriteSpatialSupport;
 import org.dizitart.no2.common.module.NitriteModule;
 import org.dizitart.no2.mvstore.MVStoreModule;
 import org.dizitart.no2.mvstore.MVStoreModuleBuilder;
 
 import java.io.File;
+import java.util.Comparator;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 /**
@@ -40,7 +45,33 @@ public final class MvStoreProvider implements NitriteStoreProvider {
 
   @Override
   public NitriteModule createModule(NitriteConfiguration config, File file) {
+    return configuredBuilder(config, file).build();
+  }
+
+  @Override
+  public NitriteModule createModule(NitriteConfiguration config, File file, BeanLocator beanLocator) {
+    MVStoreModuleBuilder mvStore = configuredBuilder(config, file);
+    beanLocator.getBeansOfType(MvStoreModuleCustomizer.class).stream()
+        .sorted(Comparator.comparingInt(MvStoreModuleCustomizer::getOrder))
+        .forEach(customizer -> customizer.customize(config, mvStore));
+    return mvStore.build();
+  }
+
+  private MVStoreModuleBuilder configuredBuilder(NitriteConfiguration config, File file) {
     MVStoreModuleBuilder mvStore = MVStoreModule.withConfig().filePath(file);
+    applyIfSet(config.getMvstoreRetentionTime(), mvStore::retentionTime);
+    applyIfSet(config.getMvstoreVersionsToKeep(), mvStore::versionsToKeep);
+    StringJoiner patterns = new StringJoiner(";");
+    NitriteProviders.load(NitriteSpatialSupport.class).stream()
+        .map(NitriteSpatialSupport::deserializationPatterns)
+        .filter(pattern -> !pattern.isEmpty()).forEach(patterns::add);
+    String configuredPatterns = config.getMvstoreAllowedClasses();
+    if (configuredPatterns != null && !configuredPatterns.isEmpty()) {
+      patterns.add(configuredPatterns);
+    }
+    if (patterns.length() > 0) {
+      mvStore.allowedClasses(patterns.toString());
+    }
     applyIfSet(config.getMvstorePageSplitSize(), mvStore::pageSplitSize);
     applyIfSet(config.getMvstoreCacheSize(), mvStore::cacheSize);
     applyIfSet(config.getMvstoreCacheConcurrency(), mvStore::cacheConcurrency);
@@ -55,7 +86,7 @@ public final class MvStoreProvider implements NitriteStoreProvider {
     if (encryptionKey != null) {
       mvStore.encryptionKey(encryptionKey.toCharArray());
     }
-    return mvStore.build();
+    return mvStore;
   }
 
   private static <V> void applyIfSet(@Nullable final V value, final Consumer<V> setter) {

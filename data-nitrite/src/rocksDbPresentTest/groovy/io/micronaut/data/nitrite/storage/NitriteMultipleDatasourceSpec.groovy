@@ -7,6 +7,12 @@ import io.micronaut.data.nitrite.operations.NitriteRepositoryOperations
 import io.micronaut.data.nitrite.repository.PrimaryDatasourceRepository
 import io.micronaut.data.nitrite.repository.SecondaryDatasourceRepository
 import io.micronaut.inject.qualifiers.Qualifiers
+import io.micronaut.data.nitrite.rocksdb.RocksDbModuleCustomizer
+import org.dizitart.no2.Nitrite
+import org.dizitart.no2.collection.Document
+import org.dizitart.no2.rocksdb.formatter.KryoObjectFormatter
+import org.dizitart.no2.store.events.StoreEventListener
+import org.rocksdb.Options
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -112,6 +118,46 @@ class NitriteMultipleDatasourceSpec extends Specification {
         "ROCKSDB"   | "ROCKSDB"
 
         run = "${primaryMode}-${secondaryMode}".toLowerCase()
+    }
+
+    void "a RocksDB customizer supplies options, a formatter and a listener for its datasource"() {
+        given:
+        def options = new Options().setCreateIfMissing(true).setWriteBufferSize(1024 * 1024)
+        def formatter = new KryoObjectFormatter()
+        StoreEventListener listener = { event -> } as StoreEventListener
+        def customized = []
+        def ctx = ApplicationContext.builder([
+                "micronaut.nitrite.primary.storage-mode": "ROCKSDB",
+                "micronaut.nitrite.primary.db-path": new File(tempDir, "custom-primary").absolutePath,
+                "micronaut.nitrite.secondary.storage-mode": "ROCKSDB",
+                "micronaut.nitrite.secondary.db-path": new File(tempDir, "custom-secondary").absolutePath
+        ]).build()
+        RocksDbModuleCustomizer customizer = { config, builder ->
+            customized.add(config.name)
+            if (config.name == "primary") {
+                builder.options(options).objectFormatter(formatter).addStoreEventListener(listener)
+            }
+        } as RocksDbModuleCustomizer
+        ctx.registerSingleton(RocksDbModuleCustomizer, customizer)
+        ctx.start()
+
+        when:
+        def primary = ctx.getBean(Nitrite, Qualifiers.byName("primary"))
+        def secondary = ctx.getBean(Nitrite, Qualifiers.byName("secondary"))
+        primary.getCollection("custom").insert(Document.createDocument("body", "saved"))
+
+        then:
+        primary.getCollection("custom").find().firstOrNull().get("body") == "saved"
+        primary.store.storeConfig.options().is(options)
+        primary.store.storeConfig.objectFormatter().is(formatter)
+        primary.store.storeConfig.eventListeners().contains(listener)
+        !secondary.store.storeConfig.objectFormatter().is(formatter)
+        !secondary.store.storeConfig.eventListeners().contains(listener)
+        customized.toSet() == ["primary", "secondary"].toSet()
+
+        cleanup:
+        ctx?.close()
+        options.close()
     }
 
     private static NitriteConfiguration configurationOf(ApplicationContext ctx, String name) {

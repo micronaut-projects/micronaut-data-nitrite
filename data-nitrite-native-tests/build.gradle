@@ -18,6 +18,12 @@ if (!backends.contains(backend)) {
 if (backend in ['all', 'spatial']) {
     sourceSets.test.java.srcDir 'src/spatialTest/java'
 }
+if (backend in ['all', 'mvstore']) {
+    sourceSets.test.java.srcDir 'src/mvstoreTest/java'
+}
+if (backend in ['all', 'rocksdb']) {
+    sourceSets.test.java.srcDir 'src/rocksdbTest/java'
+}
 
 dependencies {
     testAnnotationProcessor libs.micronaut.data.document.processor
@@ -29,10 +35,10 @@ dependencies {
     testImplementation mnSql.jakarta.persistence.api
     testRuntimeOnly mnLogging.logback.classic
     if (backend in ['all', 'mvstore']) {
-        testRuntimeOnly projects.micronautDataNitriteMvstore
+        testImplementation projects.micronautDataNitriteMvstore
     }
     if (backend in ['all', 'rocksdb']) {
-        testRuntimeOnly projects.micronautDataNitriteRocksdb
+        testImplementation projects.micronautDataNitriteRocksdb
     }
     if (backend in ['all', 'spatial']) {
         testImplementation projects.micronautDataNitriteSpatial

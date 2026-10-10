@@ -1,6 +1,10 @@
 package io.micronaut.data.nitrite.conf
 
 import io.micronaut.context.ApplicationContext
+import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
+import io.micronaut.inject.qualifiers.Qualifiers
+import org.dizitart.no2.mvstore.MVStoreModuleBuilder
+import org.dizitart.no2.exceptions.NitriteIOException
 import org.dizitart.no2.Nitrite
 import org.dizitart.no2.collection.Document
 import spock.lang.AutoCleanup
@@ -62,6 +66,9 @@ class NitriteConfigurationSpec extends Specification {
 
         then: "nothing is passed to the module builder"
         ctx.getBean(NitriteConfiguration).getMvstorePageSplitSize() == null
+        ctx.getBean(NitriteConfiguration).getMvstoreAllowedClasses() == null
+        ctx.getBean(NitriteConfiguration).getMvstoreRetentionTime() == null
+        ctx.getBean(NitriteConfiguration).getMvstoreVersionsToKeep() == null
     }
 
     void "every MVStore setting binds, and an unset one stays null"() {
@@ -69,6 +76,9 @@ class NitriteConfigurationSpec extends Specification {
         ctx = ApplicationContext.run([
             "micronaut.nitrite.default.storage-mode": "MVSTORE",
             "micronaut.nitrite.default.db-path": "/data/myapp.db",
+            "micronaut.nitrite.default.mvstore-allowed-classes": "com.example.model.**",
+            "micronaut.nitrite.default.mvstore-retention-time": 1000,
+            "micronaut.nitrite.default.mvstore-versions-to-keep": 3,
             "micronaut.nitrite.default.mvstore-cache-size": 64,
             "micronaut.nitrite.default.mvstore-cache-concurrency": 8,
             "micronaut.nitrite.default.mvstore-auto-commit": false,
@@ -82,6 +92,9 @@ class NitriteConfigurationSpec extends Specification {
         def config = ctx.getBean(NitriteConfiguration)
 
         expect:
+        config.getMvstoreAllowedClasses() == "com.example.model.**"
+        config.getMvstoreRetentionTime() == 1000
+        config.getMvstoreVersionsToKeep() == 3
         config.getMvstoreCacheSize() == 64
         config.getMvstoreCacheConcurrency() == 8
         !config.getMvstoreAutoCommit()
@@ -238,6 +251,110 @@ class NitriteConfigurationSpec extends Specification {
 
         expect:
         ctx.getBeansOfType(NitriteConfiguration)*.name.findAll { it in ["primary", "audit"] }.sort() == ["audit", "primary"]
+    }
+
+    void "MVStore customizers run in order after properties and select a datasource by name"() {
+        given:
+        def directory = Files.createTempDirectory("nitrite-customizers")
+        def calls = []
+        ctx = ApplicationContext.builder([
+                "micronaut.nitrite.default.db-path": directory.resolve("default.db").toString(),
+                "micronaut.nitrite.default.mvstore-cache-size": 32,
+                "micronaut.nitrite.default.mvstore-retention-time": 1000,
+                "micronaut.nitrite.default.mvstore-versions-to-keep": 3,
+                "micronaut.nitrite.audit.db-path": directory.resolve("audit.db").toString()
+        ]).build()
+        def later = new MvStoreModuleCustomizer() {
+            @Override
+            int getOrder() { 20 }
+
+            @Override
+            void customize(NitriteConfiguration config, MVStoreModuleBuilder builder) {
+                calls.add(config.name + ":later")
+                if (config.name == "default") {
+                    assert builder.cacheSize() == 48
+                    builder.cacheSize(64)
+                }
+            }
+        }
+        def earlier = new MvStoreModuleCustomizer() {
+            @Override
+            int getOrder() { 10 }
+
+            @Override
+            void customize(NitriteConfiguration config, MVStoreModuleBuilder builder) {
+                calls.add(config.name + ":earlier")
+                if (config.name == "default") {
+                    assert builder.cacheSize() == 32
+                    builder.cacheSize(48)
+                }
+            }
+        }
+        ctx.registerSingleton(MvStoreModuleCustomizer, later, Qualifiers.byName("later"))
+        ctx.registerSingleton(MvStoreModuleCustomizer, earlier, Qualifiers.byName("earlier"))
+        ctx.start()
+
+        when:
+        def primary = ctx.getBean(Nitrite).store.storeConfig
+        def audit = ctx.getBean(Nitrite, Qualifiers.byName("audit")).store.storeConfig
+
+        then:
+        primary.cacheSize() == 64
+        primary.retentionTime() == 1000
+        primary.versionsToKeep() == 3
+        primary.pageSplitSize() == 16384
+        audit.cacheSize() == 16
+        audit.retentionTime() == null
+        audit.versionsToKeep() == null
+        calls.indexOf("default:earlier") < calls.indexOf("default:later")
+        calls.indexOf("audit:earlier") < calls.indexOf("audit:later")
+
+        cleanup:
+        ctx.close()
+        Files.deleteIfExists(directory.resolve("default.db"))
+        Files.deleteIfExists(directory.resolve("audit.db"))
+        Files.deleteIfExists(directory)
+    }
+
+    void "MVStore reads allowlisted application values and rejects them without the property"() {
+        given:
+        def directory = Files.createTempDirectory("nitrite-allowlist")
+        def dbPath = directory.resolve("values.db")
+        def props = ["micronaut.nitrite.default.db-path": dbPath.toString()]
+        def allowed = props + ["micronaut.nitrite.default.mvstore-allowed-classes": StoredValue.name]
+        ctx = ApplicationContext.run(allowed)
+        ctx.getBean(Nitrite).getCollection("values")
+                .insert(Document.createDocument("value", new StoredValue("persisted")))
+        ctx.close()
+
+        when:
+        ctx = ApplicationContext.run(allowed)
+        def value = ctx.getBean(Nitrite).getCollection("values").find().firstOrNull().get("value")
+
+        then:
+        value.text == "persisted"
+
+        when:
+        ctx.close()
+        ctx = ApplicationContext.run(props)
+        ctx.getBean(Nitrite).getCollection("values").find().firstOrNull()
+
+        then:
+        def failure = thrown(NitriteIOException)
+        failure.message.contains("Unable to open map values")
+
+        cleanup:
+        ctx.close()
+        Files.deleteIfExists(dbPath)
+        Files.deleteIfExists(directory)
+    }
+
+    static class StoredValue implements Serializable {
+        final String text
+
+        StoredValue(String text) {
+            this.text = text
+        }
     }
 
 }

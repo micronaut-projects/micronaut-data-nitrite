@@ -40,6 +40,9 @@ configurations {
     generatedQueryTestRuntimeOnly {
         extendsFrom configurations.testRuntimeOnly, configurations.testImplementation
     }
+    rocksDbPresentTestImplementation {
+        extendsFrom configurations.testImplementation
+    }
     rocksDbPresentTestRuntimeOnly {
         extendsFrom configurations.testRuntimeOnly, configurations.testImplementation
     }
@@ -85,7 +88,7 @@ dependencies {
 
     // Optional dependency tests - ROCKSDB adapter (only for rocksDbPresentTest source set)
     rocksDbPresentTestRuntimeOnly platform(libs.boms.nitrite)
-    rocksDbPresentTestRuntimeOnly projects.micronautDataNitriteRocksdb
+    rocksDbPresentTestImplementation projects.micronautDataNitriteRocksdb
     // Optional dependency tests - Spatial module (only for spatialPresentTest source set)
     spatialPresentTestCompileOnly platform(libs.boms.nitrite)
     spatialPresentTestRuntimeOnly platform(libs.boms.nitrite)

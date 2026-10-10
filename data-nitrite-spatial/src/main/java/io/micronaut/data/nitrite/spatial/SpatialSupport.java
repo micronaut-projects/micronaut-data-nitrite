@@ -41,6 +41,11 @@ public final class SpatialSupport implements NitriteSpatialSupport {
     }
 
     @Override
+    public String deserializationPatterns() {
+        return "org.locationtech.jts.geom.**";
+    }
+
+    @Override
     public Filter near(String field, @Nullable Object center, double distance) {
         if (center == null) {
             return Filter.ALL;

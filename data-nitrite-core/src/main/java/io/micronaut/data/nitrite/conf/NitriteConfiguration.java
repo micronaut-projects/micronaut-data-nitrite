@@ -81,16 +81,31 @@ public class NitriteConfiguration implements Named {
    * The MVStore page split size in bytes, or {@code null} to leave the adapter's own default in
    * place. Only read when the storage mode is {@code MVSTORE}.
    *
-   * <p>Nitrite 5.3.0 defaults this to {@code 16} <em>bytes</em> where its javadoc promises 16 KB,
-   * so a leaf page splits as soon as it holds more than one entry. The resulting tree is deep and
-   * page-heavy - upstream measured 93,781 pages at depth 13 for 46,926 entries, against 36,096 at
-   * depth 12 with MVStore's own 16 KB default - which makes the cost of a write climb with the
-   * size of the collection. Setting this to {@code 16384} restores the documented default; H2
-   * clamps it to {@code (cacheSize / cacheConcurrency) >> 4}, so 64 KB is the practical ceiling.
+   * <p>Nitrite 5.4.0 defaults this to 16 KB; the explicit {@code 16384} workaround for
+   * Nitrite 5.3.0 is no longer needed. H2 clamps this value to
+   * {@code (cacheSize / cacheConcurrency) >> 4}.
    *
    * <p>An existing file keeps the page shape it was written with until those pages are rewritten.
    */
   @Nullable private Integer mvstorePageSplitSize;
+
+  /**
+   * Additional semicolon-separated JEP 290 deserialization patterns. Nitrite and JDK classes
+   * are allowed by the adapter; the spatial integration also allows its JTS geometry classes.
+   * A process-wide serial filter can still reject a class. {@code null} adds no application types.
+   */
+  @Nullable private String mvstoreAllowedClasses;
+
+  /**
+   * Chunk retention time in milliseconds. {@code null} preserves H2's default of 45 seconds.
+   * Setting this and versions-to-keep to zero can leave a store that will not reopen.
+   */
+  @Nullable private Integer mvstoreRetentionTime;
+
+  /**
+   * Number of old versions retained. {@code null} preserves H2's default of five.
+   */
+  @Nullable private Integer mvstoreVersionsToKeep;
 
   /**
    * The MVStore read cache size in MB, or {@code null} to leave the adapter's default (16).
@@ -304,6 +319,57 @@ public class NitriteConfiguration implements Named {
    */
   public void setMvstorePageSplitSize(@Nullable final Integer mvstorePageSplitSize) {
     this.mvstorePageSplitSize = mvstorePageSplitSize;
+  }
+
+  /**
+   * Returns additional JEP 290 patterns for stored application values.
+   * @return the patterns, or {@code null} to add no application types
+   */
+  @Nullable
+  public String getMvstoreAllowedClasses() {
+    return mvstoreAllowedClasses;
+  }
+
+  /**
+   * Sets additional JEP 290 patterns for stored application values.
+   * @param mvstoreAllowedClasses semicolon-separated patterns, or {@code null}
+   */
+  public void setMvstoreAllowedClasses(@Nullable final String mvstoreAllowedClasses) {
+    this.mvstoreAllowedClasses = mvstoreAllowedClasses;
+  }
+
+  /**
+   * Returns the chunk retention time in milliseconds.
+   * @return the retention time, or {@code null} to preserve H2's default
+   */
+  @Nullable
+  public Integer getMvstoreRetentionTime() {
+    return mvstoreRetentionTime;
+  }
+
+  /**
+   * Sets the chunk retention time in milliseconds.
+   * @param mvstoreRetentionTime the retention time, or {@code null} to preserve H2's default
+   */
+  public void setMvstoreRetentionTime(@Nullable final Integer mvstoreRetentionTime) {
+    this.mvstoreRetentionTime = mvstoreRetentionTime;
+  }
+
+  /**
+   * Returns the number of old versions retained.
+   * @return the version count, or {@code null} to preserve H2's default
+   */
+  @Nullable
+  public Integer getMvstoreVersionsToKeep() {
+    return mvstoreVersionsToKeep;
+  }
+
+  /**
+   * Sets the number of old versions retained.
+   * @param mvstoreVersionsToKeep the version count, or {@code null} to preserve H2's default
+   */
+  public void setMvstoreVersionsToKeep(@Nullable final Integer mvstoreVersionsToKeep) {
+    this.mvstoreVersionsToKeep = mvstoreVersionsToKeep;
   }
 
   /**

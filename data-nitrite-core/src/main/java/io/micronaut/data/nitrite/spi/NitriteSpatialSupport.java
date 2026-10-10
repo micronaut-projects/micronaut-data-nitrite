@@ -30,6 +30,14 @@ public interface NitriteSpatialSupport {
     NitriteModule createModule();
 
     /**
+     * Supplies additional JEP 290 patterns for the geometry values stored by this integration.
+     * @return semicolon-separated patterns, or an empty string when none are needed
+     */
+    default String deserializationPatterns() {
+        return "";
+    }
+
+    /**
      * Creates a proximity filter.
      * @param field indexed field
      * @param center converted geometry or coordinate

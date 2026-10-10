@@ -73,11 +73,12 @@ public final class NitriteOperationsFactory {
    * like {@link java.time.Instant}, so no Jackson-based mapper is required.
    *
    * @param config the configuration
+   * @param beanLocator application beans for backend customization
    * @return the Nitrite database instance
    */
   @Bean(preDestroy = "close")
   @EachBean(NitriteConfiguration.class)
-  public Nitrite nitrite(@Parameter @NonNull final NitriteConfiguration config) {
+  public Nitrite nitrite(@Parameter @NonNull final NitriteConfiguration config, BeanLocator beanLocator) {
     NitriteBuilder builder = Nitrite.builder();
 
     NitriteConfiguration.StorageMode mode = config.getStorageMode();
@@ -102,7 +103,7 @@ public final class NitriteOperationsFactory {
         throw new IllegalStateException("Storage mode " + mode + " requires exactly one provider from "
             + artifact + "; found " + providers.size() + ".");
       }
-      builder.loadModule(providers.getFirst().createModule(config, file));
+      builder.loadModule(providers.getFirst().createModule(config, file, beanLocator));
     }
 
     List<NitriteSpatialSupport> spatial = NitriteProviders.load(NitriteSpatialSupport.class);
