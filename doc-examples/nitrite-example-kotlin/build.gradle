@@ -1,8 +1,5 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm"
-    id "org.jetbrains.kotlin.kapt"
-    id "org.jetbrains.kotlin.plugin.allopen"
-    id "io.micronaut.minimal.application"
+    id "io.micronaut.build.internal.data-nitrite-kotlin-example"
 }
 
 application {
@@ -27,7 +24,4 @@ dependencies {
 
     runtimeOnly mnLogging.logback.classic
 
-    runtimeOnly mn.snakeyaml
-
-    testRuntimeOnly mnSerde.micronaut.serde.jackson
 }

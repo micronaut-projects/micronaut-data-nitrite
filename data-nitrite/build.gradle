@@ -84,7 +84,6 @@ dependencies {
     testImplementation libs.micronaut.data.runtime
     testImplementation mn.micronaut.inject.groovy
     testImplementation mnTest.micronaut.test.spock
-    testImplementation mnTest.micronaut.test.spock
 
     // Optional dependency tests - ROCKSDB adapter (only for rocksDbPresentTest source set)
     rocksDbPresentTestRuntimeOnly platform(libs.boms.nitrite)
@@ -100,12 +99,7 @@ dependencies {
     generatedQueryTestAnnotationProcessor libs.micronaut.data.document.processor
     generatedQueryTestAnnotationProcessor mn.micronaut.inject.java
 
-    testRuntimeOnly mnSerde.micronaut.serde.jackson
     testRuntimeOnly mnLogging.logback.classic
-}
-
-test {
-    useJUnitPlatform()
 }
 
 // Nitrite is embedded, so no suite here resolves anything through test resources. The plugin is
@@ -150,8 +144,4 @@ tasks.named('check') {
     dependsOn tasks.named('generatedQueryTest')
     dependsOn tasks.named('rocksDbPresentTest')
     dependsOn tasks.named('spatialPresentTest')
-}
-
-micronautBuild {
-    binaryCompatibility.enabledAfter("5.2.0")
 }

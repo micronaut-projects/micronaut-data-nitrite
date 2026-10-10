@@ -1,0 +1,8 @@
+repositories {
+    mavenCentral()
+    mavenLocal {
+        content {
+            includeGroup 'io.micronaut.data'
+        }
+    }
+}

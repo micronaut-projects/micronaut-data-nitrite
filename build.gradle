@@ -2,11 +2,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
     id "io.micronaut.build.internal.parent"
-    id "io.micronaut.minimal.application" apply false
-    id "io.micronaut.application" apply false
-    id "org.jetbrains.kotlin.jvm" apply false
-    id "org.jetbrains.kotlin.kapt" apply false
-    id "org.jetbrains.kotlin.plugin.allopen" apply false
+    id "io.micronaut.build.internal.data-nitrite-dependencies"
 }
 
 repositories {
@@ -24,7 +20,10 @@ project(':micronaut-data-nitrite').plugins.withId('java') {
 }
 
 tasks.named('javadoc', Javadoc) {
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PUBLIC
+    exclude '**/io/micronaut/data/info/**'
     exclude '**/example/**'
+    options.addStringOption('exclude', 'io.micronaut.data.info')
 }
 
 tasks.withType(Test).configureEach {
@@ -41,4 +40,3 @@ subprojects { subproject ->
         }
     }
 }
-

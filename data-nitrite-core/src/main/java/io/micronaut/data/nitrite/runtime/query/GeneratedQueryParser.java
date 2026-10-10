@@ -113,7 +113,7 @@ public final class GeneratedQueryParser {
     private static final CompiledPredicate NO_PREDICATE = params -> null;
 
     private final LeafFilterFactory leafFilterFactory;
-    private final PredicateFilterFactory predicateFilterFactory;
+    private final @Nullable PredicateFilterFactory predicateFilterFactory;
 
     /**
      * Predicates compiled from a query string, keyed by entity and query text.
@@ -367,24 +367,24 @@ public final class GeneratedQueryParser {
      * @param entity     the root entity
      * @return the compiled predicate
      */
-    private CompiledPredicate compilePredicate(String expression, RuntimePersistentEntity<?> entity) {
+    private CompiledFilter compilePredicate(String expression, RuntimePersistentEntity<?> entity) {
         String predicate = stripOuterParentheses(expression.trim());
 
         if (predicate.regionMatches(true, 0, "NOT(", 0, 4) && predicate.endsWith(")")) {
-            CompiledPredicate inner = compilePredicate(predicate.substring(4, predicate.length() - 1), entity);
+            CompiledFilter inner = compilePredicate(predicate.substring(4, predicate.length() - 1), entity);
             return params -> inner.bind(params).not();
         }
 
         List<String> operands = splitTopLevel(predicate, " OR ");
         if (operands.size() > 1) {
-            List<CompiledPredicate> parts = operands.stream()
+            List<CompiledFilter> parts = operands.stream()
                 .map(part -> compilePredicate(part, entity))
                 .toList();
             return params -> Filter.or(parts.stream().map(part -> part.bind(params)).toArray(Filter[]::new));
         }
         operands = splitConjunctions(predicate);
         if (operands.size() > 1) {
-            List<CompiledPredicate> parts = operands.stream()
+            List<CompiledFilter> parts = operands.stream()
                 .map(part -> compilePredicate(part, entity))
                 .toList();
             return params -> Filter.and(parts.stream().map(part -> part.bind(params)).toArray(Filter[]::new));
@@ -509,7 +509,11 @@ public final class GeneratedQueryParser {
             throw unsupported(fragment, "parameter reference");
         }
         if (isSimpleOperand(value)) {
-            return resolveOperand(value, new Object[0], fragment);
+            Object literal = resolveOperand(value, new Object[0], fragment);
+            if (literal == null) {
+                throw unsupported(fragment, "expression");
+            }
+            return literal;
         }
         if (FIELD_PATTERN.matcher(value).matches()) {
             return "$" + resolveField(value, entity);
@@ -870,6 +874,12 @@ public final class GeneratedQueryParser {
     @FunctionalInterface
     private interface CompiledPredicate {
         @Nullable Filter bind(Object[] params);
+    }
+
+    @FunctionalInterface
+    private interface CompiledFilter extends CompiledPredicate {
+        @Override
+        Filter bind(Object[] params);
     }
 
 }

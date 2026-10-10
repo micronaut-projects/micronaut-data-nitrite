@@ -1,5 +1,5 @@
 plugins {
-    id 'io.micronaut.build.internal.data-nitrite-base'
+    id 'io.micronaut.build.internal.data-nitrite-dependencies'
     id "io.micronaut.build.internal.bom"
 }
 

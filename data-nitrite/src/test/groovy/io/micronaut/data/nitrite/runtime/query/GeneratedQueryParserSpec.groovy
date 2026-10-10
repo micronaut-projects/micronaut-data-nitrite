@@ -190,6 +190,15 @@ class GeneratedQueryParserSpec extends Specification {
                 20, 40) == ["alpha", "alpha's AND beta"]
     }
 
+    void "a NULL literal in a computed expression is rejected with its query fragment"() {
+        when:
+        typesMatching("SELECT event_ FROM Event event_ WHERE LOWER(event_.type) = NULL")
+
+        then:
+        def e = thrown(UnsupportedOperationException)
+        e.message.contains("LOWER(event_.type) = NULL")
+    }
+
     void "generated selections distinguish fields and counts from entity selections"() {
         expect:
         GeneratedQueryParser.parseProjectionFields(
