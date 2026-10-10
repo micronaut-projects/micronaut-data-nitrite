@@ -6,6 +6,14 @@ plugins {
     id "org.jetbrains.kotlin.plugin.allopen" apply false
 }
 
+repositories {
+    mavenLocal {
+        content {
+            includeGroup 'io.micronaut.data'
+        }
+    }
+}
+
 project(':micronaut-data-nitrite').plugins.withId('java') {
     tasks.named('javadoc', Javadoc) {
         classpath += project(':micronaut-data-nitrite').sourceSets.main.compileClasspath

@@ -4,18 +4,36 @@ plugins {
 }
 
 dependencies {
+    testAnnotationProcessor mn.micronaut.inject.java
+    testAnnotationProcessor libs.micronaut.data.document.processor
+    testAnnotationProcessor projects.micronautDataNitrite
+    testAnnotationProcessor mnValidation.micronaut.validation.processor
+    testAnnotationProcessor mnLogging.logback.classic
 
-    testImplementation projects.micronautJakartaDataTck.micronautSupport
+    testImplementation libs.micronaut.jakarta.data.support.tck
     testImplementation projects.micronautDataNitrite
-    testImplementation libs.micronaut.data.document.processor
-    testImplementation mnValidation.micronaut.validation.processor
+    testImplementation libs.jakarta.data.api
+    testImplementation libs.jakarta.data.tck
+    testImplementation libs.apiguardian.api
     testImplementation mnValidation.micronaut.validation
 
+    testRuntimeOnly mn.micronaut.inject.java
+    testRuntimeOnly libs.micronaut.data.document.processor
+    testRuntimeOnly mnValidation.micronaut.validation.processor
+
+    testRuntimeOnly mnTest.junit.platform.suite
+    testRuntimeOnly mnTest.junit.platform.launcher
     testRuntimeOnly mnTest.junit.jupiter.engine
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
     testRuntimeOnly mnLogging.logback.classic
     testRuntimeOnly mn.snakeyaml
+}
 
-    testRuntimeOnly mnSerde.micronaut.serde.jackson
+configurations.configureEach {
+    resolutionStrategy.force(
+        "jakarta.data:jakarta.data-api:${libs.versions.managed.jakarta.data.get()}",
+        "jakarta.data:jakarta.data-tck:${libs.versions.managed.jakarta.data.get()}"
+    )
 }
 
 test {

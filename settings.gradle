@@ -19,6 +19,11 @@ rootProject.name = 'data-nitrite-parent'
 
 dependencyResolutionManagement {
     repositories {
+        mavenLocal {
+            content {
+                includeGroup 'io.micronaut.data'
+            }
+        }
         mavenCentral()
     }
 }
