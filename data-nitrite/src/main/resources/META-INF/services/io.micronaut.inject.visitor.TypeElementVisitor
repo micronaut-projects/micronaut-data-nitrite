@@ -1,1 +1,2 @@
 io.micronaut.data.nitrite.processor.NitriteTckCompatibilityVisitor
+io.micronaut.data.nitrite.processor.NitriteNativeQueryVisitor
