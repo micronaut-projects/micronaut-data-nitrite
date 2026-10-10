@@ -343,6 +343,13 @@ class NitriteConfigurationSpec extends Specification {
         def failure = thrown(NitriteIOException)
         failure.message.contains("Unable to open map values")
 
+        when: "the allowlist is supplied again"
+        ctx.close()
+        ctx = ApplicationContext.run(allowed)
+
+        then: "the rejected read has not changed the stored document"
+        ctx.getBean(Nitrite).getCollection("values").find().firstOrNull().get("value").text == "persisted"
+
         cleanup:
         ctx.close()
         Files.deleteIfExists(dbPath)

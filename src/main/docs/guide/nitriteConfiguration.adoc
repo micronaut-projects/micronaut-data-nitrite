@@ -105,7 +105,8 @@ class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
 The MVStore hook exposes the entire upstream builder, including `fileStore` and store event
 listeners. The RocksDB hook exposes `Options`, `DBOptions`, `ColumnFamilyOptions`, custom object
 formatters and store event listeners. Keep supplied resources alive until the database closes;
-RocksDB closes the native options it uses. Customizing the deserialization patterns replaces the
+RocksDB closes the native options it uses, so create a fresh set for each datasource rather than
+sharing native options across databases. Customizing the deserialization patterns replaces the
 patterns assembled from datasource properties and spatial support, so preserve the geometry
 patterns when using spatial values.
 
@@ -114,7 +115,9 @@ patterns when using spatial values.
 Custom Java serialized document values require the `mvstore-allowed-classes` setting when read
 from an MVStore file. Normal entity properties mapped to documents, maps and JDK values do not
 need an application allowlist. Values passed through without conversion, including values from
-custom converters or direct Nitrite collection access, may need one.
+custom converters or direct Nitrite collection access, may need one. In native applications,
+allowlisting does not register a class for Java serialization: custom values also require the
+corresponding GraalVM serialization metadata.
 
 Unique indexes migrate from lists of IDs to a single-ID layout on first access. Back up a database
 before upgrading if it may need to be opened by an earlier Nitrite release.
@@ -197,6 +200,11 @@ The spatial module enables:
 
 - <<nitriteSpatial, Spatial indexes>> on Geometry fields
 - <<nitriteSpatial, Spatial filters>> (`$near`, `$within`, `$intersects`)
+
+IMPORTANT: With Nitrite 5.4.0, spatial-index queries on a reopened MVStore file can fail with
+`ClassCastException` (`DefaultSpatial` to `MVSpatialKey`) inside the upstream adapter. Geometry
+values themselves can be read after reopening. Persistent spatial-index queries on MVStore
+require an upstream adapter fix; the in-memory spatial verification does not cover that case.
 
 The module is loaded automatically when it is on the classpath and is simply absent when it is not. A module that is present but cannot be initialized fails at startup rather than being skipped, so spatial indexes and filters are never silently unavailable.
 
