@@ -3,7 +3,7 @@ This section complements the shared Criteria API guide (see https://micronaut-pr
 
 With Nitrite, criteria queries are encoded as JSON filters and executed against Nitrite collections.
 
-To use the Criteria API, implement a repository that extends api:data.repository.JpaSpecificationExecutor[]:
+To use the Criteria API, implement a repository that extends https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/repository/jpa/JpaSpecificationExecutor.html[JpaSpecificationExecutor]:
 
 snippet::example.PersonRepository[project-base="doc-examples/nitrite-example", source="main", tags="repository", indent="0"]
 

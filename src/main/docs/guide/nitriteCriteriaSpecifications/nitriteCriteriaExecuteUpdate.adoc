@@ -3,7 +3,7 @@ This section complements the shared Criteria API guide (see https://micronaut-pr
 
 Nitrite updates are applied as partial updates (a document of fields to change).
 
-To implement an update, use the `updateAll` method from api:data.repository.JpaSpecificationExecutor[]:
+To implement an update, use the `updateAll` method from https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/repository/jpa/JpaSpecificationExecutor.html[JpaSpecificationExecutor]:
 
 snippet::example.PersonRepository[project-base="doc-examples/nitrite-example", source="main", tags="update", indent="0"]
 

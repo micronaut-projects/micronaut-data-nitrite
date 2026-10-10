@@ -9,7 +9,7 @@ dependency:io.micronaut.data:micronaut-data-document-processor[scope="annotation
 
 dependency:io.micronaut.data:micronaut-data-nitrite[scope="annotationProcessor"]
 
-NOTE: For Kotlin, add both dependencies in https://docs.micronaut.io/4.4.3/guide/#kaptOrKsp[kapt or ksp scope], and for Groovy add both in compileOnly scope.
+NOTE: For Kotlin, add both dependencies to the `kapt` or `ksp` configuration, and for Groovy add both in `compileOnly` scope.
 
 `micronaut-data-nitrite` is needed on the annotation processor path as well as the compile path: its transitive core dependency carries the `NitriteQueryBuilder` that ann:data.nitrite.annotation.NitriteRepository[] names, and Micronaut Data resolves that builder at compilation time. Without it, repository methods are compiled against the default JPQL query builder instead of into Nitrite filters, and Nitrite-specific features such as projections, association lookups and `$regex` queries are lost.
 
@@ -75,13 +75,13 @@ its geometry codec does not require a Jackson JTS module.
 
 == Create an Entity
 
-To persist an entity, define a class annotated with ann:data.annotation.MappedEntity[]:
+To persist an entity, define a class annotated with https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/MappedEntity.html[@MappedEntity]:
 
 snippet::example.Book[project-base="doc-examples/nitrite-example", source="main", tags="book"]
 
 == Create a Repository
 
-Followed by an interface that extends from api:data.repository.CrudRepository[]:
+Followed by an interface that extends from https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/repository/CrudRepository.html[CrudRepository]:
 
 snippet::example.BookRepository[project-base="doc-examples/nitrite-example", source="main", tags="repository"]
 

@@ -29,8 +29,8 @@ An assigned identity - `UUID`, `String`, an application-set `Long` - is therefor
 
 `insert()`, `update()` and their batch forms are unconditional, for every entity, versioned or not:
 
-- `insert()` and `insertAll()` reject an identity the collection already holds with api:data.exceptions.EntityExistsException[]
-- `update()`, `updateAll()`, `delete()` and `deleteAll()` require the document to exist: an entity whose ID matches nothing raises api:data.exceptions.OptimisticLockException[] rather than being inserted or silently affecting nothing
+- `insert()` and `insertAll()` reject an identity the collection already holds with https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/EntityExistsException.html[EntityExistsException]
+- `update()`, `updateAll()`, `delete()` and `deleteAll()` require the document to exist: an entity whose ID matches nothing raises https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/OptimisticLockException.html[OptimisticLockException] rather than being inserted or silently affecting nothing
 - An entity with no ID at all is never inserted by `update()`; it reports zero affected rows
 
 == Case-Insensitive Queries
@@ -108,7 +108,7 @@ NOTE: Nitrite's runtime query execution supports the query strings encoded by Mi
 
 == Entity Lifecycle Events
 
-Micronaut Data Nitrite supports the same entity lifecycle listener mechanism described in https://micronaut-projects.github.io/micronaut-data/latest/guide/#entityEvents[Entity Events]. A Micronaut bean implementing api:data.event.EntityEventListener[] (or one of its functional sub-interfaces) can veto a persist operation by returning `false` from `prePersist`:
+Micronaut Data Nitrite supports the same entity lifecycle listener mechanism described in https://micronaut-projects.github.io/micronaut-data/latest/guide/#entityEvents[Entity Events]. A Micronaut bean implementing https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/event/EntityEventListener.html[EntityEventListener] (or one of its functional sub-interfaces) can veto a persist operation by returning `false` from `prePersist`:
 
 snippet::example.VetoTimestampedRecordListener[project-base="doc-examples/nitrite-example", source="main", tags="pre-persist-listener"]
 

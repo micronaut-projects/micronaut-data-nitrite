@@ -1,13 +1,13 @@
 [[nitriteCompositeId]]
 == Composite Primary Keys
 
-Composite primary keys can be defined using ann:data.annotation.EmbeddedId[].
+Composite primary keys can be defined using https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/EmbeddedId.html[@EmbeddedId].
 
 A composite ID requires an additional class to represent the key. The class should define fields that correspond to the attributes making up the key.
 
 snippet::example.ProjectId[project-base="doc-examples/nitrite-example", source="main", tags="projectId"]
 
-The entity then references the composite key using ann:data.annotation.EmbeddedId[]:
+The entity then references the composite key using https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/EmbeddedId.html[@EmbeddedId]:
 
 snippet::example.Project[project-base="doc-examples/nitrite-example", source="main", tags="project"]
 
@@ -24,4 +24,4 @@ TIP: When using Java, define getters for the fields making up your composite key
 
 === Multiple @Id Properties
 
-An identity can also be composed by annotating more than one property with ann:data.annotation.Id[], without a separate key class. Each identity property is stored as a document field of its own, so it round-trips with the entity and can be filtered and sorted on like any other property. The identity properties are also appended to the sort of a paged query, giving a page boundary a tie-breaker when the requested sort is on a non-unique field.
+An identity can also be composed by annotating more than one property with https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Id.html[@Id], without a separate key class. Each identity property is stored as a document field of its own, so it round-trips with the entity and can be filtered and sorted on like any other property. The identity properties are also appended to the sort of a paged query, giving a page boundary a tie-breaker when the requested sort is on a non-unique field.

@@ -220,10 +220,10 @@ Micronaut Data Nitrite uses its own Micronaut Data mapping layer with Nitrite co
 
 == Batch Operations
 
-For bulk operations, use the `saveAll`, `updateAll`, and `deleteAll` repository methods to batch operations efficiently:
+For bulk operations, use the `saveAll`, `updateAll`, and `deleteAll` repository methods:
 
 snippet::example.BookRepositoryExample[project-base="doc-examples/nitrite-example", source="main", tags="batch-operations"]
 
-Batch operations are more efficient than individual operations when working with multiple entities, as they reduce the number of database round-trips and take advantage of Nitrite's internal batching mechanisms.
+The insert portion of `saveAll` is submitted as a batch; updates and entity-based deletes are applied per document. Nitrite is embedded, so these operations do not involve network round-trips. To commit or roll back several changes together, run them in a transaction; see <<nitriteTransactions, Transactions>>.
 
 NOTE: For large batch operations, consider breaking them into smaller chunks to avoid memory pressure and improve transaction management.

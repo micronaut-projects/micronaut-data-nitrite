@@ -1,5 +1,5 @@
 [[nitriteAssociationMapping]]
-To specify a relation between two entities, use the ann:data.annotation.Relation[] annotation. The relation kind is specified using the enum ann:data.annotation.Relation.Kind[] `value` attribute, which is similar to JPA relationship annotations (`@OneToMany`, `@OneToOne`, etc.).
+To specify a relation between two entities, use the https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Relation.html[@Relation] annotation. The relation kind is specified using the enum https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Relation.Kind.html[Relation.Kind] `value` attribute, which is similar to JPA relationship annotations (`@OneToMany`, `@OneToOne`, etc.).
 
 == Supported Relation Types
 
@@ -98,7 +98,7 @@ NOTE: For bidirectional `MANY_TO_MANY` associations, only the owning side (witho
 
 == Example: Embedded Association
 
-Embedded associations store the associated entity's fields inline within the owning document. Annotate the value type with ann:data.annotation.Embeddable[] instead of `@MappedEntity` — it has no `@Id` of its own, since it isn't persisted as a separate document:
+Embedded associations store the associated entity's fields inline within the owning document. Annotate the value type with https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Embeddable.html[@Embeddable] instead of `@MappedEntity` — it has no `@Id` of its own, since it isn't persisted as a separate document:
 
 snippet::example.Address[project-base="doc-examples/nitrite-example", source="main", tags="address"]
 
@@ -112,7 +112,7 @@ snippet::example.AssociationMappingSpec[project-base="doc-examples/nitrite-examp
 
 == Example: Composite Foreign Key with @JoinColumns
 
-A `MANY_TO_ONE` association can be keyed on more than one property of the associated entity using the ann:data.annotation.sql.JoinColumns[] annotation with multiple ann:data.annotation.sql.JoinColumn[] entries. Each `@JoinColumn` maps one local foreign-key field to one `referencedColumnName` on the associated entity, together forming a composite key — useful for natural keys such as a tenant ID plus a per-tenant reference number, without introducing a synthetic single-column ID.
+A `MANY_TO_ONE` association can be keyed on more than one property of the associated entity using the https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/sql/JoinColumns.html[@JoinColumns] annotation with multiple https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/sql/JoinColumn.html[@JoinColumn] entries. Each `@JoinColumn` maps one local foreign-key field to one `referencedColumnName` on the associated entity, together forming a composite key — useful for natural keys such as a tenant ID plus a per-tenant reference number, without introducing a synthetic single-column ID.
 
 .Parent entity with a two-property natural key
 snippet::example.CompositeFkParent[project-base="doc-examples/nitrite-example", source="main", tags="composite-fk-parent"]
@@ -122,13 +122,13 @@ snippet::example.CompositeFkParent[project-base="doc-examples/nitrite-example", 
 .Child entity referencing the parent by composite key
 snippet::example.CompositeFkChild[project-base="doc-examples/nitrite-example", source="main", tags="composite-fk-child"]
 
-* ann:core.annotation.Creator[] marks the constructor Micronaut Data uses to hydrate the entity on read. It is **required** here: because the parent association is a constructor argument, the resolved `CompositeFkParent` is passed in at construction time rather than through a setter.
+* https://docs.micronaut.io/latest/api/io/micronaut/core/annotation/Creator.html[@Creator] marks the constructor Micronaut Data uses to hydrate the entity on read. It is **required** here: because the parent association is a constructor argument, the resolved `CompositeFkParent` is passed in at construction time rather than through a setter.
 
 The `@JoinColumns` annotation pairs each local `@JoinColumn` with the `referencedColumnName` on `CompositeFkParent` it corresponds to, so the join is resolved on both `tenantId` and `refId` together.
 
 [IMPORTANT]
 ====
-When an entity declares more than one constructor — for example a no-argument constructor alongside an all-arguments one — annotate the intended constructor with ann:core.annotation.Creator[]. Without it, which constructor bean introspection selects is unspecified, and an entity whose association is a constructor argument may fail to hydrate (an `InstantiationException` at read time). `@Creator` makes the choice explicit and independent of constructor declaration order. Both `CompositeFkParent` and `CompositeFkChild` above annotate their all-arguments constructor for this reason.
+When an entity declares more than one constructor — for example a no-argument constructor alongside an all-arguments one — annotate the intended constructor with https://docs.micronaut.io/latest/api/io/micronaut/core/annotation/Creator.html[@Creator]. Without it, which constructor bean introspection selects is unspecified, and an entity whose association is a constructor argument may fail to hydrate (an `InstantiationException` at read time). `@Creator` makes the choice explicit and independent of constructor declaration order. Both `CompositeFkParent` and `CompositeFkChild` above annotate their all-arguments constructor for this reason.
 ====
 
 .Repository joining the composite foreign key

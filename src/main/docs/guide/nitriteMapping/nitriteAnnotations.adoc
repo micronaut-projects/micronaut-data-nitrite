@@ -3,9 +3,9 @@
 
 Micronaut Data Nitrite uses the same core entity mapping annotations as the other Micronaut Data implementations:
 
-- ann:data.annotation.MappedEntity[]
-- ann:data.annotation.Id[]
-- ann:data.annotation.GeneratedValue[]
+- https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/MappedEntity.html[@MappedEntity]
+- https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Id.html[@Id]
+- https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/GeneratedValue.html[@GeneratedValue]
 
 Example entity:
 
@@ -13,5 +13,5 @@ snippet::example.Book[project-base="doc-examples/nitrite-example", source="main"
 
 Nitrite-specific notes:
 
-- Nitrite reserves `_id` for its internal document identifier (NitriteId). Micronaut Data Nitrite stores your entity identifier in the `id` field to avoid conflicts.
+- Nitrite reserves `_id` for its internal document identifier (NitriteId). Micronaut Data Nitrite stores your entity identifier in its mapped field, which defaults to `id`. A `Long` identity is also used as `_id`; other identity types use a separate internal document identifier.
 - Nitrite also maintains internal fields like `_revision` and `_modified`. These are not mapped to your entity and are ignored during entity conversion.

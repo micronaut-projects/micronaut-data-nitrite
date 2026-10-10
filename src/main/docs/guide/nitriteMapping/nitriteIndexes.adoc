@@ -3,13 +3,13 @@
 
 Micronaut Data Nitrite automatically creates indexes based on standard Micronaut Data annotations.
 
-You can define indexes at the class level or property level using ann:data.annotation.Index[] or ann:data.annotation.Indexes[].
+You can define indexes at the class level or property level using https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Index.html[@Index] or https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Indexes.html[@Indexes].
 
 === Identity Indexing and Uniqueness
 
 A `Long` identity is written into Nitrite's own `_id` document key as well as into the `id` field, so its lookups are already a single key seek and its uniqueness is already enforced by that key. No secondary index is created for it: measured over the benchmark suite, one cost 29.8% of transactional write throughput on MVStore, 19.5% in memory, and 26.0% of association reads.
 
-Every other scalar identity - `String`, `UUID`, `Integer` and the rest - cannot be held in `_id`, so Micronaut Data Nitrite creates a unique index on the `id` field instead. That index is what makes an identity lookup seekable and what raises api:data.exceptions.EntityExistsException[] when `insert` is given an identity that already exists.
+Every other scalar identity - `String`, `UUID`, `Integer` and the rest - cannot be held in `_id`, so Micronaut Data Nitrite creates a unique index on the `id` field instead. That index is what makes an identity lookup seekable and what raises https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/EntityExistsException.html[EntityExistsException] when `insert` is given an identity that already exists.
 
 Composite, embedded and association identities are given no identity index.
 
@@ -31,7 +31,7 @@ Set `unique = true` on `@Index` to enforce a uniqueness constraint on a property
 
 snippet::example.CatalogItem[project-base="doc-examples/nitrite-example", source="main", tags="unique-index"]
 
-Attempting to save an entity whose indexed value already exists raises an api:data.exceptions.DataAccessException[] wrapping Nitrite's own `org.dizitart.no2.exceptions.UniqueConstraintException`:
+Attempting to save an entity whose indexed value already exists raises an https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/DataAccessException.html[DataAccessException] wrapping Nitrite's own `org.dizitart.no2.exceptions.UniqueConstraintException`:
 
 snippet::example.CatalogItemRepositorySpec[project-base="doc-examples/nitrite-example", source="test", tags="unique-index-usage"]
 
@@ -63,7 +63,7 @@ storage modes; see <<nitriteConfiguration, Configuration>>.
 
 For a single-result read this changes nothing a caller can observe: a `Top`/`First` query returns
 the first record, and any other single-result query still reads a second record to detect a
-non-unique result and raises api:data.exceptions.NonUniqueResultException[] rather than silently
+non-unique result and raises https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/NonUniqueResultException.html[NonUniqueResultException] rather than silently
 returning the first.
 
 === Managing Indexes Directly
@@ -72,4 +72,4 @@ A `NitriteIndexManagement` bean is created for each datasource. It drops and reb
 
 === Configuration
 
-Automatic index creation, including the identity index, can be disabled by setting `create-indexes` to `false` for the datasource, for example `micronaut.nitrite.default.create-indexes`. Without the identity index a duplicate non-`Long` identity is no longer rejected by the database, so `insert` of an entity whose identity already exists writes a second document rather than raising api:data.exceptions.EntityExistsException[].
+Automatic index creation, including the identity index, can be disabled by setting `create-indexes` to `false` for the datasource, for example `micronaut.nitrite.default.create-indexes`. Without the identity index a duplicate non-`Long` identity is no longer rejected by the database, so `insert` of an entity whose identity already exists writes a second document rather than raising https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/EntityExistsException.html[EntityExistsException].

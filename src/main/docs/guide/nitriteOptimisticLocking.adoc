@@ -1,7 +1,7 @@
 [[nitriteOptimisticLocking]]
 Optimistic locking is a strategy where you note the actual record state's version and modify the record only when the version is the same.
 
-To enable optimistic locking for your entity, add a field annotated with ann:data.annotation.Version[] with one of the following types:
+To enable optimistic locking for your entity, add a field annotated with https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/annotation/Version.html[@Version] with one of the following types:
 
 - `java.lang.Integer`
 - `java.lang.Long`
@@ -10,7 +10,7 @@ To enable optimistic locking for your entity, add a field annotated with ann:dat
 
 The version field is automatically initialized to `0` for numeric types or to the current timestamp for temporal types. It is incremented (for numeric types) or replaced (for temporal types) on each update operation.
 
-Micronaut Data Nitrite includes the current version in update and delete filter queries. If no matching document is found (because the version has changed), an api:data.exceptions.OptimisticLockException[] is thrown.
+Micronaut Data Nitrite includes the current version in update and delete filter queries. If no matching document is found (because the version has changed), an https://micronaut-projects.github.io/micronaut-data/latest/api/io/micronaut/data/exceptions/OptimisticLockException.html[OptimisticLockException] is thrown.
 
 == Example Entity
 
@@ -39,8 +39,8 @@ snippet::example.VersionedBookExample[project-base="doc-examples/nitrite-example
 
 The `save()` method correctly handles versioned entities:
 
-* **New entities** (no ID): Inserts with initial version `0`
-* **Existing entities** (has ID): Updates and increments the version automatically
+* **New documents** (the ID is absent from the collection, including application-assigned IDs): Inserts with initial numeric version `0`
+* **Existing documents** (the ID is already present in the collection): Checks the supplied version, updates and increments the numeric version automatically
 
 snippet::example.VersionedBookExample[project-base="doc-examples/nitrite-example", source="main", tags="save-versioned-new"]
 
