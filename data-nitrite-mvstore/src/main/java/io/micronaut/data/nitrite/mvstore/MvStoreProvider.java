@@ -16,6 +16,7 @@
 package io.micronaut.data.nitrite.mvstore;
 
 import io.micronaut.context.BeanLocator;
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.spi.NitriteStoreProvider;
@@ -32,7 +33,9 @@ import java.util.function.Consumer;
 
 /**
  * MVStore integration retaining the datasource's nullable adapter settings.
+ * @since 5.2.0
  */
+@Internal
 public final class MvStoreProvider implements NitriteStoreProvider {
   /** Creates a provider. */
   public MvStoreProvider() {

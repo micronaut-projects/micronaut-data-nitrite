@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.model.query.builder;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.model.PersistentEntity;
 import io.micronaut.data.model.query.BindingParameter;
@@ -24,7 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Holder for state during query translation. */
+/**
+ * Holder for state during query translation.
+ * @since 5.2.0
+ */
+@Internal
 public final class NitriteQueryState {
 
   private final PersistentEntity persistentEntity;

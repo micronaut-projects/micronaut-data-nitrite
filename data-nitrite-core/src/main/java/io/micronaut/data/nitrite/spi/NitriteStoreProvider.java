@@ -23,6 +23,7 @@ import java.io.File;
 
 /**
  * Creates a storage module without coupling repository support to a backend library.
+ * @since 5.2.0
  */
 public interface NitriteStoreProvider {
     /**
@@ -46,6 +47,7 @@ public interface NitriteStoreProvider {
      * @param file prepared database path
      * @param beanLocator application beans
      * @return the configured module
+     * @since 5.2.0
      */
     default NitriteModule createModule(NitriteConfiguration configuration, File file, BeanLocator beanLocator) {
         return createModule(configuration, file);

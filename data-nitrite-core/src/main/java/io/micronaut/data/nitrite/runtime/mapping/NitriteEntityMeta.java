@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.runtime.mapping;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanProperty;
 import io.micronaut.data.model.runtime.RuntimeAssociation;
@@ -35,7 +36,9 @@ import java.util.List;
  * @param cascadeProps      pre-filtered list of cascade-capable associations (for PERSIST/ALL)
  * @param hasBackReferences true if this entity has any mappedBy associations with back-ref properties
  * @param idAccessor        cached BeanProperty accessor for the ID property
+ * @since 5.2.0
  */
+@Internal
 public record NitriteEntityMeta<T>(
     List<WritablePropertyMeta<T>> writableProps,
     List<WritablePropertyMeta<T>> mappedByAssocs,

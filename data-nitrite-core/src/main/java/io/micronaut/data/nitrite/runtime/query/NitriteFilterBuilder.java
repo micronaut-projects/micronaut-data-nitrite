@@ -754,7 +754,9 @@ public final class NitriteFilterBuilder {
     /**
      * Handler for a single filter operator (e.g. {@code $eq}, {@code $in}).
      * Registered at construction time; add new operators without touching the dispatch path.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     public interface OperatorHandler {
         /**
@@ -771,7 +773,9 @@ public final class NitriteFilterBuilder {
 
     /**
      * Functional interface for executing sub-queries on associated entities.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     public interface SubQueryExecutor {
         /**

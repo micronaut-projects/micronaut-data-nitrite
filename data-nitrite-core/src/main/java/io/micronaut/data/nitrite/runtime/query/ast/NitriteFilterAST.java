@@ -62,7 +62,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * Logical AND of multiple filters.
      *
      * @param children the child filter AST nodes
+     * @since 5.2.0
      */
+    @Internal
     record AndNode(List<NitriteFilterAST> children) implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -81,7 +83,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * Logical OR of multiple filters.
      *
      * @param children the child filter AST nodes
+     * @since 5.2.0
      */
+    @Internal
     record OrNode(List<NitriteFilterAST> children) implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -100,7 +104,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * Logical NOT of a filter.
      *
      * @param child the child filter AST node
+     * @since 5.2.0
      */
+    @Internal
     record NotNode(NitriteFilterAST child) implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -118,7 +124,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * @param persistedName the persisted field name
      * @param rawField the raw field name
      * @param valueExpression the compiled value expression
+     * @since 5.2.0
      */
+    @Internal
     record SimpleEqualityNode(
         FieldValuePreparer preparer,
         OperatorFilterEvaluator evaluator,
@@ -145,7 +153,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * @param persistedName the persisted field name
      * @param rawField the raw field name
      * @param operators the list of operator bindings
+     * @since 5.2.0
      */
+    @Internal
     record SimpleOperatorNode(
         FieldValuePreparer preparer,
         OperatorFilterEvaluator evaluator,
@@ -175,7 +185,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      *
      * @param op the operator name
      * @param valueExpression the compiled value expression
+     * @since 5.2.0
      */
+    @Internal
     record OperatorBinding(String op, CompiledValue valueExpression) {
         /**
          * Converts this operator binding into a functional Nitrite Filter by resolving and preparing the value.
@@ -198,7 +210,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * Prepares a raw value for use in a filter (coercion, UUID handling, type conversion).
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     interface FieldValuePreparer {
         /**
@@ -212,7 +226,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * Builds a Nitrite Filter for a single operator on a resolved field value.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     interface OperatorFilterEvaluator {
         /**
@@ -231,7 +247,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * Evaluates association and nested-path fields at bind time.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     interface AssociationFieldEvaluator {
         /**
@@ -257,7 +275,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * @param rawField the raw field name
      * @param persistedName the resolved persisted field name (used as fallback when no association matches)
      * @param operators the map of operators (raw, unresolved)
+     * @since 5.2.0
      */
+    @Internal
     record AssociationFieldNode(
         AssociationFieldEvaluator evaluator,
         RuntimePersistentEntity<?> entity,
@@ -274,7 +294,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * A filter that matches everything.
+     * @since 5.2.0
      */
+    @Internal
     record AllNode() implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -284,7 +306,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * A filter that matches nothing.
+     * @since 5.2.0
      */
+    @Internal
     record NoneNode() implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -300,7 +324,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
      * @param op the comparison operator ({@code $eq}, {@code $ne}, {@code $gt}, {@code $gte}, {@code $lt}, {@code $lte})
      * @param left the left-hand computed value
      * @param right the right-hand value to compare against
+     * @since 5.2.0
      */
+    @Internal
     record ExprNode(String op, ExprValueNode left, ExprValueNode right) implements NitriteFilterAST {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
@@ -353,7 +379,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
 
     /**
      * A node in a small computed-value tree used by {@link ExprNode}, evaluated directly against a document.
+     * @since 5.2.0
      */
+    @Internal
     sealed interface ExprValueNode {
 
         /**
@@ -384,7 +412,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * A reference to a persisted document field.
          *
          * @param persistedName the persisted field name
+         * @since 5.2.0
          */
+        @Internal
         record FieldRef(String persistedName) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -396,7 +426,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * A literal or bound-parameter value.
          *
          * @param value the compiled value
+         * @since 5.2.0
          */
+        @Internal
         record Literal(CompiledValue value) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -408,7 +440,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * A list of expression values, used for computed {@code IN} comparisons.
          *
          * @param values the list element expressions
+         * @since 5.2.0
          */
+        @Internal
         record ListValue(List<ExprValueNode> values) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -424,7 +458,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * The character length of a string value, mirroring Mongo's {@code $strLenCP}.
          *
          * @param inner the value to measure
+         * @since 5.2.0
          */
+        @Internal
         record StrLen(ExprValueNode inner) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -437,7 +473,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * Lowercase string conversion, mirroring Mongo's {@code $toLower}.
          *
          * @param inner the value to convert
+         * @since 5.2.0
          */
+        @Internal
         record ToLower(ExprValueNode inner) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -450,7 +488,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * Uppercase string conversion, mirroring Mongo's {@code $toUpper}.
          *
          * @param inner the value to convert
+         * @since 5.2.0
          */
+        @Internal
         record ToUpper(ExprValueNode inner) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -463,7 +503,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * The product of two or more values, mirroring Mongo's {@code $multiply}.
          *
          * @param operands the values to multiply
+         * @since 5.2.0
          */
+        @Internal
         record Multiply(List<ExprValueNode> operands) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -483,7 +525,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * String concatenation, mirroring Mongo's {@code $concat}.
          *
          * @param operands the values to concatenate
+         * @since 5.2.0
          */
+        @Internal
         record Concat(List<ExprValueNode> operands) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -505,7 +549,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * @param value the source string
          * @param start the start offset
          * @param length the length
+         * @since 5.2.0
          */
+        @Internal
         record Substr(ExprValueNode value, ExprValueNode start, ExprValueNode length) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -528,7 +574,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          *
          * @param value the source string
          * @param length the length
+         * @since 5.2.0
          */
+        @Internal
         record Right(ExprValueNode value, ExprValueNode length) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -549,7 +597,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          *
          * @param left the dividend
          * @param right the divisor
+         * @since 5.2.0
          */
+        @Internal
         record Divide(ExprValueNode left, ExprValueNode right) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {
@@ -566,7 +616,9 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * Numeric conversion, mirroring Mongo's {@code $toDouble}.
          *
          * @param inner the value to convert
+         * @since 5.2.0
          */
+        @Internal
         record ToDouble(ExprValueNode inner) implements ExprValueNode {
             @Override
             public @Nullable Object evaluate(Document doc, Object[] params, Map<String, Object> namedParameters) {

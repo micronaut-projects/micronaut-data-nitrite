@@ -17,21 +17,22 @@ package io.micronaut.data.nitrite.conf;
 
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.annotation.Internal;
 
 /**
  * Configuration for a named Nitrite datasource.
  *
- * @since 5.2.0
  */
+@Internal
 @EachProperty(value = NitriteConfiguration.PREFIX, primary = NitriteConfiguration.DEFAULT_NAME)
-public final class NamedNitriteConfiguration extends NitriteConfiguration {
+final class NamedNitriteConfiguration extends NitriteConfiguration {
 
   /**
    * Create a new named configuration.
    *
    * @param name the datasource name
    */
-  public NamedNitriteConfiguration(@Parameter String name) {
+  NamedNitriteConfiguration(@Parameter String name) {
     super(name);
   }
 }

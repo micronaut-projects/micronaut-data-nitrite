@@ -24,6 +24,7 @@ import org.dizitart.no2.rocksdb.RocksDBModuleBuilder;
  * Register implementations as Micronaut beans. Each bean receives the datasource configuration
  * and can select the datasource by name. Lower orders run first; later customizers can override
  * earlier settings. Resources supplied to the builder must outlive the database using them.
+ * @since 5.2.0
  */
 @FunctionalInterface
 public interface RocksDbModuleCustomizer extends Ordered {

@@ -15,6 +15,8 @@
  */
 package io.micronaut.data.nitrite.transaction;
 
+import io.micronaut.core.annotation.Internal;
+
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.transaction.Transaction;
 
@@ -23,6 +25,7 @@ import org.dizitart.no2.transaction.Transaction;
  *
  * @since 5.2.0
  */
+@Internal
 public class NitriteTransactionContext {
 
     private final Transaction transaction;

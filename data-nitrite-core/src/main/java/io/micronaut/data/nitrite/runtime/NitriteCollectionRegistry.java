@@ -48,7 +48,6 @@ import static org.dizitart.no2.index.IndexOptions.indexOptions;
  * Manages Nitrite collection lookup and index creation.
  * Caches collections and ensures indexes are created once per collection.
  *
- * @since 5.2.0
  */
 @Internal
 final class NitriteCollectionRegistry {

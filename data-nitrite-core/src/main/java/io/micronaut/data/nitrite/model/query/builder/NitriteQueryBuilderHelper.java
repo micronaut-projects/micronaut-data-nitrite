@@ -52,10 +52,9 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.UNWIND
  * This class is intended for use by both the Annotation Processor and Runtime,
  * but its complexity is primarily validated by the AP's static analysis.
  *
- * @since 5.2.0
  */
 @Internal
-public final class NitriteQueryBuilderHelper {
+final class NitriteQueryBuilderHelper {
 
     private NitriteQueryBuilderHelper() {
     }

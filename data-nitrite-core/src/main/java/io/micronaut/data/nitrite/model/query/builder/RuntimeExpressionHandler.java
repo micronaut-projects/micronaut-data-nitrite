@@ -20,6 +20,7 @@ import io.micronaut.data.model.query.BindingParameter;
 import io.micronaut.data.model.jpa.criteria.impl.expression.LiteralExpression;
 import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.nitrite.runtime.query.PatternConverter;
 import jakarta.persistence.criteria.Expression;
@@ -35,6 +36,7 @@ import java.util.regex.Pattern;
  *
  * @since 5.2.0
  */
+@Internal
 public final class RuntimeExpressionHandler implements NitriteExpressionHandler {
 
     /**

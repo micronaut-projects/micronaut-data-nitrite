@@ -924,7 +924,9 @@ public final class NitriteQueryExecutor {
 
     /**
      * Interface to build a find from pageable, sort keys, and entity context.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     public interface FindOptionsBuilder {
         /**

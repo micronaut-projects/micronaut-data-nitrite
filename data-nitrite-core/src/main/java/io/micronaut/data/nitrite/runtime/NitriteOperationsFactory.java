@@ -51,11 +51,10 @@ import java.nio.file.Path;
 /**
  * Factory for Nitrite repository operations.
  *
- * @since 5.2.0
  */
 @Factory
 @Internal
-public final class NitriteOperationsFactory {
+final class NitriteOperationsFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(NitriteOperationsFactory.class);
 

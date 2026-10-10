@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.spatial;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.exceptions.DataAccessException;
 import io.micronaut.data.nitrite.spi.NitriteSpatialSupport;
@@ -29,7 +30,9 @@ import org.locationtech.jts.geom.Point;
 
 /**
  * Typed spatial module and filter construction.
+ * @since 5.2.0
  */
+@Internal
 public final class SpatialSupport implements NitriteSpatialSupport {
     /** Creates a provider. */
     public SpatialSupport() {

@@ -88,7 +88,9 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
 
     /**
      * Supported entity operation types.
+     * @since 5.2.0
      */
+    @Internal
     public enum OperationType {
         /** Represents a new entity insertion operation. */
         INSERT,

@@ -30,7 +30,6 @@ import org.dizitart.no2.filters.Filter;
  * resolves an insert from an update by looking the identity up first, and {@code update} never
  * inserts.</p>
  *
- * @since 5.2.0
  */
 @Internal
 final class NitriteCrudOperations {

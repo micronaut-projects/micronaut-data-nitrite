@@ -509,7 +509,9 @@ public final class NitriteQueryParser {
      *
      * @param filterMap the parsed filter map
      * @param updateMap the parsed update map
+     * @since 5.2.0
      */
+    @Internal
     public record ParsedJsonQuery(
         @Nullable Map<String, Object> filterMap,
         @Nullable Map<String, Object> updateMap

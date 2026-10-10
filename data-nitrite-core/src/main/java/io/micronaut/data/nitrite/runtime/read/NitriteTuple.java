@@ -28,7 +28,6 @@ import java.util.Map;
 /**
  * A Nitrite-backed {@link Tuple} projection.
  *
- * @since 5.2.0
  */
 @Internal
 final class NitriteTuple implements Tuple {

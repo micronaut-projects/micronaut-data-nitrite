@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.runtime.mapping;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanIntrospection;
 import io.micronaut.core.beans.BeanIntrospector;
@@ -28,7 +29,8 @@ import java.util.Optional;
  * at meta-build time. The dispatch loop uses this to avoid instanceof chains and registry
  * lookups on every document conversion.
  */
-public enum PropertyStrategy {
+@Internal
+enum PropertyStrategy {
     /** Values are passed through directly to the underlying datastore without conversion. */
     JAVA_PASSTHROUGH,
     /** Represents an {@link java.time.Instant} value mapped to its epoch nanoseconds. */

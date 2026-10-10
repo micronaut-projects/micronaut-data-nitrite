@@ -114,6 +114,7 @@ public final class NitriteIndexManagement {
 
     /**
      * A try-with-resources scope for a temporarily dropped unique index.
+     * @since 5.2.0
      */
     public final class IndexScope implements AutoCloseable {
 

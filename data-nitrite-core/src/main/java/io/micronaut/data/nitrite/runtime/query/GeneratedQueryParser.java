@@ -832,7 +832,9 @@ public final class GeneratedQueryParser {
      * field resolution. Association paths, embedded paths, identity aliasing and value coercion
      * all live in the module's JSON filter builder, and routing every leaf through this factory
      * keeps a SQL-shaped query and its JSON equivalent on exactly the same semantics.
+     * @since 5.2.0
      */
+    @Internal
     @FunctionalInterface
     public interface LeafFilterFactory {
 
@@ -847,7 +849,11 @@ public final class GeneratedQueryParser {
         @Nullable Filter build(RuntimePersistentEntity<?> entity, String propertyPath, Map<String, Object> operators);
     }
 
-    /** Builds a computed predicate from the provider's expression-filter representation. */
+    /**
+     * Builds a computed predicate from the provider's expression-filter representation.
+     * @since 5.2.0
+     */
+    @Internal
     @FunctionalInterface
     public interface PredicateFilterFactory {
         Filter build(RuntimePersistentEntity<?> entity, Map<String, Object> predicate, Object[] params);

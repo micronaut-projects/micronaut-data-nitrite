@@ -31,6 +31,7 @@ import java.util.Map;
  *
  * @param <E> The entity type
  * @param <R> The result type
+ * @since 5.2.0
  */
 @Internal
 public final class DefaultNitriteStoredQuery<E, R> extends DefaultBindableParametersStoredQuery<E, R> implements NitriteStoredQuery<E, R> {

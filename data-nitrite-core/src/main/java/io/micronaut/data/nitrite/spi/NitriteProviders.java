@@ -22,6 +22,7 @@ import java.util.ServiceLoader;
 
 /**
  * Resolves typed extensions. Providers are discovered without reflective backend method calls.
+ * @since 5.2.0
  */
 @Internal
 public final class NitriteProviders {

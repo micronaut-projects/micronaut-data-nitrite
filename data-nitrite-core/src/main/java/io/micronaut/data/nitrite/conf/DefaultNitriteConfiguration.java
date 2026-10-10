@@ -18,21 +18,22 @@ package io.micronaut.data.nitrite.conf;
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.Primary;
 import io.micronaut.context.annotation.Requires;
+import io.micronaut.core.annotation.Internal;
 
 /**
  * Default in-memory Nitrite configuration used when no datasource is configured.
  *
- * @since 5.2.0
  */
+@Internal
 @Primary
 @Requires(missingProperty = NitriteConfiguration.PREFIX)
 @ConfigurationProperties(NitriteConfiguration.PREFIX + "." + NitriteConfiguration.DEFAULT_NAME)
-public final class DefaultNitriteConfiguration extends NitriteConfiguration {
+final class DefaultNitriteConfiguration extends NitriteConfiguration {
 
   /**
    * Creates the default configuration.
    */
-  public DefaultNitriteConfiguration() {
+  DefaultNitriteConfiguration() {
     super(NitriteConfiguration.DEFAULT_NAME);
   }
 }

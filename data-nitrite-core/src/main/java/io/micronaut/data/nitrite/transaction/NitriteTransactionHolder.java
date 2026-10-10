@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.transaction;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
  *
  * @since 5.2.0
  */
+@Internal
 public class NitriteTransactionHolder {
 
   /*

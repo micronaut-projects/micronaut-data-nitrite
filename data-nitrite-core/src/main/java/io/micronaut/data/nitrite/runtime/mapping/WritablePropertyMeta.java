@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.runtime.mapping;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanProperty;
 import io.micronaut.data.model.runtime.RuntimePersistentProperty;
@@ -37,7 +38,9 @@ import java.util.List;
  * @param backRefProperty       the back-reference property setter (if applicable)
  * @param compositeJoinColumns  local/referenced property name pairs when the association declares
  *                              more than one {@code @JoinColumn} (composite foreign key); empty otherwise
+ * @since 5.2.0
  */
+@Internal
 public record WritablePropertyMeta<T>(
     RuntimePersistentProperty<T> prop,
     String fieldName,

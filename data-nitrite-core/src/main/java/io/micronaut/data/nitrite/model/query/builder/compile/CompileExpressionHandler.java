@@ -22,6 +22,7 @@ import io.micronaut.data.nitrite.model.query.builder.NitriteExpressionHandler;
 import io.micronaut.data.nitrite.model.query.builder.NitriteQueryState;
 import io.micronaut.data.nitrite.model.query.builder.RuntimeExpressionHandler;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.nitrite.runtime.query.PatternConverter;
 import jakarta.persistence.criteria.Expression;
@@ -38,6 +39,7 @@ import java.util.regex.Pattern;
  *
  * @since 5.2.0
  */
+@Internal
 public final class CompileExpressionHandler implements NitriteExpressionHandler {
 
     private final NitriteExpressionHandler fallback = new RuntimeExpressionHandler();

@@ -46,6 +46,7 @@ import java.util.function.Function;
  * {@link PropertyStrategy#classifyValueStrategy}, {@link ValueConverter#toFilterValueStatic},
  * {@link ValueConverter#convertWithTemporalHandling}, and the document mapper
  * all delegate to this registry automatically.</p>
+ * @since 5.2.0
  */
 @Internal
 public final class NitriteTypeRegistry {
@@ -192,7 +193,9 @@ public final class NitriteTypeRegistry {
      * @param write converts a Java value to its Nitrite storage format
      * @param fromNumber reverses a stored {@link Number} back to {@code T} when applicable
      * @param fromString reverses a stored ISO {@link String} back to {@code T} when applicable
+     * @since 5.2.0
      */
+    @Internal
     public record TypeEntry<T>(
         PropertyStrategy strategy,
         Function<T, Object> write,

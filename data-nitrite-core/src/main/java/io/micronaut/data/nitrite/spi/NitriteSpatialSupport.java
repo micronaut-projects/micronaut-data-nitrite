@@ -21,6 +21,7 @@ import org.dizitart.no2.filters.Filter;
 
 /**
  * Supplies spatial indexing and filters using backend-neutral values at the extension boundary.
+ * @since 5.2.0
  */
 public interface NitriteSpatialSupport {
     /**

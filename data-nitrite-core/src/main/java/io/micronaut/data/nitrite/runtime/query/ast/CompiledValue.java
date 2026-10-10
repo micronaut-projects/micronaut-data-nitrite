@@ -42,7 +42,9 @@ public interface CompiledValue {
      * A literal value that doesn't change.
      *
      * @param value the literal value
+     * @since 5.2.0
      */
+    @Internal
     record Literal(@Nullable Object value) implements CompiledValue {
         @Override
         public @Nullable Object resolve(Object[] params, Map<String, Object> namedParameters) {
@@ -54,7 +56,9 @@ public interface CompiledValue {
      * A positional parameter value (e.g. $mn_qp:0).
      *
      * @param index the parameter index
+     * @since 5.2.0
      */
+    @Internal
     record Parameter(int index) implements CompiledValue {
         @Override
         public @Nullable Object resolve(Object[] params, Map<String, Object> namedParameters) {
@@ -66,7 +70,9 @@ public interface CompiledValue {
      * A named parameter value (e.g. :name).
      *
      * @param name the parameter name
+     * @since 5.2.0
      */
+    @Internal
     record NamedParameter(String name) implements CompiledValue {
         @Override
         public @Nullable Object resolve(Object[] params, Map<String, Object> namedParameters) {

@@ -30,10 +30,9 @@ import org.slf4j.LoggerFactory;
  * Handles version properties and entity preparation.
  *
  * @param <T> The entity type
- * @since 5.2.0
  */
 @Internal
-public final class ObjectRepositoryWriter<T> {
+final class ObjectRepositoryWriter<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ObjectRepositoryWriter.class);
 
@@ -46,7 +45,7 @@ public final class ObjectRepositoryWriter<T> {
      * @param entityMapper the entity mapper
      * @param persistentEntity the persistent entity
      */
-    public ObjectRepositoryWriter(NitriteEntityMapper entityMapper, RuntimePersistentEntity<T> persistentEntity) {
+    ObjectRepositoryWriter(NitriteEntityMapper entityMapper, RuntimePersistentEntity<T> persistentEntity) {
         this.entityMapper = entityMapper;
         RuntimePersistentProperty<T> version = null;
         try {

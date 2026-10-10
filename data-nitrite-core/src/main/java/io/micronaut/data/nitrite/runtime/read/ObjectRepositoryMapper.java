@@ -25,10 +25,9 @@ import org.dizitart.no2.collection.Document;
  * Handles both full entity loading and DTO projections using
  * Micronaut's introspection-based entity mapper.
  *
- * @since 5.2.0
  */
 @Internal
-public final class ObjectRepositoryMapper {
+final class ObjectRepositoryMapper {
 
     private final NitriteEntityMapper entityMapper;
 
@@ -37,7 +36,7 @@ public final class ObjectRepositoryMapper {
      *
      * @param entityMapper the entity mapper
      */
-    public ObjectRepositoryMapper(NitriteEntityMapper entityMapper) {
+    ObjectRepositoryMapper(NitriteEntityMapper entityMapper) {
         this.entityMapper = entityMapper;
     }
 

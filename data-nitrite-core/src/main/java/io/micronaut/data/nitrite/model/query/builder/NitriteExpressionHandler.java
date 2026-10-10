@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.model.query.builder;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.model.PersistentPropertyPath;
 import jakarta.persistence.criteria.Expression;
@@ -27,6 +28,7 @@ import java.util.List;
  *
  * @since 5.2.0
  */
+@Internal
 public interface NitriteExpressionHandler {
 
     /**

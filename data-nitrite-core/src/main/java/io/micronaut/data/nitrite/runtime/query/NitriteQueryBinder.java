@@ -50,6 +50,7 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.OR;
 /**
  * Shared JSON parameter-binding utilities used by both
  * {@link DefaultNitriteRepositoryOperations} and {@link NitriteQueryExecutor}.
+ * @since 5.2.0
  */
 @Internal
 public final class NitriteQueryBinder {

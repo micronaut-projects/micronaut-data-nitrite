@@ -36,7 +36,7 @@ import java.io.IOException;
 @Singleton
 @Internal
 @Requires(classes = Geometry.class)
-public final class GeometrySerde implements Serializer<Geometry>, Deserializer<Geometry> {
+final class GeometrySerde implements Serializer<Geometry>, Deserializer<Geometry> {
 
     private final WKTReader reader = new WKTReader();
     private final WKTWriter writer = new WKTWriter();
@@ -44,7 +44,7 @@ public final class GeometrySerde implements Serializer<Geometry>, Deserializer<G
     /**
      * Create a new codec.
      */
-    public GeometrySerde() {
+    GeometrySerde() {
     }
 
     @Override

@@ -16,6 +16,7 @@
 package io.micronaut.data.nitrite.rocksdb;
 
 import io.micronaut.context.BeanLocator;
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.spi.NitriteStoreProvider;
 import org.dizitart.no2.common.module.NitriteModule;
@@ -27,7 +28,9 @@ import java.util.Comparator;
 
 /**
  * RocksDB integration for a persistent datasource.
+ * @since 5.2.0
  */
+@Internal
 public final class RocksDbProvider implements NitriteStoreProvider {
     /** Creates a provider. */
     public RocksDbProvider() {
@@ -42,6 +45,7 @@ public final class RocksDbProvider implements NitriteStoreProvider {
     public NitriteModule createModule(NitriteConfiguration configuration, File file) {
         return RocksDBModule.withConfig().filePath(file).build();
     }
+
     @Override
     public NitriteModule createModule(NitriteConfiguration configuration, File file, BeanLocator beanLocator) {
         RocksDBModuleBuilder builder = RocksDBModule.withConfig().filePath(file);

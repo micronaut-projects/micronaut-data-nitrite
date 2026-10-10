@@ -34,6 +34,7 @@ import io.micronaut.core.naming.Named;
  *       username: admin
  *       password: secret
  * </pre>
+ * @since 5.2.0
  */
 public class NitriteConfiguration implements Named {
 
@@ -324,6 +325,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Returns additional JEP 290 patterns for stored application values.
    * @return the patterns, or {@code null} to add no application types
+   * @since 5.2.0
    */
   @Nullable
   public String getMvstoreAllowedClasses() {
@@ -333,6 +335,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Sets additional JEP 290 patterns for stored application values.
    * @param mvstoreAllowedClasses semicolon-separated patterns, or {@code null}
+   * @since 5.2.0
    */
   public void setMvstoreAllowedClasses(@Nullable final String mvstoreAllowedClasses) {
     this.mvstoreAllowedClasses = mvstoreAllowedClasses;
@@ -341,6 +344,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Returns the chunk retention time in milliseconds.
    * @return the retention time, or {@code null} to preserve H2's default
+   * @since 5.2.0
    */
   @Nullable
   public Integer getMvstoreRetentionTime() {
@@ -350,6 +354,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Sets the chunk retention time in milliseconds.
    * @param mvstoreRetentionTime the retention time, or {@code null} to preserve H2's default
+   * @since 5.2.0
    */
   public void setMvstoreRetentionTime(@Nullable final Integer mvstoreRetentionTime) {
     this.mvstoreRetentionTime = mvstoreRetentionTime;
@@ -358,6 +363,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Returns the number of old versions retained.
    * @return the version count, or {@code null} to preserve H2's default
+   * @since 5.2.0
    */
   @Nullable
   public Integer getMvstoreVersionsToKeep() {
@@ -367,6 +373,7 @@ public class NitriteConfiguration implements Named {
   /**
    * Sets the number of old versions retained.
    * @param mvstoreVersionsToKeep the version count, or {@code null} to preserve H2's default
+   * @since 5.2.0
    */
   public void setMvstoreVersionsToKeep(@Nullable final Integer mvstoreVersionsToKeep) {
     this.mvstoreVersionsToKeep = mvstoreVersionsToKeep;
@@ -544,6 +551,7 @@ public class NitriteConfiguration implements Named {
 
   /**
    * Storage modes supported by NitriteDB.
+   * @since 5.2.0
    */
   public enum StorageMode {
     /**
@@ -562,6 +570,7 @@ public class NitriteConfiguration implements Named {
 
   /**
    * Controls whether sorted row limits are applied by Nitrite or by the returned cursor.
+   * @since 5.2.0
    */
   public enum SortedReadStrategy {
     /** Select the measured strategy for the configured storage mode. */

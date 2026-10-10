@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
  * <p>Nitrite has no SQL engine. A native statement within the subset JDQL shares with SQL is rewritten
  * to JDQL: unnumbered {@code ?} parameters are numbered, {@code SELECT *} is dropped and
  * {@code COUNT(*)} becomes {@code COUNT(THIS)}. Column names must equal entity attribute names.
+ * @since 5.2.0
  */
 @NullUnmarked
 @Internal

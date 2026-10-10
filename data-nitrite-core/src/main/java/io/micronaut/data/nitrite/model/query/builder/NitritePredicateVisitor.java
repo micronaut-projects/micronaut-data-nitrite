@@ -15,6 +15,7 @@
  */
 package io.micronaut.data.nitrite.model.query.builder;
 
+import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.model.Association;
 import io.micronaut.data.model.PersistentEntity;
@@ -98,9 +99,9 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.operat
  *       are not supported by Nitrite and will intentionally throw {@link IllegalStateException}.</li>
  * </ul>
  *
- * @since 5.2.0
  */
-public final class NitritePredicateVisitor implements AdvancedPredicateVisitor<PersistentPropertyPath> {
+@Internal
+final class NitritePredicateVisitor implements AdvancedPredicateVisitor<PersistentPropertyPath> {
 
     private static final String REGEX = NitriteQueryOperators.REGEX;
     private static final String NOT = NitriteQueryOperators.NOT;

@@ -34,6 +34,7 @@ import java.util.Properties;
 
 /**
  * Supplies the Nitrite annotations missing from the released Jakarta Data TCK visitor.
+ * @since 5.2.0
  */
 @NullUnmarked
 @Internal
