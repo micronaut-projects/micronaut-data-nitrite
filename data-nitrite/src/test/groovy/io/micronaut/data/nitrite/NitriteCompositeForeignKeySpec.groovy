@@ -11,7 +11,6 @@ import io.micronaut.data.nitrite.repository.MappedCompositeJoinParentRepository
 import io.micronaut.data.repository.jpa.criteria.PredicateSpecification
 import io.micronaut.test.extensions.spock.annotation.MicronautTest
 import jakarta.inject.Inject
-import spock.lang.Ignore
 import spock.lang.Specification
 
 @MicronautTest(transactional = false)
@@ -36,7 +35,6 @@ class NitriteCompositeForeignKeySpec extends Specification {
         mappedParentRepository.deleteAll()
     }
 
-    @Ignore("Needs the criteria join support added in micronaut-data 5.2; this module pins 5.1.4")
     void "criteria query can filter across a composite foreign key join"() {
         given:
         def tenantAParent = parentRepository.save(new CompositeFkParent("tenant-a", 42L))

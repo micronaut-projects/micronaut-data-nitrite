@@ -32,7 +32,7 @@ import io.micronaut.data.model.Sort;
  * @param expression the {@code $expr} operand tree evaluated per document, or {@code null} when the
  *                   key is a stored field
  * @param ascending whether the key orders ascending
- * @param nullOrdering where nulls of this key are placed, {@link NitriteNullOrdering#NONE} to
+ * @param nullOrdering where nulls of this key are placed, {@link Sort.Order.NullOrdering#NONE} to
  *                    leave the placement to Nitrite
  * @since 5.2.0
  */
@@ -41,7 +41,7 @@ public record NitriteSortKey(
     @Nullable String field,
     @Nullable Object expression,
     boolean ascending,
-    NitriteNullOrdering nullOrdering) {
+    Sort.Order.NullOrdering nullOrdering) {
 
     /**
      * A key ordering by a stored field.
@@ -51,7 +51,7 @@ public record NitriteSortKey(
      * @param nullOrdering where nulls of this key are placed
      * @return the key
      */
-    public static NitriteSortKey ofField(String field, boolean ascending, NitriteNullOrdering nullOrdering) {
+    public static NitriteSortKey ofField(String field, boolean ascending, Sort.Order.NullOrdering nullOrdering) {
         return new NitriteSortKey(field, null, ascending, nullOrdering);
     }
 
@@ -63,7 +63,7 @@ public record NitriteSortKey(
      * @param nullOrdering where nulls of this key are placed
      * @return the key
      */
-    public static NitriteSortKey ofExpression(Object expression, boolean ascending, NitriteNullOrdering nullOrdering) {
+    public static NitriteSortKey ofExpression(Object expression, boolean ascending, Sort.Order.NullOrdering nullOrdering) {
         return new NitriteSortKey(null, expression, ascending, nullOrdering);
     }
 

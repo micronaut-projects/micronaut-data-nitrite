@@ -19,7 +19,6 @@ import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.model.Sort;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
-import io.micronaut.data.nitrite.model.query.builder.NitriteNullOrdering;
 import io.micronaut.data.nitrite.model.query.builder.NitriteSortKey;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder;
@@ -174,7 +173,7 @@ public final class NitriteSortPlan {
     private record Key(@Nullable String field,
                        Function<Document, Object> accessor,
                        boolean ascending,
-                       NitriteNullOrdering nullOrdering) {
+                       Sort.Order.NullOrdering nullOrdering) {
 
         int compare(Document left, Document right, @Nullable Collator collator) {
             Object leftValue = accessor.apply(left);

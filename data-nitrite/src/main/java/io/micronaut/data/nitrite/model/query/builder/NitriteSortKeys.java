@@ -51,7 +51,7 @@ public final class NitriteSortKeys {
      */
     public static Object toJson(List<NitriteSortKey> keys) {
         boolean mappable = keys.stream()
-            .allMatch(key -> !key.isExpression() && key.nullOrdering() == NitriteNullOrdering.NONE);
+            .allMatch(key -> !key.isExpression() && key.nullOrdering() == Sort.Order.NullOrdering.NONE);
         if (mappable) {
             Map<String, Object> sortObj = new LinkedHashMap<>();
             for (NitriteSortKey key : keys) {
@@ -68,7 +68,7 @@ public final class NitriteSortKeys {
                 entry.put(NitriteQueryOperators.SORT_KEY, key.field());
             }
             entry.put(NitriteQueryOperators.SORT_DIR, key.ascending() ? 1 : -1);
-            if (key.nullOrdering() != NitriteNullOrdering.NONE) {
+            if (key.nullOrdering() != Sort.Order.NullOrdering.NONE) {
                 entry.put(NitriteQueryOperators.SORT_NULLS, key.nullOrdering().name());
             }
             encoded.add(entry);
@@ -87,7 +87,7 @@ public final class NitriteSortKeys {
             List<NitriteSortKey> keys = new ArrayList<>(sortMap.size());
             for (Map.Entry<?, ?> entry : sortMap.entrySet()) {
                 keys.add(NitriteSortKey.ofField(entry.getKey().toString(), isAscending(entry.getValue()),
-                    NitriteNullOrdering.NONE));
+                    Sort.Order.NullOrdering.NONE));
             }
             return keys;
         }
@@ -98,7 +98,7 @@ public final class NitriteSortKeys {
                     continue;
                 }
                 boolean ascending = isAscending(entry.get(NitriteQueryOperators.SORT_DIR));
-                NitriteNullOrdering nullOrdering = nullOrdering(entry.get(NitriteQueryOperators.SORT_NULLS));
+                Sort.Order.NullOrdering nullOrdering = nullOrdering(entry.get(NitriteQueryOperators.SORT_NULLS));
                 Object expression = entry.get(NitriteQueryOperators.EXPR);
                 if (expression != null) {
                     keys.add(NitriteSortKey.ofExpression(expression, ascending, nullOrdering));
@@ -124,7 +124,7 @@ public final class NitriteSortKeys {
         List<NitriteSortKey> keys = new ArrayList<>(sort.getOrderBy().size());
         for (Sort.Order order : sort.getOrderBy()) {
             keys.add(NitriteSortKey.ofField(order.getProperty(),
-                order.getDirection() == Sort.Order.Direction.ASC, NitriteNullOrdering.NONE));
+                order.getDirection() == Sort.Order.Direction.ASC, order.getNullOrdering()));
         }
         return keys;
     }
@@ -146,7 +146,8 @@ public final class NitriteSortKeys {
             String field = Objects.requireNonNull(key.field(), "A stored sort key must have a field");
             orders.add(new Sort.Order(field,
                 key.ascending() ? Sort.Order.Direction.ASC : Sort.Order.Direction.DESC,
-                false));
+                false,
+                key.nullOrdering()));
         }
         return orders;
     }
@@ -155,14 +156,14 @@ public final class NitriteSortKeys {
         return !(direction instanceof Number number) || number.intValue() >= 1;
     }
 
-    private static NitriteNullOrdering nullOrdering(@Nullable Object nulls) {
+    private static Sort.Order.NullOrdering nullOrdering(@Nullable Object nulls) {
         if (nulls == null) {
-            return NitriteNullOrdering.NONE;
+            return Sort.Order.NullOrdering.NONE;
         }
         return switch (nulls.toString().toUpperCase(Locale.ROOT)) {
-            case "FIRST" -> NitriteNullOrdering.FIRST;
-            case "LAST" -> NitriteNullOrdering.LAST;
-            default -> NitriteNullOrdering.NONE;
+            case "FIRST" -> Sort.Order.NullOrdering.FIRST;
+            case "LAST" -> Sort.Order.NullOrdering.LAST;
+            default -> Sort.Order.NullOrdering.NONE;
         };
     }
 }

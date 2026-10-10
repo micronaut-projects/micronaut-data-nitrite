@@ -16,23 +16,23 @@
 # a managed version (a version which alias starts with "managed-"
 
 [versions]
-micronaut = "5.1.14"
-micronaut-platform = "5.1.3"
+micronaut = "5.2.12"
+micronaut-platform = "5.1.5"
 micronaut-docs = "3.0.0"
 micronaut-test = "5.1.1"
-micronaut-data = "5.1.x-nitrite-SNAPSHOT"
+micronaut-data = "5.2.2"
 micronaut-kotlin = "5.1.0"
-micronaut-serde = "3.1.1"
-micronaut-sql = "7.1.2"
-micronaut-testresources = "4.1.0"
-micronaut-validation = "5.1.0"
-groovy = "4.0.24"
+micronaut-serde = "3.2.2"
+micronaut-sql = "7.2.0"
+micronaut-testresources = "4.3.0"
+micronaut-validation = "5.2.0"
+groovy = "5.1.2"
 spock = "2.3-groovy-4.0"
 nitrite = "5.3.0"
 apiguardian = "1.1.2"
 jackson-datatype-jts = "2.21.0"
 managed-javax-persistence = "2.2"
-managed-jakarta-data = "1.1.0-M3"
+managed-jakarta-data = "1.1.0-M4"
 
 # Managed versions appear in the BOM
 # managed-somelib = "1.0"
@@ -55,7 +55,7 @@ micronaut-data-document-model = { module = "io.micronaut.data:micronaut-data-doc
 micronaut-data-connection = { module = "io.micronaut.data:micronaut-data-connection", version.ref = "micronaut-data" }
 micronaut-data-tck = { module = "io.micronaut.data:micronaut-data-tck", version.ref = "micronaut-data" }
 micronaut-data-document-tck = { module = "io.micronaut.data:micronaut-data-document-tck", version.ref = "micronaut-data" }
-micronaut-jakarta-data-support-tck = { module = "io.micronaut.data:micronaut-jakarta-data-tck-support", version.ref = "micronaut-data" }
+micronaut-jakarta-data-support-tck = { module = "io.micronaut.data:micronaut-jakarta-data-support-tck", version.ref = "micronaut-data" }
 jakarta-data-tck = { module = "jakarta.data:jakarta.data-tck", version.ref = "managed-jakarta-data" }
 apiguardian-api = { module = "org.apiguardian:apiguardian-api", version.ref = "apiguardian" }
 micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor", version.ref = "micronaut-data" }

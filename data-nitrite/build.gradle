@@ -92,6 +92,7 @@ dependencies {
 
     compileOnly mn.micronaut.inject.groovy
 
+    compileOnly libs.jakarta.data.api
     testAnnotationProcessor libs.micronaut.data.document.processor
     testAnnotationProcessor projects.micronautDataNitrite
     testAnnotationProcessor mn.micronaut.inject.java

@@ -378,7 +378,7 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         List<NitriteSortKey> keys = new ArrayList<>(orders.size());
         NitritePredicateVisitor expressionVisitor = null;
         for (Order order : orders) {
-            NitriteNullOrdering nullOrdering = nullOrdering(order);
+            Sort.Order.NullOrdering nullOrdering = nullOrdering(order);
             Expression<?> expression = order.getExpression();
             if (expression instanceof PersistentPropertyPath<?> propertyPath) {
                 keys.add(NitriteSortKey.ofField(
@@ -396,15 +396,15 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         return keys;
     }
 
-    private static NitriteNullOrdering nullOrdering(final Order order) {
+    private static Sort.Order.NullOrdering nullOrdering(final Order order) {
         Nulls nullPrecedence = order.getNullPrecedence();
         if (nullPrecedence == null) {
-            return NitriteNullOrdering.NONE;
+            return Sort.Order.NullOrdering.NONE;
         }
         return switch (nullPrecedence) {
-            case FIRST -> NitriteNullOrdering.FIRST;
-            case LAST -> NitriteNullOrdering.LAST;
-            case NONE -> NitriteNullOrdering.NONE;
+            case FIRST -> Sort.Order.NullOrdering.FIRST;
+            case LAST -> Sort.Order.NullOrdering.LAST;
+            case NONE -> Sort.Order.NullOrdering.NONE;
         };
     }
 
