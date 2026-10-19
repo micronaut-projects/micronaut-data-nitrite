@@ -1,0 +1,229 @@
+[[nitriteConfiguration]]
+== Configuration
+
+Nitrite datasources are bound from `micronaut.nitrite.*` properties. Each datasource has a name, which forms part of the property path: settings for a datasource named `default` are bound from `micronaut.nitrite.default.*`.
+
+The following settings are supported for each datasource:
+
+- `db-path`: Path to the database file. `MVSTORE` without a path uses pure in-memory storage; `ROCKSDB` requires a path. `IN_MEMORY` ignores the path.
+- `storage-mode`: The storage engine to use. Supported values are:
+    * `MVSTORE`: (Default) MVStore-backed persistent database.
+    * `IN_MEMORY`: Pure in-memory database (equivalent to leaving `db-path` empty).
+    * `ROCKSDB`: RocksDB-backed persistent database.
+- `field-separator`: The character used to separate nested fields in query strings (default: `.`).
+- `create-indexes`: Whether to automatically create indexes from Micronaut Data `@Index`, `@Indexes`, `@FullTextIndex`, and `@SpatialIndex` annotations (default: `true`).
+- `sorted-read-strategy`: How limits are applied to sorted reads (default: `AUTO`):
+    * `AUTO`: Uses cursor-side limits for MVSTORE and in-memory storage, and database-side limits for ROCKSDB.
+    * `CURSOR`: Always removes the limit from the Nitrite find and applies it while reading the cursor.
+    * `DATABASE`: Always keeps the limit on the Nitrite find.
+- `mvstore-page-split-size`: The MVStore page split size in bytes. Unset by default, which leaves the
+Nitrite adapter's own value in place. Only read when `storage-mode` is `MVSTORE`.
++
+Nitrite 5.4.0 defaults to 16 KB (`16384` bytes). The explicit `16384` workaround for
+Nitrite 5.3.0 is no longer needed; an existing override remains valid. H2 clamps the value to
+`(cacheSize / cacheConcurrency) >> 4`. Existing pages keep their shape until rewritten.
+
+The remaining MVStore settings are unset by default and, like the one above, are read only for
+`MVSTORE`. An unset value leaves the adapter's own default in place:
+
+- `mvstore-retention-time`: Chunk retention time in milliseconds. Unset preserves H2's default
+of 45 seconds. Space reclamation waits for this window; close still compacts synchronously.
+- `mvstore-versions-to-keep`: Number of old versions retained. Unset preserves H2's default of five.
+Setting both retention and versions-to-keep to zero restores the earlier behaviour that can leave
+an unreadable store.
+- `mvstore-allowed-classes`: Additional semicolon-separated JEP 290 patterns for application
+classes stored as Java serialized values, for example `com.example.model.**`. Nitrite 5.4.0 allows
+Nitrite and JDK classes by default. The spatial integration adds `org.locationtech.jts.geom.**`
+when installed; application classes attached as geometry user data still need their own patterns.
+A process-wide `jdk.serialFilter` can still reject classes allowed here.
+- `mvstore-cache-size`: Read cache size in MB (adapter default: 16).
+- `mvstore-cache-concurrency`: Number of read cache segments (adapter default: 16). H2 clamps the
+page split size to `(cacheSize / cacheConcurrency) >> 4`, so this bounds `mvstore-page-split-size`.
+- `mvstore-auto-commit`: Whether every change is committed as it is made (adapter default: `true`).
+With this off, changes are buffered until `Nitrite.commit()`.
+- `mvstore-auto-commit-buffer-size`: Unsaved changes buffered before an automatic commit (adapter
+default: 1024). Only meaningful while auto-commit is on.
+- `mvstore-auto-compact`: Whether fragmented chunks and chunks below the 90% target fill rate are
+reclaimed, which shrinks the file (adapter default: `true`).
+- `mvstore-compress`: Whether stored data is compressed (adapter default: `false`).
+- `mvstore-compress-high`: Whether the higher compression level is used - smaller file, slower reads
+and writes (adapter default: `false`).
+- `mvstore-recovery-mode`: Whether the store opens in MVStore's recovery mode, which tolerates a file
+H2 would otherwise refuse (adapter default: `false`).
+- `mvstore-read-only`: Whether the store opens read-only (adapter default: `false`).
+- `mvstore-encryption-key`: The key MVStore encrypts the file with. Unset means an unencrypted
+store. Supply it from the environment rather than checked-in configuration. Encryption is an
+MVStore feature; the RocksDB adapter has no equivalent.
+
+- `username`: Optional username (for authenticated databases).
+- `password`: Optional password.
+
+Example (Persistent):
+
+[source,yaml]
+----
+micronaut:
+  nitrite:
+    default:
+      db-path: /data/myapp.db
+      create-indexes: true
+----
+
+If no `micronaut.nitrite` configuration is present at all, an in-memory datasource named `default` is created implicitly, so a repository works without any configuration. A configured `MVSTORE` datasource without a `db-path` also uses in-memory storage. `ROCKSDB` always requires a path.
+
+=== Backend Builder Customization
+
+For settings that require Java objects, register a Micronaut bean implementing
+`MvStoreModuleCustomizer` from `micronaut-data-nitrite-mvstore` or `RocksDbModuleCustomizer`
+from `micronaut-data-nitrite-rocksdb`. The customizer receives the datasource configuration and
+its fresh upstream builder before the module is built. It runs only for a persistent datasource
+using that backend; `MVSTORE` without a path uses pure in-memory storage.
+
+Customizers run after datasource properties, in ascending `getOrder()` order (default: zero).
+Use distinct orders when customizers set the same option; later customizers override earlier ones.
+Each bean is invoked for every datasource of its backend. Check `configuration.getName()` to
+restrict it to one datasource:
+
+[source,java]
+----
+import io.micronaut.data.nitrite.conf.NitriteConfiguration;
+import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer;
+import jakarta.inject.Singleton;
+import org.dizitart.no2.mvstore.MVStoreModuleBuilder;
+
+@Singleton
+class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
+    @Override
+    public void customize(NitriteConfiguration configuration, MVStoreModuleBuilder builder) {
+        if ("audit".equals(configuration.getName())) {
+            builder.autoCommitBufferSize(4096);
+        }
+    }
+}
+----
+
+The MVStore hook exposes the entire upstream builder, including `fileStore` and store event
+listeners. The RocksDB hook exposes `Options`, `DBOptions`, `ColumnFamilyOptions`, custom object
+formatters and store event listeners. Keep supplied resources alive until the database closes;
+RocksDB closes the native options it uses, so create a fresh set for each datasource rather than
+sharing native options across databases. Customizing the deserialization patterns replaces the
+patterns assembled from datasource properties and spatial support, so preserve the geometry
+patterns when using spatial values.
+
+=== Nitrite 5.4.0 Upgrade Behaviour
+
+Custom Java serialized document values require the `mvstore-allowed-classes` setting when read
+from an MVStore file. Normal entity properties mapped to documents, maps and JDK values do not
+need an application allowlist. Values passed through without conversion, including values from
+custom converters or direct Nitrite collection access, may need one. In native applications,
+allowlisting does not register a class for Java serialization: custom values also require the
+corresponding GraalVM serialization metadata.
+
+Unique indexes migrate from lists of IDs to a single-ID layout on first access. Back up a database
+before upgrading if it may need to be opened by an earlier Nitrite release.
+
+`find()` and `getById()` return structurally copied documents. Change stored data through explicit
+updates; mutating a returned list, map, array, date or calendar does not persist a change. Unknown
+mutable value types, including JTS geometries, can still be shared. Update a geometry through a
+repository operation instead of mutating its coordinates in place. Each result and write now pays
+for the structural copy.
+
+== Multiple Datasources
+
+More than one datasource can be configured by giving each one its own name under `micronaut.nitrite`. Each datasource is opened independently, with its own storage mode and its own documents:
+
+[source,yaml]
+----
+micronaut:
+  nitrite:
+    default:
+      db-path: /data/myapp.db
+    audit:
+      storage-mode: IN_MEMORY
+----
+
+A repository selects its datasource by passing the name to ann:data.nitrite.annotation.NitriteRepository[]:
+
+[source,java]
+----
+@NitriteRepository("audit")
+public interface AuditRepository extends CrudRepository<AuditRecord, String> {
+}
+----
+
+A repository that names no datasource uses the primary one, which is the datasource named `default`.
+
+Datasources are isolated from each other: an entity written through a repository bound to one datasource is not visible through a repository bound to another, even when both repositories map the same entity type.
+
+The isolation extends to transactions. Each datasource gets its own connection operations, transaction operations and transaction context holder, so a transaction opened against one datasource neither covers nor is visible to repositories bound to another. To drive a transaction of a named datasource programmatically, resolve its `NitriteTransactionOperations` bean by that name:
+
+[source,java]
+----
+NitriteTransactionOperations auditTransactions =
+    beanContext.getBean(NitriteTransactionOperations.class, Qualifiers.byName("audit"));
+----
+
+== Optional Modules
+
+Select the Micronaut integration modules described in <<nitriteQuickStart, Quick Start>>. Each brings core and its upstream Nitrite library transitively; the BOM aligns their versions.
+
+=== ROCKSDB Storage Engine
+
+To use the `ROCKSDB` storage mode, add the Micronaut RocksDB integration dependency:
+
+dependency:io.micronaut.data:micronaut-data-nitrite-rocksdb[scope="implementation"]
+
+Then configure the storage mode:
+
+[source,yaml]
+----
+micronaut:
+  nitrite:
+    default:
+      db-path: /data/myapp.db
+      storage-mode: ROCKSDB
+----
+
+`ROCKSDB` requires a `db-path`; unlike `MVSTORE` it cannot fall back to in-memory storage, so a missing path fails at startup. Configuring `ROCKSDB` without `micronaut-data-nitrite-rocksdb` fails at startup and names the required integration. Adding that integration brings RocksDB JNI transitively. A persistent `MVSTORE` datasource similarly requires `micronaut-data-nitrite-mvstore`, already included by the default artifact.
+
+See the https://nitrite.dizitart.com/java-sdk/modules/store-modules/rocksdb/index.html[Nitrite ROCKSDB Adapter documentation] for more details.
+
+=== Spatial Module
+
+To use spatial queries with Geometry types (points, polygons, etc.), add the Micronaut spatial integration:
+
+dependency:io.micronaut.data:micronaut-data-nitrite-spatial[scope="implementation"]
+
+The integration brings core, Nitrite spatial and JTS transitively. It supplies the Micronaut Serde codec for Geometry values; no Jackson JTS module is required.
+
+The spatial module enables:
+
+- <<nitriteSpatial, Spatial indexes>> on Geometry fields
+- <<nitriteSpatial, Spatial filters>> (`$near`, `$within`, `$intersects`)
+
+IMPORTANT: With Nitrite 5.4.1, spatial-index queries on a reopened MVStore file can fail with
+`ClassCastException` (`DefaultSpatial` to `MVSpatialKey`) inside the upstream adapter. Geometry
+values themselves can be read after reopening. Persistent spatial-index queries on MVStore
+require an adapter release containing the persisted-key fix; the in-memory spatial verification
+does not cover that case. When verifying an adapter containing the fix, add
+`-PverifySpatialIndexReopen=true` to the dedicated JVM or native verification command to exercise
+persisted spatial queries, updates and deletes. This regression is opt-in while the BOM pins the
+affected 5.4.1 release.
+
+The module is loaded automatically when it is on the classpath and is simply absent when it is not. A module that is present but cannot be initialized fails at startup rather than being skipped, so spatial indexes and filters are never silently unavailable.
+
+See <<nitriteSpatial, Spatial Queries>> for detailed usage. See the https://nitrite.dizitart.com/java-sdk/modules/spatial/index.html[Nitrite Spatial Module documentation] and https://nitrite.dizitart.com/java-sdk/filter/index.html#spatial-filters[Spatial Filters documentation] for more details.
+
+=== Object Mapping
+
+Micronaut Data Nitrite uses its own Micronaut Data mapping layer with Nitrite collections. It does not require Nitrite's Jackson mapper module, and a Micronaut Serde `ObjectMapper` bean is optional. If Micronaut Serde is present, the mapper can use it for non-simple nested values; otherwise it relies on Micronaut introspection and the built-in conversion service.
+
+== Batch Operations
+
+For bulk operations, use the `saveAll`, `updateAll`, and `deleteAll` repository methods:
+
+snippet::example.BookRepositoryExample[project-base="doc-examples/nitrite-example", source="main", tags="batch-operations"]
+
+The insert portion of `saveAll` is submitted as a batch; updates and entity-based deletes are applied per document. Nitrite is embedded, so these operations do not involve network round-trips. To commit or roll back several changes together, run them in a transaction; see <<nitriteTransactions, Transactions>>.
+
+NOTE: For large batch operations, consider breaking them into smaller chunks to avoid memory pressure and improve transaction management.

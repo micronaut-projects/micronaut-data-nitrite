@@ -1,0 +1,19 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+
+plugins {
+    id "org.jetbrains.kotlin.jvm"
+    id "org.jetbrains.kotlin.kapt"
+    id "org.jetbrains.kotlin.plugin.allopen"
+    id "io.micronaut.build.internal.data-nitrite-example"
+    id "io.micronaut.build.internal.data-nitrite-kotlin"
+}
+
+allOpen {
+    annotation("io.micronaut.aop.Around")
+}
+
+kotlin {
+    compilerOptions {
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+    }
+}

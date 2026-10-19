@@ -1,0 +1,31 @@
+plugins {
+    id "groovy"
+    id "io.micronaut.build.internal.data-nitrite-example"
+}
+
+application {
+    mainClass = "example.Application"
+}
+
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    runtime "netty"
+    testRuntime "spock"
+}
+
+dependencies {
+    // Override app plugin version
+    compileOnly libs.micronaut.data.processor
+    compileOnly libs.micronaut.data.document.processor
+    compileOnly projects.micronautDataNitrite
+    compileOnly mnLogging.logback.classic
+
+    implementation projects.micronautDataNitrite
+    implementation projects.micronautDataNitriteSpatial
+    implementation mnSql.jakarta.persistence.api
+
+    testCompileOnly mn.micronaut.inject.groovy
+
+    runtimeOnly mnLogging.logback.classic
+
+}

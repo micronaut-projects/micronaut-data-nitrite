@@ -1,3 +1,34 @@
+import org.gradle.api.plugins.quality.Checkstyle
+
 plugins {
     id "io.micronaut.build.internal.parent"
+    id "io.micronaut.build.internal.data-nitrite-dependencies"
+}
+
+project(':micronaut-data-nitrite').plugins.withId('java') {
+    tasks.named('javadoc', Javadoc) {
+        classpath += project(':micronaut-data-nitrite-core').sourceSets.main.compileClasspath
+    }
+}
+
+tasks.named('javadoc', Javadoc) {
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PUBLIC
+    exclude '**/io/micronaut/data/info/**'
+    exclude '**/example/**'
+    options.addStringOption('exclude', 'io.micronaut.data.info')
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+subprojects { subproject ->
+    plugins.withId('java') {
+        def generatedSources = subproject.layout.buildDirectory.dir('generated').get().asFile.toPath()
+        tasks.withType(Checkstyle).configureEach {
+            onlyIf { source.files.any { !it.toPath().startsWith(generatedSources) } }
+            doFirst {
+                setSource(source.files.findAll { !it.toPath().startsWith(generatedSources) })
+            }
+        }
+    }
 }

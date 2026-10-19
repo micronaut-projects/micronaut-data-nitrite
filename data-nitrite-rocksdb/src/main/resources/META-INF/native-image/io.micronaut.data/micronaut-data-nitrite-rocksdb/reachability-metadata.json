@@ -1,0 +1,99 @@
+{
+  "resources": [
+    {
+      "glob": "librocksdbjni-*"
+    }
+  ],
+  "reflection": [
+    {
+      "type": "byte[]",
+      "jniAccessible": true
+    },
+    {
+      "type": "java.lang.Boolean",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getBoolean",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessible": true
+    },
+    {
+      "type": "org.rocksdb.AbstractComparator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "name",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.rocksdb.AbstractComparatorJniBridge",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "compareInternal",
+          "parameterTypes": [
+            "org.rocksdb.AbstractComparator",
+            "java.nio.ByteBuffer",
+            "int",
+            "java.nio.ByteBuffer",
+            "int"
+          ]
+        },
+        {
+          "name": "findShortSuccessorInternal",
+          "parameterTypes": [
+            "org.rocksdb.AbstractComparator",
+            "java.nio.ByteBuffer",
+            "int"
+          ]
+        },
+        {
+          "name": "findShortestSeparatorInternal",
+          "parameterTypes": [
+            "org.rocksdb.AbstractComparator",
+            "java.nio.ByteBuffer",
+            "int",
+            "java.nio.ByteBuffer",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.esotericsoftware.kryo.kryo5.serializers.CollectionSerializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.esotericsoftware.kryo.kryo5.serializers.MapSerializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.esotericsoftware.kryo.kryo5.unsafe.UnsafeUtil",
+      "fields": [
+        {
+          "name": "unsafe"
+        }
+      ]
+    }
+  ]
+}

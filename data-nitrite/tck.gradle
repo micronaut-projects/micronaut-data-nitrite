@@ -1,0 +1,15 @@
+def includeDataTck = providers.gradleProperty('includeDataTck')
+    .map { it.toBoolean() }.getOrElse(false)
+
+if (includeDataTck) {
+    dependencies {
+        testImplementation libs.micronaut.data.document.tck
+        testImplementation libs.micronaut.data.tck
+    }
+} else {
+    sourceSets.test.java.exclude '**/nitrite/tck/**'
+    sourceSets.test.groovy.exclude '**/nitrite/tck/**',
+        'io/micronaut/data/nitrite/NitriteSaveAllCascadeSpec.groovy',
+        'io/micronaut/data/nitrite/model/query/builder/NitriteCriteria*Spec.groovy',
+        'io/micronaut/data/nitrite/mongoport/NitriteCriteriaSpec.groovy'
+}

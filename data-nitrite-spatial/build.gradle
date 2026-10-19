@@ -1,0 +1,15 @@
+plugins {
+    id "io.micronaut.build.internal.data-nitrite-module"
+}
+
+dependencies {
+
+
+    api projects.micronautDataNitriteCore
+    api platform(libs.boms.nitrite)
+    api(libs.nitrite.spatial) {
+        exclude group: "tools.jackson.core", module: "jackson-databind"
+    }
+    annotationProcessor mn.micronaut.inject.java
+    annotationProcessor mn.micronaut.graal
+}

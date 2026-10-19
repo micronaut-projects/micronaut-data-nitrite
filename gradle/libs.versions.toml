@@ -16,31 +16,84 @@
 # a managed version (a version which alias starts with "managed-"
 
 [versions]
-micronaut = "5.1.12"
+micronaut = "5.2.12"
+micronaut-platform = "5.1.5"
 micronaut-docs = "3.0.0"
-micronaut-test = "4.6.2"
-groovy = "4.0.24"
+micronaut-test = "5.1.1"
+managed-micronaut-data = "5.2.3"
+micronaut-kotlin = "5.1.0"
+micronaut-serde = "3.2.2"
+micronaut-sql = "7.2.0"
+micronaut-testresources = "4.3.0"
+micronaut-validation = "5.2.0"
+groovy = "5.1.2"
 spock = "2.3-groovy-4.0"
+managed-nitrite = "5.4.1"
+apiguardian = "1.1.2"
+jakarta-persistence-tck = "4.0.0-M6"
+jackson-datatype-jts = "2.21.0"
+managed-javax-persistence = "2.2"
+managed-jakarta-data = "1.1.0-M4"
+micronaut-gradle-plugin = "5.0.2"
+kotlin-gradle-plugin = "2.4.20"
+errorprone-gradle-plugin = "5.1.1"
+nullaway = "0.14.1"
+error_prone_core = "2.50.0"
 
 # Managed versions appear in the BOM
 # managed-somelib = "1.0"
 # managed-somebom = "1.1"
 
 [libraries]
+gradle-micronaut = { module = "io.micronaut.gradle:micronaut-gradle-plugin", version.ref = "micronaut-gradle-plugin" }
+gradle-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
+gradle-kotlin-allopen = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlin-gradle-plugin" }
+gradle-errorprone = { module = "net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin", version.ref = "errorprone-gradle-plugin" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+error-prone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "error_prone_core" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
 # Core
 micronaut-core = { module = 'io.micronaut:micronaut-core-bom', version.ref = 'micronaut' }
+micronaut-test = { module = "io.micronaut.test:micronaut-test-bom", version.ref = "micronaut-test" }
+micronaut-kotlin = { module = "io.micronaut.kotlin:micronaut-kotlin-bom", version.ref = "micronaut-kotlin" }
+micronaut-serde = { module = "io.micronaut.serde:micronaut-serde-bom", version.ref = "micronaut-serde" }
+micronaut-sql = { module = "io.micronaut.sql:micronaut-sql-bom", version.ref = "micronaut-sql" }
+micronaut-testresources = { module = "io.micronaut.testresources:micronaut-test-resources-bom", version.ref = "micronaut-testresources" }
+micronaut-validation = { module = "io.micronaut.validation:micronaut-validation-bom", version.ref = "micronaut-validation" }
+micronaut-docs = { module = "io.micronaut.docs:micronaut-docs-asciidoc-config-props", version.ref = "micronaut-docs" }
+micronaut-data-document-processor = { module = "io.micronaut.data:micronaut-data-document-processor", version.ref = "managed-micronaut-data" }
+micronaut-data-runtime = { module = "io.micronaut.data:micronaut-data-runtime", version.ref = "managed-micronaut-data" }
+micronaut-data-document-model = { module = "io.micronaut.data:micronaut-data-document-model", version.ref = "managed-micronaut-data" }
+micronaut-data-connection = { module = "io.micronaut.data:micronaut-data-connection", version.ref = "managed-micronaut-data" }
+micronaut-data-tck = { module = "io.micronaut.data:micronaut-data-tck", version.ref = "managed-micronaut-data" }
+micronaut-data-document-tck = { module = "io.micronaut.data:micronaut-data-document-tck", version.ref = "managed-micronaut-data" }
+micronaut-jakarta-data-support-tck = { module = "io.micronaut.data:micronaut-jakarta-data-support-tck", version.ref = "managed-micronaut-data" }
+jakarta-data-tck = { module = "jakarta.data:jakarta.data-tck", version.ref = "managed-jakarta-data" }
+jakarta-persistence-tck-api = { module = "jakarta.persistence:jakarta.persistence-api", version.ref = "jakarta-persistence-tck" }
+apiguardian-api = { module = "org.apiguardian:apiguardian-api", version.ref = "apiguardian" }
+micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor", version.ref = "managed-micronaut-data" }
 
 #
 # Managed dependencies appear in the BOM
 #
 # managed-somelib = { module = "group:artifact", version.ref = "managed-somelib" }
+managed-javax-persistence-api = { module = "javax.persistence:javax.persistence-api", version.ref = "managed-javax-persistence" }
+managed-jakarta-data-api = { module = "jakarta.data:jakarta.data-api", version.ref = "managed-jakarta-data" }
 
 #
 # Imported BOMs, also appearing in the generated BOM
 #
-# boms-somebom = { module = "com.foo:somebom", version.ref = "managed-somebom" }
+boms-micronaut-data = { module = "io.micronaut.data:micronaut-data-bom", version.ref = "managed-micronaut-data" }
+boms-nitrite = { module = "org.dizitart:nitrite-bom", version.ref = "managed-nitrite" }
 
 # Other libraries used by the project but non managed
+
+nitrite = { module = "org.dizitart:nitrite" }
+nitrite-mvstore-adapter = { module = "org.dizitart:nitrite-mvstore-adapter" }
+nitrite-rocksdb-adapter = { module = "org.dizitart:nitrite-rocksdb-adapter" }
+nitrite-spatial = { module = "org.dizitart:nitrite-spatial" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
+jackson-datatype-jts = { module = "com.graphhopper.external:jackson-datatype-jts", version.ref = "jackson-datatype-jts" }
 
 # micronaut-bom = { module = "io.micronaut:micronaut-bom", version.ref = "micronaut" }
 # jdoctor = { module = "me.champeau.jdoctor:jdoctor-core", version.ref="jdoctor" }

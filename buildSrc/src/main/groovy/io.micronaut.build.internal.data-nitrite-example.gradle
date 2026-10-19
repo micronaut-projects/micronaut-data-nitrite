@@ -1,0 +1,46 @@
+plugins {
+    id "io.micronaut.build.internal.data-nitrite-dependencies"
+    id "io.micronaut.minimal.application"
+    id "io.micronaut.build.internal.java-base"
+}
+
+configurations.configureEach {
+    resolutionStrategy.preferProjectModules()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addBooleanOption('Xdoclint:none', true)
+    options.addBooleanOption('quiet', true)
+}
+
+tasks.withType(Test).configureEach {
+    if (providers.environmentVariable("GITHUB_ACTIONS").map { it.toBoolean() }.getOrElse(false)) {
+        plugins.withId("io.micronaut.test-resources") {
+            finalizedBy("stopTestResourcesService")
+        }
+    }
+}
+
+tasks.matching { it.name == "internalStartTestResourcesService" }.configureEach {
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_25)) {
+        setProperty("useClassDataSharing", false)
+    }
+}
+
+tasks.register("testExamples") {
+    dependsOn "test"
+}
+
+dependencies {
+    micronautBoms(
+            platform("io.micronaut:micronaut-core-bom:$micronautVersion"),
+            platform(mnTest.micronaut.test.bom)
+    )
+    testRuntimeOnly mnSerde.micronaut.serde.jackson
+    runtimeOnly mn.snakeyaml
+    testImplementation mnTest.junit.platform.suite
+}

@@ -1,3 +1,19 @@
 plugins {
     id 'groovy-gradle-plugin'
 }
+
+repositories {
+    gradlePluginPortal()
+    mavenCentral()
+}
+
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    implementation libs.gradle.micronaut
+    implementation libs.gradle.kotlin
+    implementation libs.gradle.kotlin.allopen
+    implementation libs.gradle.errorprone
+}

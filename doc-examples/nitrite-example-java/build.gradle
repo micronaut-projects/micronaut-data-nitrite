@@ -1,0 +1,28 @@
+plugins {
+    id "java"
+    id "io.micronaut.build.internal.data-nitrite-example"
+}
+
+application {
+    mainClass = "example.Application"
+}
+
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    runtime "netty"
+    testRuntime "junit5"
+}
+
+dependencies {
+    annotationProcessor libs.micronaut.data.document.processor
+    annotationProcessor projects.micronautDataNitrite
+    annotationProcessor mnLogging.logback.classic
+    testAnnotationProcessor mnLogging.logback.classic
+
+    implementation projects.micronautDataNitrite
+    implementation projects.micronautDataNitriteSpatial
+    implementation mnSql.jakarta.persistence.api
+
+    runtimeOnly mnLogging.logback.classic
+
+}

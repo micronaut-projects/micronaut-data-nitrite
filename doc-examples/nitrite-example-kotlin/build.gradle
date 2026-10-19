@@ -1,0 +1,27 @@
+plugins {
+    id "io.micronaut.build.internal.data-nitrite-kotlin-example"
+}
+
+application {
+    mainClass = "example.ApplicationKt"
+}
+
+micronaut {
+    version libs.versions.micronaut.platform.get()
+    runtime "netty"
+    testRuntime "junit5"
+}
+
+dependencies {
+    kapt libs.micronaut.data.document.processor
+    kapt projects.micronautDataNitrite
+    kapt mnLogging.logback.classic
+
+    implementation projects.micronautDataNitrite
+    implementation mnKotlin.micronaut.kotlin.runtime
+    implementation projects.micronautDataNitriteSpatial
+    implementation mnSql.jakarta.persistence.api
+
+    runtimeOnly mnLogging.logback.classic
+
+}

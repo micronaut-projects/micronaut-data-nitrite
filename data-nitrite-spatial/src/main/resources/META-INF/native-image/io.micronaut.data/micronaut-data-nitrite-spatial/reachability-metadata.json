@@ -1,0 +1,124 @@
+{
+  "reflection": [
+    {
+      "type": "org.dizitart.no2.index.BoundingBox",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Coordinate",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.CoordinateXY",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.CoordinateXYM",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.CoordinateXYZM",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Coordinate[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Envelope",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Geometry",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.GeometryCollection",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.GeometryFactory",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Geometry[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.LineString",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.LineString[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.LinearRing",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.LinearRing[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.MultiLineString",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.MultiPoint",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.MultiPolygon",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Point",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Point[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Polygon",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.Polygon[]",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.PrecisionModel",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.PrecisionModel$Type",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.CoordinateArraySequence",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.CoordinateArraySequenceFactory",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.PackedCoordinateSequence",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.PackedCoordinateSequence$Double",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.PackedCoordinateSequence$Float",
+      "serializable": true
+    },
+    {
+      "type": "org.locationtech.jts.geom.impl.PackedCoordinateSequenceFactory",
+      "serializable": true
+    }
+  ]
+}
