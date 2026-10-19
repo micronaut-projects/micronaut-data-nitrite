@@ -31,7 +31,7 @@ transaction rollback, persistent store reopening, spatial indexes, and geometry 
 `check` includes its JVM tests; native compilation and execution are explicit:
 
 ```sh
-jenv exec ./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
+./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
 ```
 
 The default test classpath includes all integrations. To verify an isolated classpath, append

@@ -11,7 +11,7 @@ dependency:io.micronaut.data:micronaut-data-nitrite-spatial[scope="implementatio
 
 This artifact brings core, the upstream Nitrite spatial library and JTS transitively, and supplies spatial indexing, filters and the Geometry Serde codec. Select a storage integration separately for persistence; see <<nitriteQuickStart, Quick Start>>. No Jackson JTS module is required, and Jackson 3 databind is excluded.
 
-IMPORTANT: Released Nitrite 5.4.0 can fail when querying, updating or deleting through a spatial index after reopening an MVStore file. See <<nitriteConfiguration, Configuration>> for the adapter limitation and the opt-in regression that verifies a corrected adapter.
+IMPORTANT: Released Nitrite 5.4.1 can fail when querying, updating or deleting through a spatial index after reopening an MVStore file. See <<nitriteConfiguration, Configuration>> for the adapter limitation and the opt-in regression that verifies a corrected adapter.
 
 === Spatial Indexes
 

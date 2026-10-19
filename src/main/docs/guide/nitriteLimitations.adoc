@@ -30,7 +30,7 @@ For details and examples, see the respective sections above.
 
 The following boundaries remain:
 
-* Spatial-index operations after reopening an MVStore file require a corrected upstream adapter; released Nitrite 5.4.0 still has the persisted-key cast failure described in <<nitriteConfiguration, Configuration>>.
+* Spatial-index operations after reopening an MVStore file require a corrected upstream adapter; released Nitrite 5.4.1 still has the persisted-key cast failure described in <<nitriteConfiguration, Configuration>>.
 
 * `@Join` uses Nitrite's default fetch behavior; custom join types such as `LEFT_FETCH` and `INNER_FETCH` are not currently distinguished.
 * Criteria subqueries (`cb.exists(subquery)`) are not supported by Nitrite.

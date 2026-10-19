@@ -117,7 +117,6 @@ tasks.register('generatedQueryTest', Test) {
     testClassesDirs = sourceSets.generatedQueryTest.output.classesDirs
     classpath = sourceSets.generatedQueryTest.runtimeClasspath
     mustRunAfter test
-    onlyIf { tasks.named('test').get().state.failure == null }
 }
 
 tasks.register('rocksDbPresentTest', Test) {
@@ -126,7 +125,6 @@ tasks.register('rocksDbPresentTest', Test) {
     testClassesDirs = sourceSets.rocksDbPresentTest.output.classesDirs
     classpath = sourceSets.rocksDbPresentTest.runtimeClasspath
     mustRunAfter test
-    onlyIf { tasks.named('test').get().state.failure == null }
 }
 
 tasks.register('spatialPresentTest', Test) {
@@ -135,7 +133,6 @@ tasks.register('spatialPresentTest', Test) {
     testClassesDirs = sourceSets.spatialPresentTest.output.classesDirs
     classpath = sourceSets.spatialPresentTest.runtimeClasspath
     mustRunAfter test
-    onlyIf { tasks.named('test').get().state.failure == null }
 }
 
 test.finalizedBy generatedQueryTest, rocksDbPresentTest, spatialPresentTest

@@ -4,7 +4,7 @@ import io.micronaut.context.ApplicationContext
 import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
 import io.micronaut.inject.qualifiers.Qualifiers
 import org.dizitart.no2.mvstore.MVStoreModuleBuilder
-import org.dizitart.no2.exceptions.NitriteIOException
+import org.dizitart.no2.exceptions.NitriteSecurityException
 import org.dizitart.no2.Nitrite
 import org.dizitart.no2.collection.Document
 import spock.lang.AutoCleanup
@@ -340,7 +340,7 @@ class NitriteConfigurationSpec extends Specification {
         ctx.getBean(Nitrite).getCollection("values").find().firstOrNull()
 
         then:
-        def failure = thrown(NitriteIOException)
+        def failure = thrown(NitriteSecurityException)
         failure.message.contains("Unable to open map values")
 
         when: "the allowlist is supplied again"

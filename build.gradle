@@ -5,14 +5,6 @@ plugins {
     id "io.micronaut.build.internal.data-nitrite-dependencies"
 }
 
-repositories {
-    mavenLocal {
-        content {
-            includeGroup 'io.micronaut.data'
-        }
-    }
-}
-
 project(':micronaut-data-nitrite').plugins.withId('java') {
     tasks.named('javadoc', Javadoc) {
         classpath += project(':micronaut-data-nitrite-core').sourceSets.main.compileClasspath
