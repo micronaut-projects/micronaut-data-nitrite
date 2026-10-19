@@ -1,98 +1,95 @@
-# Contributing Code or Documentation to Micronaut
+# Contributing to Micronaut Data Nitrite
 
-Sign the [Contributor License Agreement (CLA)](https://cla-assistant.io/micronaut-projects/micronaut-data-nitrite). This is required before any of your code or pull requests are accepted.
+Sign the [Contributor License Agreement (CLA)](https://cla-assistant.io/micronaut-projects/micronaut-data-nitrite)
+before submitting a pull request. To find work, browse issues labelled
+[help wanted](https://github.com/micronaut-projects/micronaut-data-nitrite/issues?q=is%3Aopen+is%3Aissue+label%3A%22status%3A+help+wanted%22).
 
-## Finding Issues to Work on
+## Development Setup
 
-If you are interested in contributing to Micronaut and are looking for issues to work on, take a look at the issues tagged with [help wanted](https://github.com/micronaut-projects/micronaut-data-nitrite/issues?q=is%3Aopen+is%3Aissue+label%3A%22status%3A+help+wanted%22).
+Use JDK 25 and the included Gradle wrapper. The [SDKMAN configuration](.sdkmanrc) selects GraalVM 25,
+which is also needed for native-image tests. JVM tests use embedded Nitrite and do not require Docker.
 
-## JDK Setup
-
-Micronaut data-nitrite currently requires JDK 25.
-
-## IDE Setup
-
-Micronaut data-nitrite can be imported into IntelliJ IDEA by opening the `build.gradle` file.
-
-## Docker Setup
-
-Micronaut data-nitrite tests currently require Docker to be installed.
+Import `settings.gradle` as a Gradle project in your IDE.
 
 ## Running Tests
 
-To run the tests, use `./gradlew check`.
+Run the full JVM checks with predictive test selection disabled:
+
+```sh
+./gradlew -PpredictiveTestSelection=false check
+```
+
+This includes the repository tests, document TCK, Jakarta Data TCK, Java/Kotlin/Groovy examples,
+and the JVM tests in `data-nitrite-native-tests`. The TCK suites are enabled by default through
+`includeDataTck=true` in `gradle.properties`. Unsupported Jakarta Data features are described in
+the [scope and limitations](src/main/docs/guide/nitriteLimitations.adoc).
+
+To run a single repository specification:
+
+```sh
+./gradlew :micronaut-data-nitrite:test --tests '*NitriteReadOnlyTransactionSpec'
+```
+
+Native compilation and execution are separate from `check`. With GraalVM 25 selected, run:
+
+```sh
+./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
+```
+
+The native verification project includes all integrations by default. Set `-PnativeBackend=<backend>`
+to `in-memory`, `mvstore`, `rocksdb`, or `spatial` to verify an isolated backend classpath. CI runs
+both the default and RocksDB configurations. Some tests are conditional on the selected backend;
+persistent spatial-index reopening remains opt-in because of the documented upstream limitation.
 
 ## Building Documentation
 
-The documentation sources are located at `src/main/docs/guide`.
+Guide sources are in `src/main/docs/guide`, with navigation in `toc.yml`. Examples used by the
+guide live in `doc-examples`; update the example source when changing a tagged snippet.
 
-To build the documentation, run `./gradlew publishGuide` (or `./gradlew pG`), then open `build/docs/index.html`.
-
-To also build the Javadocs, run `./gradlew docs`.
-
-## Working on the code base
-
-If you use IntelliJ IDEA, you can import the project using the IntelliJ Gradle Tooling ("File / Import Project" and selecting the `settings.gradle` file).
-
-To get a local development version of Micronaut data-nitrite working, first run the `publishToMavenLocal` task.
-
-```
-./gradlew pTML
+```sh
+./gradlew publishGuide
 ```
 
-You can then reference the version specified with `projectVersion` in `gradle.properties` in a test project's `build.gradle` or `pom.xml`. If you use Gradle, add the `mavenLocal` repository (Maven automatically does this):
+Open `build/docs/index.html` to view the guide. Use `./gradlew docs` to build both the guide and
+Javadocs.
 
+## Using Local Changes in an Application
+
+Publish the development artifacts to your local Maven repository:
+
+```sh
+./gradlew publishToMavenLocal
 ```
+
+Use the `projectVersion` from [gradle.properties](gradle.properties) in the consuming application.
+For Gradle, add the local repository before Maven Central:
+
+```groovy
 repositories {
     mavenLocal()
     mavenCentral()
 }
 ```
 
-## Creating a pull request
+Maven uses its local repository automatically. Configure the integration dependencies and annotation
+processors as described in the [Quick Start](src/main/docs/guide/nitriteQuickStart.adoc).
 
-Once you are satisfied with your changes:
+## Code Style
 
-- Commit your changes in your local branch
-- Push your changes to your remote branch on GitHub
-- Send us a [pull request](https://help.github.com/articles/creating-a-pull-request)
+Follow the existing code style. Checkstyle uses `config/checkstyle/checkstyle.xml` and runs as
+part of `check`; Java compilation also runs Error Prone and NullAway. To check the core module's
+Java source style directly:
 
-## Merging a pull request
-
-Before we merge a PR into a module's `master` branch, we have to consider:
-
-Can this PR be merged into a patch release (e.g. documentation fixes, bug fix, patch transitive dependency upgrade, breaking change due to security, GitHub actions sync, Micronaut Build Plugin upgrade)?
-
-Should this PR be merged into the next minor version of the module? For example, a new feature, a new module, or a minor transitive dependency upgrade.
-
-If the PR is going into the next minor version of the module, we need to release a patch version, and branch off `master` a new branch for the current minor module's version. If the `gradle.properties`'s `projectVersion` is 3.1.2-SNAPSHOT the branch should be named 3.1.x, and we push it to GitHub. If `master` contains only commits such as GitHub actions sync (no commits with benefits to users), we can branch off without doing a patch release.
-
-When you merge a PR that will go into the next module's minor release:
-
-- Update `gradle.properties`'s `githubCoreBranch` to point to the next minor branch of Micronaut Core.
-- Update `gradle.properties`'s `projectVersion` to the next minor snapshot.
-- Upgrade the module to the latest version of Micronaut.
-
-## Checkstyle
-
-We want to keep the code clean, following good practices about organization, Javadoc, and style as much as possible.
-
-Micronaut data-nitrite uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that the code follows those standards. The configuration is defined in `config/checkstyle/checkstyle.xml`. To execute Checkstyle, run:
-
-```
-./gradlew <module-name>:checkstyleMain
+```sh
+./gradlew :micronaut-data-nitrite-core:checkstyleMain
 ```
 
-Before starting to contribute new code, we recommend that you install the IntelliJ [CheckStyle-IDEA](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea) plugin and configure it to use Micronaut's checkstyle configuration file.
+## Creating a Pull Request
 
-IntelliJ will mark in red the issues Checkstyle finds. For example:
+- Keep the change focused and include regression coverage for behavior changes.
+- Run `check`; run `publishGuide` for guide changes and native verification for native-image changes.
+- Describe the resulting behavior, verification performed, and any compatibility implications.
+- Open a pull request against the appropriate branch, following the
+  [maintainer guidance](MAINTAINING.md#review-pull-requests).
 
-![](https://github.com/micronaut-projects/micronaut-core/raw/master/src/main/docs/resources/img/checkstyle-issue.png)
-
-In this case, to fix the issues, we need to:
-
-- Add one empty line before `package` in line 16
-- Add the Javadoc for the constructor in line 27
-- Add a space after `if` in line 34
-
-The plugin also adds a new tab in the bottom of the IDE to run Checkstyle and show errors and warnings. We recommend that you run the report and fix all issues before submitting a pull request.
+Report undisclosed security vulnerabilities privately as described in [SECURITY.md](SECURITY.md).

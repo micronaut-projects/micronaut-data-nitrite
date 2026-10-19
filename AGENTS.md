@@ -1,38 +1,40 @@
 # Repository Guidance
 
-This repository is the Micronaut template for generated module repositories. Keep root guidance short and update it when the template workflow changes.
+Micronaut Data Nitrite integrates Micronaut Data repositories with the embedded Nitrite database.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and pull request requirements.
 
 ## Repository Shape
 
-- `project-template/` is the generated module placeholder. Changes here should make sense after `template-cleanup.yml` renames it to `micronaut-<slug>/`.
-- `project-template-bom/` is the generated BOM placeholder. Keep dependency-management changes separate from module implementation changes when possible.
-- `buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-*.gradle` contains template convention plugins that are also renamed by the cleanup workflow.
-- `.agents/skills/` is shared agent guidance. Skill changes are validated by `.github/workflows/skills-validation.yml`.
+- `data-nitrite-core/` contains query generation, mapping, repository operations, and transactions.
+- `data-nitrite/` provides the default core/MVStore dependency combination and the main Groovy test suite.
+- `data-nitrite-mvstore/`, `data-nitrite-rocksdb/`, and `data-nitrite-spatial/` provide optional integrations.
+- `data-nitrite-bom/` aligns integration, Micronaut Data, and Nitrite versions.
+- `jakarta-data-tck/nitrite/` runs the Jakarta Data TCK; `data-nitrite-native-tests/` verifies native images.
+- `buildSrc/src/main/groovy/io.micronaut.build.internal.data-nitrite-*.gradle` contains build conventions.
+- `gradle/libs.versions.toml` declares dependency versions; `gradle.properties` declares the integration version.
 
-## Template And Sync Rules
+## Implementation
 
-- Treat `.github/workflows/files-sync.yml` as the source of truth for files copied from this template to other Micronaut repositories.
-- Before editing synced files, check whether the file is copied by `files-sync.yml`, excluded by `.github/workflows/.rsync-filter`, or rewritten by `.github/workflows/template-cleanup.yml`.
-- `CONTRIBUTING.md` is rewritten by `template-cleanup.yml` when a repository is created from the template, but it is not copied by the recurring files-sync workflow. Existing downstream copies need repo-specific PRs.
-- Do not add project-specific assumptions to files that will be synced broadly unless the cleanup workflow rewrites them correctly for generated repositories.
-- When changing placeholder names, update every cleanup substitution and related file move in `.github/workflows/template-cleanup.yml`.
-
-## Contributing Guidelines
-
-- Before opening or updating a pull request, read this repository's `CONTRIBUTING.md` and follow every repo-specific PR requirement it names.
-- Treat contributor-checklist items as handoff requirements. If a requirement is not applicable, state that explicitly in the PR description or handoff note.
-- For UI-visible changes, confirm whether screenshots or other visual evidence are required and include them in the PR description; if screenshots cannot be provided, explain why and describe the verification that was performed.
+- Keep storage and spatial dependencies in their integration modules so core remains usable alone.
+- Preserve datasource isolation when changing repository, connection, or transaction operations.
+- Add regression coverage in the owning module for behavior changes.
+- Explain unsupported features in the guide rather than presenting skipped tests as passing coverage.
 
 ## Documentation
 
-- User guide sources live in `src/main/docs/guide`, with navigation in `src/main/docs/guide/toc.yml`.
-- Build guide output with `./gradlew publishGuide` or `./gradlew pG`; build guide plus Javadocs with `./gradlew docs`.
-- There are currently no `doc-examples/` snippets or shared docs images in this template. Prefer runnable snippets if examples are introduced.
-- Release-note behavior is maintained through `.github/release.yml`, `.github/workflows/release.yml`, and the release process documented in `MAINTAINING.md`.
+- Guide sources and navigation are in `src/main/docs/guide` and its `toc.yml`.
+- Tagged snippets come from the Java, Kotlin, and Groovy projects in `doc-examples/`; keep them consistent.
+- Keep the README focused on users, contributor commands in `CONTRIBUTING.md`, and release procedures in `MAINTAINING.md`.
 
 ## Verification
 
-- Use `./gradlew check` for general validation.
-- Use `./gradlew publishGuide` after guide or `toc.yml` changes.
-- Use `./gradlew docs` when API docs or release documentation output matters.
-- For `.agents/skills/**` changes, run the same validation as `skills-validation.yml` for the touched skill directories.
+- Use JDK 25 and `./gradlew -PpredictiveTestSelection=false check` for JVM checks, including the TCKs and examples.
+- Use `./gradlew publishGuide` after guide changes, or `./gradlew docs` for the guide and Javadocs.
+- With GraalVM 25 selected, use `./gradlew :micronaut-data-nitrite-native-tests:nativeCheck` for native verification.
+- For `.agents/skills/**` changes, follow `.github/workflows/skills-validation.yml`.
+
+## Shared Files
+
+- Shared workflows and configuration originate in `micronaut-projects/micronaut-project-template`.
+- Check `.github/workflows/files-sync.yml` and `.github/workflows/.rsync-filter` before editing synced files.
+- Keep synced guidance generic; put repository-specific workflow requirements in repository-owned files.
