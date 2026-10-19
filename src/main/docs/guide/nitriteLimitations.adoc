@@ -19,7 +19,7 @@ Micronaut Data Nitrite supports the following features for embedded document sto
 * <<nitriteAssociationMapping, Association mapping>> with cascade operations
 * <<nitriteAssociationFetching, Association fetching>> with `@Join` annotation
 * <<nitriteOptimisticLocking, Optimistic locking>> with `@Version` annotation
-* <<nitriteTransactions, Transaction management>> with programmatic transactions
+* <<nitriteTransactions, Transaction management>> with declarative and programmatic transactions, including read-only enforcement for repository writes
 * <<nitriteConfiguration, Multiple datasources>>, each with its own storage mode
 * <<nitriteSpatial, Spatial queries>> with Geometry types (requires spatial module)
 * Entity lifecycle events (see https://micronaut-projects.github.io/micronaut-data/latest/guide/#entityEvents[Shared Entity Events])
@@ -30,8 +30,8 @@ For details and examples, see the respective sections above.
 
 The following boundaries remain:
 
+* Jakarta Data stateful repositories are not supported. Entity lifecycle listeners use Micronaut's event infrastructure; CDI observers of Jakarta Data lifecycle events are not supported.
 * Spatial-index operations after reopening an MVStore file require a corrected upstream adapter; released Nitrite 5.4.1 still has the persisted-key cast failure described in <<nitriteConfiguration, Configuration>>.
-
 * `@Join` uses Nitrite's default fetch behavior; custom join types such as `LEFT_FETCH` and `INNER_FETCH` are not currently distinguished.
 * Criteria subqueries (`cb.exists(subquery)`) are not supported by Nitrite.
 * Criteria `sum`, `diff`, and unsupported string transforms such as `trim` are rejected in query expressions. Supported computed expressions such as `length`, `lower`, `upper`, `concat`, `right`, and `prod` are evaluated in application code against candidate documents rather than pushed down to Nitrite indexes, so use them with care on large collections. This applies only to computed expressions: a plain comparison on a field, including `>`, `>=`, `<`, `<=` and `between`, is expressed as a native Nitrite filter and can be served by an index on that field.

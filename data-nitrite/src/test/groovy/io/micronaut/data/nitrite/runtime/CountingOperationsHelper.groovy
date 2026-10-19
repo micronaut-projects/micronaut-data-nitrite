@@ -14,6 +14,11 @@ import org.dizitart.no2.filters.Filter
  */
 class CountingOperationsHelper implements NitriteOperationsHelper {
 
+    @Override
+    void checkWritable() {
+        // This helper uses standalone collections without transaction management.
+    }
+
     private final Map<Class<?>, NitriteCollection> collections = [:]
     final Map<Class<?>, Integer> lookups = [:].withDefault { 0 }
 

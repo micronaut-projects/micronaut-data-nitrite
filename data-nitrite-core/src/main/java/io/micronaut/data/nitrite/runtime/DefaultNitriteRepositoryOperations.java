@@ -331,20 +331,28 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     @NonNull
     public Optional<Number> updateAll(@NonNull CriteriaUpdate<Number> query) {
+        collectionRegistry.checkWritable();
         return criteriaExecutor.updateAll(query);
     }
 
     @Override
     @NonNull
     public Optional<Number> deleteAll(@NonNull CriteriaDelete<Number> query) {
+        collectionRegistry.checkWritable();
         return criteriaExecutor.deleteAll(query);
     }
 
     // ========== SyncCascadeOperationsHelper implementation ==========
 
     @Override
+    public void checkWritable() {
+        collectionRegistry.checkWritable();
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T persistOne(NitriteOperationContext ctx, T entityValue, RuntimePersistentEntity<T> persistentEntity) {
+        collectionRegistry.checkWritable();
         if (LOG.isDebugEnabled()) {
             LOG.debug("persistOne: entity={}, type={}", entityValue, persistentEntity.getName());
         }
@@ -394,6 +402,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> T updateOne(NitriteOperationContext ctx, T entityValue, RuntimePersistentEntity<T> persistentEntity) {
+        collectionRegistry.checkWritable();
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
             persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.UPDATE);
@@ -507,6 +516,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> Iterable<T> persistAll(@NonNull final InsertBatchOperation<T> operation) {
+        collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntitiesOperations<T> op = new NitriteEntitiesOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
@@ -524,6 +534,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> Iterable<T> updateAll(@NonNull final UpdateBatchOperation<T> operation) {
+        collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntitiesOperations<T> op = new NitriteEntitiesOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
@@ -535,6 +546,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> int delete(@NonNull final DeleteOperation<T> operation) {
+        collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
@@ -546,6 +558,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> Optional<Number> deleteAll(@NonNull final DeleteBatchOperation<T> operation) {
+        collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         if (operation.all()) {
             NitriteCollection collection = getCollection(operation.getRootEntity());
@@ -1138,6 +1151,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public Optional<Number> executeUpdate(@NonNull final PreparedQuery<?, Number> q) {
+        collectionRegistry.checkWritable();
         return queryExecutor.executeUpdate(q, getNitritePreparedQuery(q));
     }
 
@@ -1156,6 +1170,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
      */
     @Override
     public Optional<Number> executeDelete(@NonNull final PreparedQuery<?, Number> q) {
+        collectionRegistry.checkWritable();
         return queryExecutor.executeDelete(q, getNitritePreparedQuery(q));
     }
 

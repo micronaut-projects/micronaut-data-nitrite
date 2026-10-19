@@ -17,6 +17,18 @@ Manual rollback using `TransactionOperations`:
 
 snippet::example.TransactionService[project-base="doc-examples/nitrite-example", source="main", tags="transaction-manual-rollback", indent="0"]
 
+=== Read-only transactions
+
+A transaction started with `@Transactional(readOnly = true)` or `TransactionOperations.executeRead` allows repository reads and rejects repository writes with `DataAccessException`. This includes entity and batch saves, updates and deletes, derived write methods, JSON and JDQL updates, and criteria updates and deletes. Rejected writes fail before entity lifecycle callbacks, cascades or stored data changes.
+
+The transaction that a method joins determines its read-only setting:
+
+* An `executeWrite` scope joining a read-only transaction still rejects writes.
+* An `executeRead` scope joining a writable transaction still permits writes.
+* `REQUIRES_NEW` suspends the outer transaction and starts an independent transaction with its own read-only setting. When it finishes, the outer transaction and its setting are restored, including when the new transaction fails.
+
+Use a writable transaction for repository mutations. This enforcement applies to Micronaut Data repository operations; direct access through Nitrite's own API is outside this guard. To open an entire MVStore datasource read-only, use `mvstore-read-only` as described in <<nitriteConfiguration, Configuration>>.
+
 === Rollback control
 
 If you need to mark the current transaction rollback-only after some condition, use the `TransactionOperations` helper (`executeWrite`/`executeRead`) to set the status without throwing an exception.

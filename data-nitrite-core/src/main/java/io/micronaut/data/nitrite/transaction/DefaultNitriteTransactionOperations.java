@@ -96,8 +96,9 @@ public class DefaultNitriteTransactionOperations extends AbstractDefaultTransact
     }
     Session session = tx.getConnection();
     Transaction transaction = session.beginTransaction();
-    tx.setTransaction(transaction);
-    holder.bind(new NitriteTransactionContext(transaction));
+    NitriteTransactionContext context = new NitriteTransactionContext(transaction, tx.getTransactionDefinition().isReadOnly().orElse(false));
+    tx.setTransaction(context);
+    holder.bind(context);
   }
 
   @Override
@@ -127,8 +128,8 @@ public class DefaultNitriteTransactionOperations extends AbstractDefaultTransact
   protected void doResume(final DefaultTransactionStatus<Session> transaction) {
     transaction.getConnection();
     Object txObj = transaction.getTransaction();
-    if (txObj instanceof Transaction nitriteTx) {
-      holder.bind(new NitriteTransactionContext(nitriteTx));
+    if (txObj instanceof NitriteTransactionContext context) {
+      holder.bind(context);
     }
   }
 
@@ -142,7 +143,11 @@ public class DefaultNitriteTransactionOperations extends AbstractDefaultTransact
   protected DefaultTransactionStatus<Session> createExistingTransactionStatus(
           final TransactionDefinition definition,
           final DefaultTransactionStatus<Session> existing) {
-      return DefaultTransactionStatus.existingTx(existing.getConnectionStatus(), definition, existing, this);
+      DefaultTransactionStatus<Session> status = DefaultTransactionStatus.existingTx(existing.getConnectionStatus(), definition, existing, this);
+      // Participating definitions can have a different read-only hint. Preserve the physical
+      // context so suspension through a participating scope restores the original write policy.
+      status.setTransaction(existing.getTransaction());
+      return status;
   }
 
   @Override

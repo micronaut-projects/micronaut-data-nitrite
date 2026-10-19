@@ -19,6 +19,7 @@ import io.micronaut.core.annotation.AnnotationValue;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.data.annotation.Index;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.exceptions.DataAccessException;
 import io.micronaut.data.model.Embedded;
 import io.micronaut.data.model.runtime.RuntimeAssociation;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
@@ -99,6 +100,18 @@ final class NitriteCollectionRegistry {
         }
         ensureIndexes(type, collection, name);
         return collection;
+    }
+
+    /**
+     * Rejects a repository write before entity callbacks, cascades or collection mutations run.
+     * The bound context represents the physical transaction, so a participating write method
+     * cannot override an outer transaction's read-only setting.
+     */
+    void checkWritable() {
+        NitriteTransactionContext transaction = transactionHolder.get();
+        if (transaction != null && transaction.isReadOnly()) {
+            throw new DataAccessException("Cannot execute a write operation in a read-only Nitrite transaction");
+        }
     }
 
     private void ensureIndexes(Class<?> type, NitriteCollection collection, String name) {

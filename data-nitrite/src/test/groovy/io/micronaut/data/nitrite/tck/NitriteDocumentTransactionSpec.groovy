@@ -2,6 +2,7 @@ package io.micronaut.data.nitrite.tck
 
 import io.micronaut.data.document.tck.AbstractDocumentTransactionSpec
 import io.micronaut.data.document.tck.repositories.BookRepository
+import io.micronaut.data.exceptions.DataAccessException
 import io.micronaut.data.nitrite.transaction.NitriteTransactionHolder
 import io.micronaut.data.nitrite.transaction.NitriteTransactionOperations
 import io.micronaut.test.support.TestPropertyProvider
@@ -38,8 +39,8 @@ class NitriteDocumentTransactionSpec extends AbstractDocumentTransactionSpec imp
     }
 
     @Override
-    boolean supportsReadOnlyFlag() {
-        return false
+    boolean cannotInsertInReadOnlyTx(Exception e) {
+        return e instanceof DataAccessException && e.message.contains("read-only Nitrite transaction")
     }
 
     @Override
