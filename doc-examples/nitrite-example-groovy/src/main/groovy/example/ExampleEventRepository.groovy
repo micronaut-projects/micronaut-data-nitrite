@@ -49,6 +49,14 @@ interface ExampleEventRepository extends CrudRepository<ExampleEvent, String> {
     List<ExampleEvent> findByTagsAll(List<String> tags)
     // end::json-query-operators[]
 
+    // tag::json-field-names[]
+    @Query('{"eventDate": {"$eq": :eventDate}}')
+    List<ExampleEvent> findByEventDateCamelCase(LocalDate eventDate)
+
+    @Query('{"event_date": {"$eq": :eventDate}}')
+    List<ExampleEvent> findByEventDateSnakeCase(LocalDate eventDate)
+    // end::json-field-names[]
+
     // tag::json-project[]
     @Query('{"$project": "type", "status": {"$eq": :status}}')
     List<String> findTypesByStatus(ExampleEvent.Status status)

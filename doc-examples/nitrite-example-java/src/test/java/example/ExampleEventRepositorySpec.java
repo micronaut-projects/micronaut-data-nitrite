@@ -54,6 +54,9 @@ class ExampleEventRepositorySpec {
         assertEquals(2, repository.findByPriorityNot(1).size());
         assertEquals(2, repository.findByPayloadEmpty(true).size());
         assertEquals(1, repository.findByTagsAll(List.of("audit", "customer")).size());
+        LocalDate eventDate = LocalDate.of(2024, 1, 1);
+        assertEquals(List.of("created"), repository.findByEventDateCamelCase(eventDate).stream().map(ExampleEvent::getType).toList());
+        assertEquals(List.of("created"), repository.findByEventDateSnakeCase(eventDate).stream().map(ExampleEvent::getType).toList());
     }
     // end::json-query-operators-usage[]
 

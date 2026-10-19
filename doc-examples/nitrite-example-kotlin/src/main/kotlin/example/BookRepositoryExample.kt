@@ -1,5 +1,8 @@
 package example
 
+import io.micronaut.context.BeanContext
+import io.micronaut.data.nitrite.transaction.NitriteTransactionOperations
+import io.micronaut.inject.qualifiers.Qualifiers
 import jakarta.inject.Inject
 
 /**
@@ -12,6 +15,14 @@ class BookRepositoryExample {
 
     @Inject lateinit var studentRepository: StudentRepository
     // end::inject[]
+
+    fun namedDatasourceTransactions(beanContext: BeanContext) {
+        // tag::named-datasource-transactions[]
+        val auditTransactions = beanContext.getBean(
+            NitriteTransactionOperations::class.java, Qualifiers.byName("audit")
+        )
+        // end::named-datasource-transactions[]
+    }
 
     fun crud() {
         // tag::save[]

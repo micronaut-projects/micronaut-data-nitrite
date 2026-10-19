@@ -46,6 +46,8 @@ class ExampleEventRepositorySpec extends Specification {
         repository.findByPriorityNot(1).size() == 2
         repository.findByPayloadEmpty(true).size() == 2
         repository.findByTagsAll(["audit", "customer"]).size() == 1
+        repository.findByEventDateCamelCase(LocalDate.of(2024, 1, 1))*.type == ["created"]
+        repository.findByEventDateSnakeCase(LocalDate.of(2024, 1, 1))*.type == ["created"]
     }
     // end::json-query-operators-usage[]
 

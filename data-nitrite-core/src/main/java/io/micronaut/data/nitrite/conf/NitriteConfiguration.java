@@ -81,12 +81,6 @@ public class NitriteConfiguration implements Named {
   /**
    * The MVStore page split size in bytes, or {@code null} to leave the adapter's own default in
    * place. Only read when the storage mode is {@code MVSTORE}.
-   *
-   * <p>Nitrite 5.4.0 defaults this to 16 KB; the explicit {@code 16384} workaround for
-   * Nitrite 5.3.0 is no longer needed. H2 clamps this value to
-   * {@code (cacheSize / cacheConcurrency) >> 4}.
-   *
-   * <p>An existing file keeps the page shape it was written with until those pages are rewritten.
    */
   @Nullable private Integer mvstorePageSplitSize;
 
@@ -115,8 +109,7 @@ public class NitriteConfiguration implements Named {
 
   /**
    * The number of segments in the MVStore read cache, or {@code null} to leave the adapter's
-   * default (16). H2 clamps the page split size to {@code (cacheSize / cacheConcurrency) >> 4},
-   * so this bounds {@link #getMvstorePageSplitSize()} as well.
+   * default (16).
    */
   @Nullable private Integer mvstoreCacheConcurrency;
 
@@ -127,7 +120,7 @@ public class NitriteConfiguration implements Named {
   @Nullable private Boolean mvstoreAutoCommit;
 
   /**
-   * The number of unsaved changes MVStore buffers before committing automatically, or
+   * The MVStore auto-commit buffer size, or
    * {@code null} to leave the adapter's default (1024). Only meaningful while auto-commit is on.
    */
   @Nullable private Integer mvstoreAutoCommitBufferSize;

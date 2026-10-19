@@ -49,6 +49,14 @@ interface ExampleEventRepository : CrudRepository<ExampleEvent, String> {
     fun findByTagsAll(tags: List<String>): List<ExampleEvent>
     // end::json-query-operators[]
 
+    // tag::json-field-names[]
+    @Query("""{"eventDate": {"${'$'}eq": :eventDate}}""")
+    fun findByEventDateCamelCase(eventDate: LocalDate): List<ExampleEvent>
+
+    @Query("""{"event_date": {"${'$'}eq": :eventDate}}""")
+    fun findByEventDateSnakeCase(eventDate: LocalDate): List<ExampleEvent>
+    // end::json-field-names[]
+
     // tag::json-project[]
     @Query("""{"${'$'}project": "type", "status": {"${'$'}eq": :status}}""")
     fun findTypesByStatus(status: ExampleEvent.Status): List<String>
