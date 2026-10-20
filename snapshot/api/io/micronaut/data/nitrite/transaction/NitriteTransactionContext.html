@@ -58,10 +58,12 @@ loadScripts(document, 'script');</script>
 <li><a href="#constructor-detail" tabindex="0">Constructor Details</a>
 <ol class="toc-list">
 <li><a href="#%3Cinit%3E(org.dizitart.no2.transaction.Transaction)" tabindex="0">NitriteTransactionContext(Transaction)</a></li>
+<li><a href="#%3Cinit%3E(org.dizitart.no2.transaction.Transaction,boolean)" tabindex="0">NitriteTransactionContext(Transaction, boolean)</a></li>
 </ol>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
+<li><a href="#isReadOnly()" tabindex="0">isReadOnly()</a></li>
 <li><a href="#getTransaction()" tabindex="0">getTransaction()</a></li>
 <li><a href="#getCollection(java.lang.String)" tabindex="0">getCollection(String)</a></li>
 </ol>
@@ -103,6 +105,11 @@ loadScripts(document, 'script');</script>
 <div class="col-last even-row-color">
 <div class="block">Create a new transaction context.</div>
 </div>
+<div class="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(org.dizitart.no2.transaction.Transaction,boolean)" class="member-name-link">NitriteTransactionContext</a><wbr>(org.dizitart.no2.transaction.Transaction&nbsp;transaction,
+ boolean&nbsp;readOnly)</code></div>
+<div class="col-last odd-row-color">
+<div class="block">Create a transaction context with its write policy.</div>
+</div>
 </div>
 </section>
 </li>
@@ -126,6 +133,11 @@ loadScripts(document, 'script');</script>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getTransaction()" class="member-name-link">getTransaction</a>()</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Get the active transaction.</div>
+</div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#isReadOnly()" class="member-name-link">isReadOnly</a>()</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="block">Returns whether this transaction forbids repository writes.</div>
 </div>
 </div>
 </div>
@@ -157,6 +169,23 @@ loadScripts(document, 'script');</script>
 </div>
 </section>
 </li>
+<li>
+<section class="detail" id="&lt;init&gt;(org.dizitart.no2.transaction.Transaction,boolean)">
+<h3>NitriteTransactionContext</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">NitriteTransactionContext</span><wbr><span class="parameters">(org.dizitart.no2.transaction.Transaction&nbsp;transaction,
+ boolean&nbsp;readOnly)</span></div>
+<div class="block">Create a transaction context with its write policy.</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>transaction</code> - the active transaction</dd>
+<dd><code>readOnly</code> - whether repository writes are forbidden</dd>
+<dt>Since:</dt>
+<dd>5.2.0</dd>
+</dl>
+</div>
+</section>
+</li>
 </ul>
 </section>
 </li>
@@ -165,6 +194,21 @@ loadScripts(document, 'script');</script>
 <section class="method-details" id="method-detail">
 <h2>Method Details</h2>
 <ul class="member-list">
+<li>
+<section class="detail" id="isReadOnly()">
+<h3>isReadOnly</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">boolean</span>&nbsp;<span class="element-name">isReadOnly</span>()</div>
+<div class="block">Returns whether this transaction forbids repository writes.</div>
+<dl class="notes">
+<dt>Returns:</dt>
+<dd>whether the transaction is read-only</dd>
+<dt>Since:</dt>
+<dd>5.2.0</dd>
+</dl>
+</div>
+</section>
+</li>
 <li>
 <section class="detail" id="getTransaction()">
 <h3>getTransaction</h3>

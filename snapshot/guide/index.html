@@ -740,11 +740,6 @@ focused native suite complements the repository and Jakarta TCK suites run on th
 <li>
 <p><code>mvstore-page-split-size</code>: The MVStore page split size in bytes. Unset by default, which leaves the
 Nitrite adapter&#8217;s own value in place. Only read when <code>storage-mode</code> is <code>MVSTORE</code>.</p>
-<div class="paragraph">
-<p>Nitrite 5.4.0 defaults to 16 KB (<code>16384</code> bytes). The explicit <code>16384</code> workaround for
-Nitrite 5.3.0 is no longer needed; an existing override remains valid. H2 clamps the value to
-<code>(cacheSize / cacheConcurrency) &gt;&gt; 4</code>. Existing pages keep their shape until rewritten.</p>
-</div>
 </li>
 </ul>
 </div>
@@ -760,13 +755,12 @@ of 45 seconds. Space reclamation waits for this window; close still compacts syn
 </li>
 <li>
 <p><code>mvstore-versions-to-keep</code>: Number of old versions retained. Unset preserves H2&#8217;s default of five.
-Setting both retention and versions-to-keep to zero restores the earlier behaviour that can leave
-an unreadable store.</p>
+Avoid setting both retention and versions-to-keep to zero, which can leave an unreadable store.</p>
 </li>
 <li>
 <p><code>mvstore-allowed-classes</code>: Additional semicolon-separated JEP 290 patterns for application
-classes stored as Java serialized values, for example <code>com.example.model.<strong></code>. Nitrite 5.4.0 allows
-Nitrite and JDK classes by default. The spatial integration adds <code>org.locationtech.jts.geom.</strong></code>
+classes stored as Java serialized values, for example <code>com.example.model.<strong></code>. Nitrite and JDK
+classes are allowed by default. The spatial integration adds <code>org.locationtech.jts.geom.</strong></code>
 when installed; application classes attached as geometry user data still need their own patterns.
 A process-wide <code>jdk.serialFilter</code> can still reject classes allowed here.</p>
 </li>
@@ -774,16 +768,15 @@ A process-wide <code>jdk.serialFilter</code> can still reject classes allowed he
 <p><code>mvstore-cache-size</code>: Read cache size in MB (adapter default: 16).</p>
 </li>
 <li>
-<p><code>mvstore-cache-concurrency</code>: Number of read cache segments (adapter default: 16). H2 clamps the
-page split size to <code>(cacheSize / cacheConcurrency) &gt;&gt; 4</code>, so this bounds <code>mvstore-page-split-size</code>.</p>
+<p><code>mvstore-cache-concurrency</code>: Number of read cache segments (adapter default: 16).</p>
 </li>
 <li>
 <p><code>mvstore-auto-commit</code>: Whether every change is committed as it is made (adapter default: <code>true</code>).
 With this off, changes are buffered until <code>Nitrite.commit()</code>.</p>
 </li>
 <li>
-<p><code>mvstore-auto-commit-buffer-size</code>: Unsaved changes buffered before an automatic commit (adapter
-default: 1024). Only meaningful while auto-commit is on.</p>
+<p><code>mvstore-auto-commit-buffer-size</code>: MVStore auto-commit buffer size (adapter default: 1024).
+Only meaningful while auto-commit is on.</p>
 </li>
 <li>
 <p><code>mvstore-auto-compact</code>: Whether fragmented chunks and chunks below the 90% target fill rate are
@@ -846,7 +839,7 @@ Use distinct orders when customizers set the same option; later customizers over
 Each bean is invoked for every datasource of its backend. Check <code>configuration.getName()</code> to
 restrict it to one datasource:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock multi-language-sample">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer;
@@ -864,6 +857,41 @@ class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
 }</code></pre>
 </div>
 </div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">import io.micronaut.data.nitrite.conf.NitriteConfiguration
+import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
+import jakarta.inject.Singleton
+import org.dizitart.no2.mvstore.MVStoreModuleBuilder
+
+@Singleton
+class AuditMvStoreCustomizer : MvStoreModuleCustomizer {
+    override fun customize(configuration: NitriteConfiguration, builder: MVStoreModuleBuilder) {
+        if (configuration.name == "audit") {
+            builder.autoCommitBufferSize(4096)
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-groovy hljs" data-lang="groovy">import io.micronaut.data.nitrite.conf.NitriteConfiguration
+import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
+import jakarta.inject.Singleton
+import org.dizitart.no2.mvstore.MVStoreModuleBuilder
+
+@Singleton
+class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
+    @Override
+    void customize(NitriteConfiguration configuration, MVStoreModuleBuilder builder) {
+        if (configuration.name == "audit") {
+            builder.autoCommitBufferSize(4096)
+        }
+    }
+}</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>The MVStore hook exposes the entire upstream builder, including <code>fileStore</code> and store event
 listeners. The RocksDB hook exposes <code>Options</code>, <code>DBOptions</code>, <code>ColumnFamilyOptions</code>, custom object
@@ -875,7 +903,7 @@ patterns when using spatial values.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_nitrite_5_4_0_upgrade_behaviour">Nitrite 5.4.0 Upgrade Behaviour</h3>
+<h3 id="_stored_values">Stored Values</h3>
 <div class="paragraph">
 <p>Custom Java serialized document values require the <code>mvstore-allowed-classes</code> setting when read
 from an MVStore file. Normal entity properties mapped to documents, maps and JDK values do not
@@ -885,15 +913,10 @@ allowlisting does not register a class for Java serialization: custom values als
 corresponding GraalVM serialization metadata.</p>
 </div>
 <div class="paragraph">
-<p>Unique indexes migrate from lists of IDs to a single-ID layout on first access. Back up a database
-before upgrading if it may need to be opened by an earlier Nitrite release.</p>
-</div>
-<div class="paragraph">
 <p><code>find()</code> and <code>getById()</code> return structurally copied documents. Change stored data through explicit
 updates; mutating a returned list, map, array, date or calendar does not persist a change. Unknown
 mutable value types, including JTS geometries, can still be shared. Update a geometry through a
-repository operation instead of mutating its coordinates in place. Each result and write now pays
-for the structural copy.</p>
+repository operation instead of mutating its coordinates in place.</p>
 </div>
 </div>
 </div>
@@ -917,10 +940,23 @@ for the structural copy.</p>
 <div class="paragraph">
 <p>A repository selects its datasource by passing the name to <a href="../api/io/micronaut/data/nitrite/annotation/NitriteRepository.html">@NitriteRepository</a>:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock multi-language-sample">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@NitriteRepository("audit")
-public interface AuditRepository extends CrudRepository&lt;AuditRecord, String&gt; {
+public interface AuditBookRepository extends CrudRepository&lt;Book, String&gt; {
+}</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">@NitriteRepository("audit")
+interface AuditBookRepository : CrudRepository&lt;Book, String&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-groovy hljs" data-lang="groovy">@NitriteRepository("audit")
+interface AuditBookRepository extends CrudRepository&lt;Book, String&gt; {
 }</code></pre>
 </div>
 </div>
@@ -933,10 +969,23 @@ public interface AuditRepository extends CrudRepository&lt;AuditRecord, String&g
 <div class="paragraph">
 <p>The isolation extends to transactions. Each datasource gets its own connection operations, transaction operations and transaction context holder, so a transaction opened against one datasource neither covers nor is visible to repositories bound to another. To drive a transaction of a named datasource programmatically, resolve its <code>NitriteTransactionOperations</code> bean by that name:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock multi-language-sample">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">NitriteTransactionOperations auditTransactions =
     beanContext.getBean(NitriteTransactionOperations.class, Qualifiers.byName("audit"));</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val auditTransactions = beanContext.getBean(
+    NitriteTransactionOperations::class.java, Qualifiers.byName("audit")
+)</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-groovy hljs" data-lang="groovy">NitriteTransactionOperations auditTransactions =
+    beanContext.getBean(NitriteTransactionOperations, Qualifiers.byName("audit"))</code></pre>
 </div>
 </div>
 </div>
@@ -1685,10 +1734,28 @@ interface ExampleEventRepository extends CrudRepository&lt;ExampleEvent, String&
 </div>
 </div>
 <div class="sect1">
-<h2 id="_explicit_json_queries">Explicit JSON Queries</h2>
+<h2 id="_explicit_queries">Explicit Queries</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Nitrite does not support SQL-style <code>@Query</code> strings. User-authored <code>@Query</code> methods must use JSON filter documents with named placeholders.</p>
+<p>The query format depends on the annotation&#8217;s package:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>io.micronaut.data.annotation.Query</code> accepts JSON filter documents with named placeholders such as <code>:title</code>.</p>
+</li>
+<li>
+<p><code>jakarta.data.repository.Query</code> accepts Jakarta Data Query Language (JDQL), using entity and property names. For example, <code>UPDATE Event SET amount = amount - :delta WHERE type = :type</code> updates matching events through the Nitrite runtime.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Nitrite has no SQL engine. Jakarta Persistence&#8217;s <code>jakarta.persistence.query.NativeQuery</code> supports only statements within the subset shared by SQL and JDQL. The annotation processor translates these statements to JDQL: it numbers unnumbered <code>?</code> parameters, removes a leading <code>SELECT <strong></code>, and replaces <code>COUNT(</strong>)</code> with <code>COUNT(THIS)</code>. For example, <code>SELECT * FROM Product WHERE price &gt;= ?</code> becomes <code>FROM Product WHERE price &gt;= ?1</code>. Names in these statements must match entity and property names, rather than physical collection and document field names. This translation does not provide general SQL support.</p>
+</div>
+<div class="sect2">
+<h3 id="_json_filter_queries">JSON Filter Queries</h3>
+<div class="paragraph">
+<p>Use Micronaut Data&#8217;s <code>io.micronaut.data.annotation.Query</code> for the JSON examples below. SQL or JDQL strings are not accepted by this annotation.</p>
 </div>
 <div class="paragraph">
 <p>Supported JSON filter operators include <code>$eq</code>, <code>$ne</code>, <code>$gt</code>, <code>$gte</code>, <code>$lt</code>, <code>$lte</code>, <code>$in</code>, <code>$nin</code>, <code>$null</code>, <code>$notNull</code>, <code>$between</code>, <code>$regex</code>, <code>$like</code>, <code>$not</code>, <code>$exists</code>, <code>$empty</code>, <code>$all</code>, and spatial operators (<code>$near</code>, <code>$within</code>, <code>$intersects</code>) when the spatial module is present. Full-text search uses Nitrite&#8217;s <code>$text</code> filter on fields indexed with <code>@FullTextIndex</code>.</p>
@@ -1852,6 +1919,9 @@ interface ExampleEventRepository extends CrudRepository&lt;ExampleEvent, String&
         assertEquals(2, repository.findByPriorityNot(1).size());
         assertEquals(2, repository.findByPayloadEmpty(true).size());
         assertEquals(1, repository.findByTagsAll(List.of("audit", "customer")).size());
+        LocalDate eventDate = LocalDate.of(2024, 1, 1);
+        assertEquals(List.of("created"), repository.findByEventDateCamelCase(eventDate).stream().map(ExampleEvent::getType).toList());
+        assertEquals(List.of("created"), repository.findByEventDateSnakeCase(eventDate).stream().map(ExampleEvent::getType).toList());
     }</code></pre>
 </div>
 </div>
@@ -1883,6 +1953,9 @@ interface ExampleEventRepository extends CrudRepository&lt;ExampleEvent, String&
         assertEquals(2, repository.findByPriorityNot(1).size)
         assertEquals(2, repository.findByPayloadEmpty(true).size)
         assertEquals(1, repository.findByTagsAll(listOf("audit", "customer")).size)
+        val eventDate = LocalDate.of(2024, 1, 1)
+        assertEquals(listOf("created"), repository.findByEventDateCamelCase(eventDate).map { it.type })
+        assertEquals(listOf("created"), repository.findByEventDateSnakeCase(eventDate).map { it.type })
     }</code></pre>
 </div>
 </div>
@@ -1915,6 +1988,8 @@ interface ExampleEventRepository extends CrudRepository&lt;ExampleEvent, String&
         repository.findByPriorityNot(1).size() == 2
         repository.findByPayloadEmpty(true).size() == 2
         repository.findByTagsAll(["audit", "customer"]).size() == 1
+        repository.findByEventDateCamelCase(LocalDate.of(2024, 1, 1))*.type == ["created"]
+        repository.findByEventDateSnakeCase(LocalDate.of(2024, 1, 1))*.type == ["created"]
     }</code></pre>
 </div>
 </div>
@@ -1930,7 +2005,10 @@ interface ExampleEventRepository extends CrudRepository&lt;ExampleEvent, String&
 <p>Criteria API repositories (see <a href="#nitriteCriteriaSpecifications">Repositories with Criteria API</a>)</p>
 </li>
 <li>
-<p><code>@Query</code> for explicit JSON filter queries</p>
+<p>Micronaut Data&#8217;s <code>@Query</code> for explicit JSON filter queries</p>
+</li>
+<li>
+<p>Jakarta Data&#8217;s <code>@Query</code> for JDQL queries</p>
 </li>
 </ul>
 </div>
@@ -1945,6 +2023,7 @@ Nitrite&#8217;s runtime query execution supports the query strings encoded by Mi
 </td>
 </tr>
 </table>
+</div>
 </div>
 </div>
 </div>
@@ -3232,18 +3311,44 @@ The snake_case naming strategy is applied automatically. If you need different n
 <h2 id="_query_json_filters">@Query JSON Filters</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>When using the <code>@Query</code> annotation with explicit JSON filter documents, field names use snake_case format to match the stored document structure. For example, a property <code>firstName</code> is stored as <code>first_name</code> in the document.</p>
+<p>When using the <code>@Query</code> annotation with explicit JSON filter documents, field names use snake_case format to match the stored document structure. For example, the <code>eventDate</code> property of <code>ExampleEvent</code> is stored as <code>event_date</code> in the document.</p>
 </div>
 <div class="paragraph">
 <p>The framework automatically converts camelCase property names to their snake_case persisted names when processing <code>@Query</code> JSON filters:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock multi-language-sample">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{"firstName": "John"}  // Converted to {"first_name": "John"} internally</code></pre>
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Query("""
+    {"eventDate": {"$eq": :eventDate}}
+    """)
+    List&lt;ExampleEvent&gt; findByEventDateCamelCase(LocalDate eventDate);
+
+    @Query("""
+    {"event_date": {"$eq": :eventDate}}
+    """)
+    List&lt;ExampleEvent&gt; findByEventDateSnakeCase(LocalDate eventDate);</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">    @Query("""{"eventDate": {"${'$'}eq": :eventDate}}""")
+    fun findByEventDateCamelCase(eventDate: LocalDate): List&lt;ExampleEvent&gt;
+
+    @Query("""{"event_date": {"${'$'}eq": :eventDate}}""")
+    fun findByEventDateSnakeCase(eventDate: LocalDate): List&lt;ExampleEvent&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock multi-language-sample">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-groovy hljs" data-lang="groovy">    @Query('{"eventDate": {"$eq": :eventDate}}')
+    List&lt;ExampleEvent&gt; findByEventDateCamelCase(LocalDate eventDate)
+
+    @Query('{"event_date": {"$eq": :eventDate}}')
+    List&lt;ExampleEvent&gt; findByEventDateSnakeCase(LocalDate eventDate)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This means developers can use either camelCase or snake_case in <code>@Query</code> JSON filters - both will work correctly.</p>
+<p>Both methods query the stored <code>event_date</code> field. Developers can use either camelCase or snake_case in <code>@Query</code> JSON filters.</p>
 </div>
 </div>
 </div>
@@ -5415,6 +5520,31 @@ void saveAndRollback(String title) {
 </div>
 </div>
 <div class="sect2">
+<h3 id="_read_only_transactions">Read-only transactions</h3>
+<div class="paragraph">
+<p>A transaction started with <code>@Transactional(readOnly = true)</code> or <code>TransactionOperations.executeRead</code> allows repository reads and rejects repository writes with <code>DataAccessException</code>. This includes entity and batch saves, updates and deletes, derived write methods, JSON and JDQL updates, and criteria updates and deletes. Rejected writes fail before entity lifecycle callbacks, cascades or stored data changes.</p>
+</div>
+<div class="paragraph">
+<p>The transaction that a method joins determines its read-only setting:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>An <code>executeWrite</code> scope joining a read-only transaction still rejects writes.</p>
+</li>
+<li>
+<p>An <code>executeRead</code> scope joining a writable transaction still permits writes.</p>
+</li>
+<li>
+<p><code>REQUIRES_NEW</code> suspends the outer transaction and starts an independent transaction with its own read-only setting. When it finishes, the outer transaction and its setting are restored, including when the new transaction fails.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use a writable transaction for repository mutations. This enforcement applies to Micronaut Data repository operations; direct access through Nitrite&#8217;s own API is outside this guard. To open an entire MVStore datasource read-only, use <code>mvstore-read-only</code> as described in <a href="#nitriteConfiguration">Configuration</a>.</p>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_rollback_control">Rollback control</h3>
 <div class="paragraph">
 <p>If you need to mark the current transaction rollback-only after some condition, use the <code>TransactionOperations</code> helper (<code>executeWrite</code>/<code>executeRead</code>) to set the status without throwing an exception.</p>
@@ -7167,7 +7297,7 @@ class IntersectsExample {
 <p><a href="#nitriteOptimisticLocking">Optimistic locking</a> with <code>@Version</code> annotation</p>
 </li>
 <li>
-<p><a href="#nitriteTransactions">Transaction management</a> with programmatic transactions</p>
+<p><a href="#nitriteTransactions">Transaction management</a> with declarative and programmatic transactions, including read-only enforcement for repository writes</p>
 </li>
 <li>
 <p><a href="#nitriteConfiguration">Multiple datasources</a>, each with its own storage mode</p>
@@ -7193,6 +7323,9 @@ class IntersectsExample {
 </div>
 <div class="ulist">
 <ul>
+<li>
+<p>Jakarta Data stateful repositories are not supported. Entity lifecycle listeners use Micronaut&#8217;s event infrastructure; CDI observers of Jakarta Data lifecycle events are not supported.</p>
+</li>
 <li>
 <p>Spatial-index operations after reopening an MVStore file require a corrected upstream adapter; released Nitrite 5.4.1 still has the persisted-key cast failure described in <a href="#nitriteConfiguration">Configuration</a>.</p>
 </li>

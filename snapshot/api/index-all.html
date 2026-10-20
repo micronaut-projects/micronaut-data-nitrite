@@ -218,6 +218,12 @@ serialize/reparse round trip <a href="io/micronaut/data/nitrite/model/query/buil
 <dd>
 <div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/mapping/NitriteEntityMeta.html#param-cascadeProps"><code>cascadeProps</code></a> record component.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html#checkWritable()" class="member-name-link">checkWritable()</a> - Method in class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html" title="class in io.micronaut.data.nitrite.runtime">DefaultNitriteRepositoryOperations</a></dt>
+<dd>&nbsp;</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteOperationsHelper.html#checkWritable()" class="member-name-link">checkWritable()</a> - Method in interface io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a></dt>
+<dd>
+<div class="block">Rejects a write when the active transaction is read-only.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.NotNode.html#child()" class="member-name-link">child()</a> - Method in record class io.micronaut.data.nitrite.runtime.query.ast.<a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.NotNode.html" title="class in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.NotNode</a></dt>
 <dd>
 <div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.NotNode.html#param-child"><code>child</code></a> record component.</div>
@@ -1456,7 +1462,9 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dt><a href="io/micronaut/data/nitrite/rocksdb/package-summary.html">io.micronaut.data.nitrite.rocksdb</a> - package io.micronaut.data.nitrite.rocksdb</dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/package-summary.html">io.micronaut.data.nitrite.runtime</a> - package io.micronaut.data.nitrite.runtime</dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Nitrite runtime infrastructure.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/criteria/package-summary.html">io.micronaut.data.nitrite.runtime.criteria</a> - package io.micronaut.data.nitrite.runtime.criteria</dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/package-summary.html">io.micronaut.data.nitrite.runtime.mapping</a> - package io.micronaut.data.nitrite.runtime.mapping</dt>
@@ -1466,7 +1474,9 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dt><a href="io/micronaut/data/nitrite/runtime/query/ast/package-summary.html">io.micronaut.data.nitrite.runtime.query.ast</a> - package io.micronaut.data.nitrite.runtime.query.ast</dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/read/package-summary.html">io.micronaut.data.nitrite.runtime.read</a> - package io.micronaut.data.nitrite.runtime.read</dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Nitrite query execution infrastructure.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/write/package-summary.html">io.micronaut.data.nitrite.runtime.write</a> - package io.micronaut.data.nitrite.runtime.write</dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/spatial/package-summary.html">io.micronaut.data.nitrite.spatial</a> - package io.micronaut.data.nitrite.spatial</dt>
@@ -1474,7 +1484,9 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dt><a href="io/micronaut/data/nitrite/spi/package-summary.html">io.micronaut.data.nitrite.spi</a> - package io.micronaut.data.nitrite.spi</dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/transaction/package-summary.html">io.micronaut.data.nitrite.transaction</a> - package io.micronaut.data.nitrite.transaction</dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Nitrite transaction infrastructure.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionHolder.html#isActive()" class="member-name-link">isActive()</a> - Method in class io.micronaut.data.nitrite.transaction.<a href="io/micronaut/data/nitrite/transaction/NitriteTransactionHolder.html" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionHolder</a></dt>
 <dd>
 <div class="block">Returns whether a transaction is active on the current thread.</div>
@@ -1510,6 +1522,10 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteFilterUtils.html#isNullFilter(java.lang.String)" class="member-name-link">isNullFilter(String)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteFilterUtils.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteFilterUtils</a></dt>
 <dd>
 <div class="block">Creates a filter matching both an explicit null and a missing field.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html#isReadOnly()" class="member-name-link">isReadOnly()</a> - Method in class io.micronaut.data.nitrite.transaction.<a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionContext</a></dt>
+<dd>
+<div class="block">Returns whether this transaction forbids repository writes.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteOperationContext.html#isSave()" class="member-name-link">isSave()</a> - Method in class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a></dt>
 <dd>
@@ -2132,6 +2148,10 @@ maps built directly from a runtime Criteria query, with no JSON serialize/repars
 <dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html#%3Cinit%3E(org.dizitart.no2.transaction.Transaction)" class="member-name-link">NitriteTransactionContext(Transaction)</a> - Constructor for class io.micronaut.data.nitrite.transaction.<a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionContext</a></dt>
 <dd>
 <div class="block">Create a new transaction context.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html#%3Cinit%3E(org.dizitart.no2.transaction.Transaction,boolean)" class="member-name-link">NitriteTransactionContext(Transaction, boolean)</a> - Constructor for class io.micronaut.data.nitrite.transaction.<a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionContext</a></dt>
+<dd>
+<div class="block">Create a transaction context with its write policy.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionHolder.html" class="type-name-link" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionHolder</a> - Class in <a href="io/micronaut/data/nitrite/transaction/package-summary.html">io.micronaut.data.nitrite.transaction</a></dt>
 <dd>
