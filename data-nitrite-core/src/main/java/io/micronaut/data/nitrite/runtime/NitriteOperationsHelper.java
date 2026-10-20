@@ -36,6 +36,13 @@ import java.util.Map;
 public interface NitriteOperationsHelper {
 
     /**
+     * Rejects a write when the active transaction is read-only.
+     *
+     * @since 5.2.0
+     */
+    void checkWritable();
+
+    /**
      * Gets the Nitrite collection for the specified type.
      *
      * @param type the entity type

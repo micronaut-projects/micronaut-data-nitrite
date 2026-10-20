@@ -29,6 +29,7 @@ import org.dizitart.no2.transaction.Transaction;
 public class NitriteTransactionContext {
 
     private final Transaction transaction;
+    private final boolean readOnly;
 
   /**
    * Create a new transaction context.
@@ -36,7 +37,29 @@ public class NitriteTransactionContext {
    * @param transaction the active transaction
    */
   public NitriteTransactionContext(Transaction transaction) {
+      this(transaction, false);
+  }
+
+  /**
+   * Create a transaction context with its write policy.
+   *
+   * @param transaction the active transaction
+   * @param readOnly whether repository writes are forbidden
+   * @since 5.2.0
+   */
+  public NitriteTransactionContext(Transaction transaction, boolean readOnly) {
       this.transaction = transaction;
+      this.readOnly = readOnly;
+  }
+
+  /**
+   * Returns whether this transaction forbids repository writes.
+   *
+   * @return whether the transaction is read-only
+   * @since 5.2.0
+   */
+  public boolean isReadOnly() {
+      return readOnly;
   }
 
     /**

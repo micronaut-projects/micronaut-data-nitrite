@@ -1,5 +1,8 @@
 package example
 
+import io.micronaut.context.BeanContext
+import io.micronaut.data.nitrite.transaction.NitriteTransactionOperations
+import io.micronaut.inject.qualifiers.Qualifiers
 import jakarta.inject.Inject
 
 /**
@@ -12,6 +15,13 @@ class BookRepositoryExample {
 
     @Inject StudentRepository studentRepository
     // end::inject[]
+
+    void namedDatasourceTransactions(BeanContext beanContext) {
+        // tag::named-datasource-transactions[]
+        NitriteTransactionOperations auditTransactions =
+            beanContext.getBean(NitriteTransactionOperations, Qualifiers.byName("audit"))
+        // end::named-datasource-transactions[]
+    }
 
     void crud() {
         // tag::save[]

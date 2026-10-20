@@ -53,6 +53,9 @@ class ExampleEventRepositorySpec {
         assertEquals(2, repository.findByPriorityNot(1).size)
         assertEquals(2, repository.findByPayloadEmpty(true).size)
         assertEquals(1, repository.findByTagsAll(listOf("audit", "customer")).size)
+        val eventDate = LocalDate.of(2024, 1, 1)
+        assertEquals(listOf("created"), repository.findByEventDateCamelCase(eventDate).map { it.type })
+        assertEquals(listOf("created"), repository.findByEventDateSnakeCase(eventDate).map { it.type })
     }
     // end::json-query-operators-usage[]
 

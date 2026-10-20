@@ -85,9 +85,18 @@ snippet::example.ExampleEventRepositorySpec[project-base="doc-examples/nitrite-e
 
 NOTE: `sum` and `avg` are intended for numeric fields. For temporal fields, use `min` and `max`.
 
-== Explicit JSON Queries
+== Explicit Queries
 
-Nitrite does not support SQL-style `@Query` strings. User-authored `@Query` methods must use JSON filter documents with named placeholders.
+The query format depends on the annotation's package:
+
+- `io.micronaut.data.annotation.Query` accepts JSON filter documents with named placeholders such as `:title`.
+- `jakarta.data.repository.Query` accepts Jakarta Data Query Language (JDQL), using entity and property names. For example, `UPDATE Event SET amount = amount - :delta WHERE type = :type` updates matching events through the Nitrite runtime.
+
+Nitrite has no SQL engine. Jakarta Persistence's `jakarta.persistence.query.NativeQuery` supports only statements within the subset shared by SQL and JDQL. The annotation processor translates these statements to JDQL: it numbers unnumbered `?` parameters, removes a leading `SELECT *`, and replaces `COUNT(*)` with `COUNT(THIS)`. For example, `SELECT * FROM Product WHERE price >= ?` becomes `FROM Product WHERE price >= ?1`. Names in these statements must match entity and property names, rather than physical collection and document field names. This translation does not provide general SQL support.
+
+=== JSON Filter Queries
+
+Use Micronaut Data's `io.micronaut.data.annotation.Query` for the JSON examples below. SQL or JDQL strings are not accepted by this annotation.
 
 Supported JSON filter operators include `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$null`, `$notNull`, `$between`, `$regex`, `$like`, `$not`, `$exists`, `$empty`, `$all`, and spatial operators (`$near`, `$within`, `$intersects`) when the spatial module is present. Full-text search uses Nitrite's `$text` filter on fields indexed with `@FullTextIndex`.
 
@@ -102,7 +111,8 @@ If a query needs to update fields, keep the filter document and update document 
 For complex query logic, Micronaut Data provides:
 
 - Criteria API repositories (see <<nitriteCriteriaSpecifications, Repositories with Criteria API>>)
-- `@Query` for explicit JSON filter queries
+- Micronaut Data's `@Query` for explicit JSON filter queries
+- Jakarta Data's `@Query` for JDQL queries
 
 NOTE: Nitrite's runtime query execution supports the query strings encoded by Micronaut Data's document processor and the Nitrite query builder. If you use `@Query` with JSON, use named placeholders like `:name` and keep update documents separate from filter documents.
 

@@ -552,6 +552,7 @@ public final class NitriteQueryExecutor {
      * @return optional containing the number of updated entities
      */
     public Optional<Number> executeUpdate(@NonNull PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq) {
+        helper.checkWritable();
         Object[] jsonParams = buildJsonParameterValues(nq);
         Map<String, Object> namedParameters = buildNamedParameterValues(nq);
 
@@ -776,6 +777,7 @@ public final class NitriteQueryExecutor {
      * @throws OptimisticLockException if optimistic locking is enabled and no records were deleted
      */
     public Optional<Number> executeDelete(@NonNull PreparedQuery<?, Number> q, NitritePreparedQuery<?, Number> nq) {
+        helper.checkWritable();
         helper.logDelete(collectionFactory.apply(nq.getRootEntity()).getName(), nq.getNitriteFilter());
         long count = collectionFactory.apply(nq.getRootEntity()).remove(nq.getNitriteFilter(), false).getAffectedCount();
         RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());

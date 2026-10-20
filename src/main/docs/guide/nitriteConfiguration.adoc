@@ -18,10 +18,6 @@ The following settings are supported for each datasource:
     * `DATABASE`: Always keeps the limit on the Nitrite find.
 - `mvstore-page-split-size`: The MVStore page split size in bytes. Unset by default, which leaves the
 Nitrite adapter's own value in place. Only read when `storage-mode` is `MVSTORE`.
-+
-Nitrite 5.4.0 defaults to 16 KB (`16384` bytes). The explicit `16384` workaround for
-Nitrite 5.3.0 is no longer needed; an existing override remains valid. H2 clamps the value to
-`(cacheSize / cacheConcurrency) >> 4`. Existing pages keep their shape until rewritten.
 
 The remaining MVStore settings are unset by default and, like the one above, are read only for
 `MVSTORE`. An unset value leaves the adapter's own default in place:
@@ -29,20 +25,18 @@ The remaining MVStore settings are unset by default and, like the one above, are
 - `mvstore-retention-time`: Chunk retention time in milliseconds. Unset preserves H2's default
 of 45 seconds. Space reclamation waits for this window; close still compacts synchronously.
 - `mvstore-versions-to-keep`: Number of old versions retained. Unset preserves H2's default of five.
-Setting both retention and versions-to-keep to zero restores the earlier behaviour that can leave
-an unreadable store.
+Avoid setting both retention and versions-to-keep to zero, which can leave an unreadable store.
 - `mvstore-allowed-classes`: Additional semicolon-separated JEP 290 patterns for application
-classes stored as Java serialized values, for example `com.example.model.**`. Nitrite 5.4.0 allows
-Nitrite and JDK classes by default. The spatial integration adds `org.locationtech.jts.geom.**`
+classes stored as Java serialized values, for example `com.example.model.**`. Nitrite and JDK
+classes are allowed by default. The spatial integration adds `org.locationtech.jts.geom.**`
 when installed; application classes attached as geometry user data still need their own patterns.
 A process-wide `jdk.serialFilter` can still reject classes allowed here.
 - `mvstore-cache-size`: Read cache size in MB (adapter default: 16).
-- `mvstore-cache-concurrency`: Number of read cache segments (adapter default: 16). H2 clamps the
-page split size to `(cacheSize / cacheConcurrency) >> 4`, so this bounds `mvstore-page-split-size`.
+- `mvstore-cache-concurrency`: Number of read cache segments (adapter default: 16).
 - `mvstore-auto-commit`: Whether every change is committed as it is made (adapter default: `true`).
 With this off, changes are buffered until `Nitrite.commit()`.
-- `mvstore-auto-commit-buffer-size`: Unsaved changes buffered before an automatic commit (adapter
-default: 1024). Only meaningful while auto-commit is on.
+- `mvstore-auto-commit-buffer-size`: MVStore auto-commit buffer size (adapter default: 1024).
+Only meaningful while auto-commit is on.
 - `mvstore-auto-compact`: Whether fragmented chunks and chunks below the 90% target fill rate are
 reclaimed, which shrinks the file (adapter default: `true`).
 - `mvstore-compress`: Whether stored data is compressed (adapter default: `false`).
@@ -84,23 +78,7 @@ Use distinct orders when customizers set the same option; later customizers over
 Each bean is invoked for every datasource of its backend. Check `configuration.getName()` to
 restrict it to one datasource:
 
-[source,java]
-----
-import io.micronaut.data.nitrite.conf.NitriteConfiguration;
-import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer;
-import jakarta.inject.Singleton;
-import org.dizitart.no2.mvstore.MVStoreModuleBuilder;
-
-@Singleton
-class AuditMvStoreCustomizer implements MvStoreModuleCustomizer {
-    @Override
-    public void customize(NitriteConfiguration configuration, MVStoreModuleBuilder builder) {
-        if ("audit".equals(configuration.getName())) {
-            builder.autoCommitBufferSize(4096);
-        }
-    }
-}
-----
+snippet::example.AuditMvStoreCustomizer[project-base="doc-examples/nitrite-example", source="main", tags="mvstore-customizer"]
 
 The MVStore hook exposes the entire upstream builder, including `fileStore` and store event
 listeners. The RocksDB hook exposes `Options`, `DBOptions`, `ColumnFamilyOptions`, custom object
@@ -110,7 +88,7 @@ sharing native options across databases. Customizing the deserialization pattern
 patterns assembled from datasource properties and spatial support, so preserve the geometry
 patterns when using spatial values.
 
-=== Nitrite 5.4.0 Upgrade Behaviour
+=== Stored Values
 
 Custom Java serialized document values require the `mvstore-allowed-classes` setting when read
 from an MVStore file. Normal entity properties mapped to documents, maps and JDK values do not
@@ -119,14 +97,10 @@ custom converters or direct Nitrite collection access, may need one. In native a
 allowlisting does not register a class for Java serialization: custom values also require the
 corresponding GraalVM serialization metadata.
 
-Unique indexes migrate from lists of IDs to a single-ID layout on first access. Back up a database
-before upgrading if it may need to be opened by an earlier Nitrite release.
-
 `find()` and `getById()` return structurally copied documents. Change stored data through explicit
 updates; mutating a returned list, map, array, date or calendar does not persist a change. Unknown
 mutable value types, including JTS geometries, can still be shared. Update a geometry through a
-repository operation instead of mutating its coordinates in place. Each result and write now pays
-for the structural copy.
+repository operation instead of mutating its coordinates in place.
 
 == Multiple Datasources
 
@@ -144,12 +118,7 @@ micronaut:
 
 A repository selects its datasource by passing the name to ann:data.nitrite.annotation.NitriteRepository[]:
 
-[source,java]
-----
-@NitriteRepository("audit")
-public interface AuditRepository extends CrudRepository<AuditRecord, String> {
-}
-----
+snippet::example.AuditBookRepository[project-base="doc-examples/nitrite-example", source="main", tags="named-datasource-repository"]
 
 A repository that names no datasource uses the primary one, which is the datasource named `default`.
 
@@ -157,11 +126,7 @@ Datasources are isolated from each other: an entity written through a repository
 
 The isolation extends to transactions. Each datasource gets its own connection operations, transaction operations and transaction context holder, so a transaction opened against one datasource neither covers nor is visible to repositories bound to another. To drive a transaction of a named datasource programmatically, resolve its `NitriteTransactionOperations` bean by that name:
 
-[source,java]
-----
-NitriteTransactionOperations auditTransactions =
-    beanContext.getBean(NitriteTransactionOperations.class, Qualifiers.byName("audit"));
-----
+snippet::example.BookRepositoryExample[project-base="doc-examples/nitrite-example", source="main", tags="named-datasource-transactions", indent="0"]
 
 == Optional Modules
 

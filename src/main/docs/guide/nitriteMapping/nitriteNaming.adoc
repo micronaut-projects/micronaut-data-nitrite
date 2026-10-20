@@ -72,13 +72,10 @@ TIP: The snake_case naming strategy is applied automatically. If you need differ
 
 == @Query JSON Filters
 
-When using the `@Query` annotation with explicit JSON filter documents, field names use snake_case format to match the stored document structure. For example, a property `firstName` is stored as `first_name` in the document.
+When using the `@Query` annotation with explicit JSON filter documents, field names use snake_case format to match the stored document structure. For example, the `eventDate` property of `ExampleEvent` is stored as `event_date` in the document.
 
 The framework automatically converts camelCase property names to their snake_case persisted names when processing `@Query` JSON filters:
 
-[source,json]
-----
-{"firstName": "John"}  // Converted to {"first_name": "John"} internally
-----
+snippet::example.ExampleEventRepository[project-base="doc-examples/nitrite-example", source="main", tags="json-field-names"]
 
-This means developers can use either camelCase or snake_case in `@Query` JSON filters - both will work correctly.
+Both methods query the stored `event_date` field. Developers can use either camelCase or snake_case in `@Query` JSON filters.
