@@ -102,6 +102,14 @@ dependencies {
     testRuntimeOnly mnLogging.logback.classic
 }
 
+// Groovy runs Micronaut Data visitors from its compilation classpath. Keep the inline test
+// repositories on the same processor classpath as the Java test repositories.
+['compileTestGroovy', 'compileRocksDbPresentTestGroovy'].each { taskName ->
+    tasks.named(taskName) {
+        classpath += configurations.testAnnotationProcessor
+    }
+}
+
 // Nitrite is embedded, so no suite here resolves anything through test resources. The plugin is
 // still applied for the shared build conventions, and its client throws an NPE out of
 // DefaultTestResourcesClient.getRequiredPropertyEntries while loading property sources, which

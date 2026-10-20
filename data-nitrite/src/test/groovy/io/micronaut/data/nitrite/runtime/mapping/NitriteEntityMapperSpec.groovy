@@ -12,6 +12,7 @@ import io.micronaut.data.nitrite.runtime.CountingOperationsHelper
 import io.micronaut.core.annotation.Introspected
 import io.micronaut.core.convert.ConversionService
 import io.micronaut.core.type.Argument
+import io.micronaut.data.annotation.Embeddable
 import io.micronaut.data.annotation.GeneratedValue
 import io.micronaut.data.annotation.Id
 import io.micronaut.data.annotation.MappedEntity
@@ -35,6 +36,7 @@ import org.dizitart.no2.filters.EqualsFilter
 import org.dizitart.no2.collection.NitriteId
 import org.dizitart.no2.common.tuples.Pair
 import spock.lang.Specification
+import spock.lang.Unroll
 
 @MicronautTest(transactional = false)
 class NitriteEntityMapperSpec extends Specification {
@@ -549,6 +551,34 @@ class NitriteEntityMapperSpec extends Specification {
         sentinel.get("id") == Long.MIN_VALUE
     }
 
+    @Unroll
+    def "immutable record with #keyType identity round-trips through entity mapper"() {
+        given:
+        def mapper = new NitriteEntityMapper(conversionService, objectMapper, runtimeEntityRegistry)
+
+        when: "serialized to document"
+        def doc = mapper.toDocument(entity)
+
+        then: "document is populated"
+        doc != null
+
+        when: "hydrated back from document"
+        def result = mapper.fromDocument(doc, entity.class)
+
+        then: "all properties match"
+        result == entity
+
+        where:
+        keyType            | entity
+        "Long"             | new RecordWithLongId(42L, "Alice")
+        "primitive long"   | new RecordWithPrimitiveLongId(84L, "Bob")
+        "Integer"          | new RecordWithIntegerId(100, "Charlie")
+        "primitive int"    | new RecordWithPrimitiveIntId(200, "Dave")
+        "UUID"             | new RecordWithUuidId(UUID.fromString("12345678-1234-1234-1234-123456789abc"), "Eve")
+        "Composite"        | new RecordWithCompositeId("t1", "r1", "Grace")
+        "Mixed Composite"  | new RecordWithMixedCompositeId("t2", 999L, "Henry")
+    }
+
 }
 
 @MappedEntity
@@ -565,6 +595,7 @@ class UnembeddedChild {
 }
 
 @MappedEntity
+@Embeddable
 class CyclicEntity {
     @Id @GeneratedValue Long id
     String name
@@ -632,3 +663,24 @@ class NonSerdeable {
 class PlainSerializable implements Serializable {
     String data = "x"
 }
+
+@MappedEntity
+record RecordWithLongId(@Id Long id, String name) {}
+
+@MappedEntity
+record RecordWithPrimitiveLongId(@Id long id, String name) {}
+
+@MappedEntity
+record RecordWithIntegerId(@Id Integer id, String name) {}
+
+@MappedEntity
+record RecordWithPrimitiveIntId(@Id int id, String name) {}
+
+@MappedEntity
+record RecordWithUuidId(@Id UUID id, String name) {}
+
+@MappedEntity
+record RecordWithCompositeId(@Id String tenantId, @Id String refId, String name) {}
+
+@MappedEntity
+record RecordWithMixedCompositeId(@Id String tenantId, @Id Long seq, String name) {}

@@ -1,11 +1,15 @@
 package io.micronaut.data.nitrite.storage
 
 import io.micronaut.context.ApplicationContext
+import io.micronaut.data.annotation.Id
+import io.micronaut.data.annotation.MappedEntity
+import io.micronaut.data.nitrite.annotation.NitriteRepository
 import io.micronaut.data.nitrite.conf.NitriteConfiguration
 import io.micronaut.data.nitrite.model.DatasourceRecord
 import io.micronaut.data.nitrite.operations.NitriteRepositoryOperations
 import io.micronaut.data.nitrite.repository.PrimaryDatasourceRepository
 import io.micronaut.data.nitrite.repository.SecondaryDatasourceRepository
+import io.micronaut.data.repository.CrudRepository
 import io.micronaut.inject.qualifiers.Qualifiers
 import io.micronaut.data.nitrite.rocksdb.RocksDbModuleCustomizer
 import org.dizitart.no2.Nitrite
@@ -49,6 +53,12 @@ class NitriteMultipleDatasourceSpec extends Specification {
         if (secondaryMode == "ROCKSDB") {
             props["micronaut.nitrite.secondary.db-path"] = new File(tempDir, "$run-secondary").absolutePath
         }
+        if (primaryMode == "MVSTORE") {
+            props["micronaut.nitrite.primary.db-path"] = new File(tempDir, "$run-primary.db").absolutePath
+        }
+        if (secondaryMode == "MVSTORE") {
+            props["micronaut.nitrite.secondary.db-path"] = new File(tempDir, "$run-secondary.db").absolutePath
+        }
         return props
     }
 
@@ -86,6 +96,40 @@ class NitriteMultipleDatasourceSpec extends Specification {
         "ROCKSDB"   | "ROCKSDB"
 
         run = "${primaryMode}-${secondaryMode}".toLowerCase()
+    }
+
+    @Unroll
+    void "immutable record entities stay isolated and round-trip across datasources with primary #primaryMode and secondary #secondaryMode"() {
+        given:
+        def ctx = ApplicationContext.run(properties(primaryMode, secondaryMode, run))
+        def primary = ctx.getBean(PrimaryImmutableLongRepository)
+        def secondary = ctx.getBean(SecondaryImmutableLongRepository)
+
+        when: "immutable records with assigned identities are written into each datasource"
+        primary.save(new ImmutableDatasourcePerson(100L, "in-primary"))
+        secondary.save(new ImmutableDatasourcePerson(200L, "in-secondary"))
+
+        then: "neither datasource sees the other's records and each round-trips correctly"
+        primary.findById(100L).present
+        primary.findById(100L).get().name() == "in-primary"
+        primary.findById(200L).isEmpty()
+
+        secondary.findById(200L).present
+        secondary.findById(200L).get().name() == "in-secondary"
+        secondary.findById(100L).isEmpty()
+
+        cleanup:
+        ctx?.close()
+
+        where:
+        primaryMode | secondaryMode
+        "IN_MEMORY" | "IN_MEMORY"
+        "IN_MEMORY" | "ROCKSDB"
+        "ROCKSDB"   | "ROCKSDB"
+        "MVSTORE"   | "ROCKSDB"
+        "MVSTORE"   | "IN_MEMORY"
+
+        run = "immutable-${primaryMode}-${secondaryMode}".toLowerCase()
     }
 
     @Unroll
@@ -164,3 +208,12 @@ class NitriteMultipleDatasourceSpec extends Specification {
         return ctx.getBean(NitriteConfiguration, Qualifiers.byName(name))
     }
 }
+
+@MappedEntity
+record ImmutableDatasourcePerson(@Id Long id, String name) {}
+
+@NitriteRepository("primary")
+interface PrimaryImmutableLongRepository extends CrudRepository<ImmutableDatasourcePerson, Long> {}
+
+@NitriteRepository("secondary")
+interface SecondaryImmutableLongRepository extends CrudRepository<ImmutableDatasourcePerson, Long> {}
