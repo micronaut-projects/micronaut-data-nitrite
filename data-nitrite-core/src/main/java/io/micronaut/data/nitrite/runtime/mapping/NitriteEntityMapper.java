@@ -1404,7 +1404,7 @@ public final class NitriteEntityMapper {
     }
 
     // Set identity early so mappedBy hydration can use it
-    if (idProp != null) {
+    if (idProp != null && !idProp.isReadOnly()) {
         Object storedId = docGet(doc, ID_FIELD, idProp.getPersistedName(), idProp.getName(), "_id");
         if (storedId != null && !(storedId instanceof NitriteId)) {
             Object convertedId = convertFromDocumentValue(storedId, idProp.getProperty().asArgument());
