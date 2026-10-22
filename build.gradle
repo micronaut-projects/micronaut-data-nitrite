@@ -5,6 +5,14 @@ plugins {
     id "io.micronaut.build.internal.data-nitrite-dependencies"
 }
 
+if (System.getenv("SONAR_TOKEN") != null) {
+    sonarqube {
+        properties {
+            property "sonar.exclusions", "**/example/**, **/data/tck/**"
+        }
+    }
+}
+
 project(':micronaut-data-nitrite').plugins.withId('java') {
     tasks.named('javadoc', Javadoc) {
         classpath += project(':micronaut-data-nitrite-core').sourceSets.main.compileClasspath

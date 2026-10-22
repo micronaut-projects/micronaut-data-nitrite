@@ -60,6 +60,7 @@ import org.dizitart.no2.filters.Filter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +88,7 @@ public final class NitriteQueryExecutor {
 
     private static final Pattern TOP_FIRST_PATTERN = Pattern.compile("(?:Top|First)(\\d*)");
     private static final Pattern GENERATED_EQUALITY_PATTERN = Pattern.compile(
-        "(?:[A-Za-z0-9_]+\\.)?([A-Za-z0-9_]+)\\s*=\\s*:p\\d+");
+        "(?<![A-Za-z0-9_.])([A-Za-z0-9_.]++)\\s*+=\\s*+:p\\d++");
     private static final Object[] EMPTY_PARAMS = new Object[0];
 
     private final NitriteEntityMapper entityMapper;
@@ -391,10 +392,8 @@ public final class NitriteQueryExecutor {
      * rather than with the bound.
      */
     private @Nullable Document firstResult(RecordStream<Document> cursor) {
-        for (Document doc : cursor) {
-            return doc;
-        }
-        return null;
+        Iterator<Document> iterator = cursor.iterator();
+        return iterator.hasNext() ? iterator.next() : null;
     }
 
     private @Nullable Document singleResult(RecordStream<Document> cursor) {
@@ -744,8 +743,8 @@ public final class NitriteQueryExecutor {
         for (Map.Entry<String, Object> entry : ((Map<String, Object>) fields).entrySet()) {
             Object currentValue = currentDocument.get(entry.getKey());
             Object operand = resolveUpdateOperand(entry.getValue(), jsonParams, namedParameters);
-            String currentStr = currentValue != null ? String.valueOf(currentValue) : "";
-            String appendStr = operand != null ? String.valueOf(operand) : "";
+            String currentStr = Objects.toString(currentValue, "");
+            String appendStr = Objects.toString(operand, "");
             updateDoc.put(entry.getKey(), currentStr + appendStr);
         }
     }
@@ -872,7 +871,8 @@ public final class NitriteQueryExecutor {
         }
         Matcher matcher = GENERATED_EQUALITY_PATTERN.matcher(queryString.substring(whereStart + 7));
         while (matcher.find()) {
-            String property = matcher.group(1);
+            String reference = matcher.group(1);
+            String property = reference.substring(reference.lastIndexOf('.') + 1);
             if (version.getName().equals(property) || version.getPersistedName().equals(property)) {
                 return true;
             }
