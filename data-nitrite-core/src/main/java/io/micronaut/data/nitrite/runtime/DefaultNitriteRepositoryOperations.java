@@ -284,7 +284,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public void logFind(String collection, Filter filter) {
         QUERY_LOG.debug("Executing Nitrite 'find' on collection [{}] with filter: {}",
-            collection, filter != null ? filter : "Filter.ALL");
+            collection, filter);
     }
 
     @Override
@@ -296,7 +296,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public void logUpdate(String collection, Filter filter, Document update) {
         QUERY_LOG.debug("Executing Nitrite 'update' on collection [{}] with filter: {} and update: {}",
-            collection, filter != null ? filter : "Filter.ALL", update);
+            collection, filter, update);
     }
 
     // ========== CriteriaRepositoryOperations implementation ==========
@@ -435,7 +435,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public void logDelete(String collection, Filter filter) {
         QUERY_LOG.debug("Executing Nitrite 'remove' from collection [{}] with filter: {}",
-            collection, filter != null ? filter : "Filter.ALL");
+            collection, filter);
     }
 
     @Override

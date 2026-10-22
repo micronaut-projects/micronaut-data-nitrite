@@ -23,6 +23,11 @@ jobs:
           java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Verify vulnerability audit inputs
+        if: matrix.backend == 'all'
+        run: |
+          python3 -B -m unittest discover -s .github/scripts -p 'test_*.py' -v
+          bash -n .github/scripts/vulnerability-audit.sh
       - name: Select GraalVM with jenv
         run: |
           git clone --depth 1 --branch 0.6.0 https://github.com/jenv/jenv.git "$RUNNER_TEMP/jenv"

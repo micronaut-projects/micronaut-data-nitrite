@@ -33,9 +33,7 @@ class NitriteJakartaDataLifecycleSpec extends Specification {
 
     void setup() {
         repository.deleteAll()
-        // An immutable entity cannot be read back (see nitriteLimitations.adoc), so its documents
-        // are cleared through the collection rather than through the repository.
-        context.getBean(Nitrite).getCollection("ImmutableVersionedPerson").remove(Filter.ALL)
+        immutableRepository.deleteAll()
     }
 
     // @Insert: "raises EntityExistsException ... if an entity of this type with the same unique
@@ -132,5 +130,19 @@ class NitriteJakartaDataLifecycleSpec extends Specification {
 
         then:
             saved.version == 0L
+    }
+
+    void "an immutable record entity can be read back by its identity"() {
+        given:
+            immutableRepository.save(new ImmutableVersionedPerson("imm-4", "Dave"))
+
+        when:
+            def found = immutableRepository.findById("imm-4")
+
+        then:
+            found.present
+            found.get().id == "imm-4"
+            found.get().name == "Dave"
+            found.get().version == 0L
     }
 }

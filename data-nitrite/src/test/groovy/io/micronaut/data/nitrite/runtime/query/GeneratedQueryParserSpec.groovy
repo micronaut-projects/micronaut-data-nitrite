@@ -12,6 +12,8 @@ import org.dizitart.no2.collection.NitriteCollection
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Timeout
+import spock.lang.Unroll
 
 /**
  * Parsing of the SQL-shaped query string that reaches Nitrite when a query was not built as a
@@ -169,6 +171,36 @@ class GeneratedQueryParserSpec extends Specification {
                 "alpha", "beta") == ["alpha", "beta", "gamma"]
     }
 
+    void "generated predicates retain whitespace and negation support"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.priority\t >=\t :p1", 30) ==
+                ["alpha AND beta", "alpha's AND beta", "gamma"]
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.type NOT IN ( :p1 , :p2 )",
+                "alpha", "beta") == ["alpha AND beta", "alpha's AND beta", "gamma"]
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.payload NOT  LIKE  :p1", "hello%") ==
+                ["alpha AND beta", "alpha's AND beta", "beta"]
+        typesMatching("SELECT event_ FROM Event event_ WHERE event_.priority BETWEEN :p1   AND   :p2", 20, 30) ==
+                ["beta", "gamma"]
+    }
+
+    @Timeout(5)
+    @Unroll("long malformed #description predicate is rejected without excessive backtracking")
+    void "long malformed generated predicates are rejected without excessive backtracking"() {
+        when:
+        typesMatching("SELECT event_ FROM Event event_ WHERE " + predicate, 20)
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        where:
+        description  | predicate
+        "identifier" | "x" * 20_000 + " !"
+        "IN"         | "priority IN (" + " " * 20_000 + ":p1"
+        "BETWEEN"    | "priority BETWEEN :p1" + " " * 20_000 + "invalid"
+        "LIKE"       | "priority LIKE" + " " * 20_000 + "?"
+        "number"     | "priority = " + "1" * 20_000 + "?"
+    }
+
     void "LIKE resolves a generated CONCAT pattern"() {
         expect:
         typesMatching("SELECT event_ FROM Event event_ WHERE event_.payload LIKE CONCAT('%',:p1,'%')",
@@ -208,6 +240,13 @@ class GeneratedQueryParserSpec extends Specification {
         !GeneratedQueryParser.isCountProjection("SELECT event_.priority FROM Event event_")
     }
 
+    @Timeout(5)
+    void "long malformed projection aliases do not backtrack through whitespace"() {
+        expect:
+        GeneratedQueryParser.parseProjectionFields(
+                "SELECT event_.type" + " " * 20_000 + "NOT_ALIAS FROM Event event_").empty
+    }
+
     void "an unsupported predicate is rejected with an explanatory message"() {
         when:
         typesMatching("UPDATE Event SET payload = :p1 WHERE UPPER(type) = :p2", "x", "ALPHA")
@@ -238,6 +277,12 @@ class GeneratedQueryParserSpec extends Specification {
         parser().parseUpdate(
                 "UPDATE Event event_ SET event_.priority=(event_.priority + :p1),event_.payload=:p2",
                 entity, [5, "updated"] as Object[]) == ["\$inc": [priority: 5], "\$set": [payload: "updated"]]
+    }
+
+    void "generated arithmetic assignments trim the enclosing parentheses and operand whitespace"() {
+        expect:
+        parser().parseUpdate("UPDATE Event SET priority = ( priority + :p1   )",
+                runtimeEntityRegistry.getEntity(Event), [5] as Object[]) == ["\$inc": [priority: 5]]
     }
 
     void "an assignment that is not a bound parameter is rejected instead of silently dropped"() {
