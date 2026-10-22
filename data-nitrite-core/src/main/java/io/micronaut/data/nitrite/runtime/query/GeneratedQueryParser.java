@@ -90,21 +90,21 @@ public final class GeneratedQueryParser {
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     private static final Pattern COMPARISON_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s*(=|<>|!=|>=|<=|>|<)\\s*(.+)", Pattern.DOTALL);
+        "([A-Za-z0-9_.]++)\\s*+(=|<>|!=|>=|<=|>|<)\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern NULL_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s+IS\\s+(NOT\\s+)?NULL", Pattern.CASE_INSENSITIVE);
+        "([A-Za-z0-9_.]++)\\s++IS\\s++(NOT\\s++)?NULL", Pattern.CASE_INSENSITIVE);
     private static final Pattern IN_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s+(NOT\\s+)?IN\\s*\\(\\s*(.+?)\\s*\\)", Pattern.CASE_INSENSITIVE);
+        "([A-Za-z0-9_.]++)\\s++(NOT\\s++)?IN\\s*+\\((.+)\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIKE_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s+(NOT\\s+)?LIKE\\s+(.+)", Pattern.CASE_INSENSITIVE);
+        "([A-Za-z0-9_.]++)\\s++(NOT\\s++)?LIKE\\s++(.+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern BETWEEN_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s+BETWEEN\\s+(.+?)\\s+AND\\s+(.+)", Pattern.CASE_INSENSITIVE);
+        "([A-Za-z0-9_.]++)\\s++BETWEEN\\s++(.+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern BETWEEN_LOWER_BOUND_PATTERN = Pattern.compile(
-        "[A-Za-z0-9_.]+\\s+BETWEEN\\s+[^\\s]+", Pattern.CASE_INSENSITIVE);
+        "[A-Za-z0-9_.]++\\s++BETWEEN\\s++[^\\s]++", Pattern.CASE_INSENSITIVE);
     private static final Pattern ASSIGNMENT_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]+)\\s*=\\s*(.+)", Pattern.DOTALL);
+        "([A-Za-z0-9_.]++)\\s*+=\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern UPDATE_EXPRESSION_PATTERN = Pattern.compile(
-        "\\(?\\s*([A-Za-z0-9_.]+)\\s*([+\\-*/])\\s*(.+?)\\s*\\)?", Pattern.DOTALL);
+        "([A-Za-z0-9_.]++)\\s*+([+\\-*/])\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern FUNCTION_PATTERN = Pattern.compile(
         "([A-Za-z]+)\\((.*)\\)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern FIELD_PATTERN = Pattern.compile("[A-Za-z0-9_.]+");
@@ -252,7 +252,7 @@ public final class GeneratedQueryParser {
         }
         List<String> fields = new ArrayList<>();
         for (String selection : splitTopLevel(clause, ",")) {
-            String expression = selection.trim().replaceFirst("(?i)\\s+AS\\s+[A-Za-z0-9_]+$", "");
+            String expression = selection.trim().replaceFirst("(?i)(?<!\\s)\\s++AS\\s++[A-Za-z0-9_]++$", "");
             if (!FIELD_PATTERN.matcher(expression).matches() || expression.endsWith("_")) {
                 return List.of();
             }
@@ -332,7 +332,7 @@ public final class GeneratedQueryParser {
             }
             String field = resolveField(matcher.group(1), entity);
             String operand = matcher.group(2).trim();
-            Matcher update = UPDATE_EXPRESSION_PATTERN.matcher(operand);
+            Matcher update = UPDATE_EXPRESSION_PATTERN.matcher(stripOuterParentheses(operand));
             if (update.matches() && resolveField(update.group(1), entity).equals(field)) {
                 String operator = switch (update.group(2)) {
                     case "+", "-" -> INC;
@@ -400,8 +400,12 @@ public final class GeneratedQueryParser {
         Matcher betweenMatcher = BETWEEN_PATTERN.matcher(predicate);
         if (betweenMatcher.matches()) {
             String reference = betweenMatcher.group(1);
-            String lower = betweenMatcher.group(2);
-            String upper = betweenMatcher.group(3);
+            List<String> bounds = splitTopLevel(betweenMatcher.group(2), " AND ");
+            if (bounds.size() != 2) {
+                throw unsupported(predicate, "BETWEEN bounds");
+            }
+            String lower = bounds.get(0);
+            String upper = bounds.get(1);
             return params -> {
                 List<Object> range = new ArrayList<>(2);
                 range.add(resolveOperand(lower, params, predicate));
@@ -472,7 +476,7 @@ public final class GeneratedQueryParser {
             || "NULL".equalsIgnoreCase(value)
             || "TRUE".equalsIgnoreCase(value)
             || "FALSE".equalsIgnoreCase(value)
-            || value.matches("[-+]?\\d+(?:\\.\\d+)?");
+            || value.matches("[-+]?\\d++(?:\\.\\d++)?");
     }
 
     private Object compileExpressionOperand(String operand, RuntimePersistentEntity<?> entity, String fragment) {
