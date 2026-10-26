@@ -52,6 +52,19 @@ class PersonRepositorySpec extends Specification {
         results[0].name == "Alice"
     }
 
+    void "test criteria equals ignore case matches the whole value, not a substring"() {
+        given:
+        personRepository.saveAll([new Person("Al", 20), new Person("Alice", 30), new Person("Sal", 40)])
+
+        when:
+        def equal = { root, cb -> ((PersistentEntityCriteriaBuilder) cb).equalStringIgnoreCase(root.get("name"), cb.literal("aL")) } as PredicateSpecification<Person>
+        def notEqual = { root, cb -> ((PersistentEntityCriteriaBuilder) cb).notEqualStringIgnoreCase(root.get("name"), cb.literal("aL")) } as PredicateSpecification<Person>
+
+        then:
+        personRepository.findAll(equal)*.name == ["Al"]
+        personRepository.findAll(notEqual)*.name.toSet() == ["Alice", "Sal"].toSet()
+    }
+
     void "test criteria startsWith hits the indexed prefix range, not a regex scan"() {
         given:
         personRepository.saveAll([new Person("Alice", 20), new Person("Alicia", 25), new Person("Bob", 40)])
