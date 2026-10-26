@@ -705,7 +705,6 @@ public final class NitriteEntityMapper {
    * @param persistentEntity the runtime persistent entity
    * @return the pre-computed entity metadata
    */
-  @SuppressWarnings({"unchecked"})
   private <T> NitriteEntityMeta<T> buildEntityMeta(RuntimePersistentEntity<T> persistentEntity) {
     List<WritablePropertyMeta<T>> writableList = new ArrayList<>();
     List<WritablePropertyMeta<T>> mappedByList = new ArrayList<>();
@@ -720,79 +719,14 @@ public final class NitriteEntityMapper {
         continue;
       }
 
-      String fieldName = prop.getPersistedName();
-      PropertyStrategy strategy;
-      String mappedByValue = null;
-      BeanProperty<Object, Object> associatedIdProp = null;
-      BeanProperty<Object, Object> backRefProp = null;
-      List<CompositeJoinColumn> compositeJoinColumns = List.of();
-
-      if (prop instanceof RuntimeAssociation<?> assoc) {
-        mappedByValue = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
-        if (mappedByValue != null) {
-          strategy = PropertyStrategy.ASSOCIATION_MAPPED_BY;
-          RuntimePersistentProperty<?> backPropRaw = assoc.getAssociatedEntity().getPropertyByName(mappedByValue);
-          if (backPropRaw != null) {
-            backRefProp = (BeanProperty<Object, Object>) backPropRaw.getProperty();
-            hasBackRefs = true;
-          }
-        } else if (assoc.isEmbedded()) {
-          strategy = PropertyStrategy.ASSOCIATION_EMBEDDED;
-        } else {
-          RuntimePersistentProperty<?> idPropRaw = safeGetIdentity(assoc.getAssociatedEntity());
-          // An entity with a composite identity has no single id property, so idPropRaw is null.
-          // We must not fall back to ASSOCIATION_EMBEDDED here; it remains an ID reference,
-          // and its foreign keys are mapped explicitly via @JoinColumn (handled below).
-          if (idPropRaw == null && !assoc.getAssociatedEntity().hasCompositeIdentity()) {
-            strategy = PropertyStrategy.ASSOCIATION_EMBEDDED;
-          } else {
-            boolean isCollection = Iterable.class.isAssignableFrom(prop.getType());
-            strategy = isCollection ? PropertyStrategy.ASSOCIATION_IDS_REF : PropertyStrategy.ASSOCIATION_ID_REF;
-            if (idPropRaw != null) {
-              associatedIdProp = (BeanProperty<Object, Object>) idPropRaw.getProperty();
-            }
-
-            // Composite foreign key: more than one @JoinColumn means the association also needs
-            // its own local fields (matching NitriteQueryBuilderHelper's $lookup expectations)
-            // mirroring the referenced properties on the associated entity, in addition to the
-            // normal single-field ID reference used for eager hydration.
-            List<AnnotationValue<JoinColumn>> joinColumnValues =
-                assoc.getAnnotationMetadata().getAnnotationValuesByType(JoinColumn.class);
-            if (joinColumnValues.size() > 1) {
-              List<CompositeJoinColumn> list = new ArrayList<>();
-              for (AnnotationValue<JoinColumn> jc : joinColumnValues) {
-                String localName = jc.stringValue("name").orElse(fieldName);
-                jc.stringValue("referencedColumnName").ifPresent(
-                    referenced -> list.add(new CompositeJoinColumn(localName, referenced)));
-              }
-              compositeJoinColumns = List.copyOf(list);
-            }
-          }
-        }
-        // Pre-compute cascade-capable associations for PERSIST/ALL (for ALL associations, not just mappedBy)
-        if (assoc.doesCascade(Relation.Cascade.ALL) || assoc.doesCascade(Relation.Cascade.PERSIST)) {
-          cascadeList.add((RuntimeAssociation<T>) assoc);
-        }
-      } else {
-        strategy = PropertyStrategy.classifyValueStrategy(geometryClass, prop.getType());
-        if (strategy == PropertyStrategy.ENTITY_ID_REF) {
-          try {
-            RuntimePersistentEntity<Object> refEntity = runtimeEntityRegistry.getEntity(castClass(prop.getType()));
-            if (refEntity != null) {
-                RuntimePersistentProperty<Object> refIdentity = safeGetIdentity(refEntity);
-                if (refIdentity != null) {
-                    associatedIdProp = refIdentity.getProperty();
-                }
-            }
-          } catch (Exception _) {
-              // Best-effort identity lookup for ID-ref strategy
-          }
-        }
+      WritablePropertyMeta<T> meta = writablePropertyMeta(prop);
+      hasBackRefs |= meta.backRefProperty() != null;
+      // Pre-compute cascade-capable associations for PERSIST/ALL (for ALL associations, not just mappedBy)
+      if (prop instanceof RuntimeAssociation<T> assoc
+          && (assoc.doesCascade(Relation.Cascade.ALL) || assoc.doesCascade(Relation.Cascade.PERSIST))) {
+        cascadeList.add(assoc);
       }
-
-      WritablePropertyMeta<T> meta = new WritablePropertyMeta<>(
-          prop, fieldName, strategy, mappedByValue, associatedIdProp, backRefProp, compositeJoinColumns);
-      if (strategy == PropertyStrategy.ASSOCIATION_MAPPED_BY) {
+      if (meta.strategy() == PropertyStrategy.ASSOCIATION_MAPPED_BY) {
         mappedByList.add(meta);
       } else {
         writableList.add(meta);
@@ -821,6 +755,91 @@ public final class NitriteEntityMapper {
         List.copyOf(cascadeList),
         hasBackRefs,
         idAccessor);
+  }
+
+  private <T> WritablePropertyMeta<T> writablePropertyMeta(RuntimePersistentProperty<T> prop) {
+    if (prop instanceof RuntimeAssociation<?> assoc) {
+      return associationPropertyMeta(prop, assoc);
+    }
+    PropertyStrategy strategy = PropertyStrategy.classifyValueStrategy(geometryClass, prop.getType());
+    BeanProperty<Object, Object> associatedIdProp =
+        strategy == PropertyStrategy.ENTITY_ID_REF ? referencedIdentityProperty(prop.getType()) : null;
+    return new WritablePropertyMeta<>(
+        prop, prop.getPersistedName(), strategy, null, associatedIdProp, null, List.of());
+  }
+
+  private @Nullable BeanProperty<Object, Object> referencedIdentityProperty(Class<?> type) {
+    try {
+      RuntimePersistentEntity<Object> refEntity = runtimeEntityRegistry.getEntity(castClass(type));
+      if (refEntity != null) {
+          RuntimePersistentProperty<Object> refIdentity = safeGetIdentity(refEntity);
+          if (refIdentity != null) {
+              return refIdentity.getProperty();
+          }
+      }
+    } catch (Exception _) {
+        // Best-effort identity lookup for ID-ref strategy
+    }
+    return null;
+  }
+
+  @SuppressWarnings({"unchecked"})
+  private static <T> WritablePropertyMeta<T> associationPropertyMeta(RuntimePersistentProperty<T> prop, RuntimeAssociation<?> assoc) {
+    String fieldName = prop.getPersistedName();
+    String mappedByValue = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
+    if (mappedByValue != null) {
+      RuntimePersistentProperty<?> backPropRaw = assoc.getAssociatedEntity().getPropertyByName(mappedByValue);
+      BeanProperty<Object, Object> backRefProp =
+          backPropRaw != null ? (BeanProperty<Object, Object>) backPropRaw.getProperty() : null;
+      return new WritablePropertyMeta<>(
+          prop, fieldName, PropertyStrategy.ASSOCIATION_MAPPED_BY, mappedByValue, null, backRefProp, List.of());
+    }
+    if (assoc.isEmbedded()) {
+      return embeddedAssociationMeta(prop, fieldName);
+    }
+    RuntimePersistentProperty<?> idPropRaw = safeGetIdentity(assoc.getAssociatedEntity());
+    // An entity with a composite identity has no single id property, so idPropRaw is null.
+    // We must not fall back to ASSOCIATION_EMBEDDED here; it remains an ID reference,
+    // and its foreign keys are mapped explicitly via @JoinColumn (handled below).
+    if (idPropRaw == null && !assoc.getAssociatedEntity().hasCompositeIdentity()) {
+      return embeddedAssociationMeta(prop, fieldName);
+    }
+    boolean isCollection = Iterable.class.isAssignableFrom(prop.getType());
+    PropertyStrategy strategy = isCollection ? PropertyStrategy.ASSOCIATION_IDS_REF : PropertyStrategy.ASSOCIATION_ID_REF;
+    BeanProperty<Object, Object> associatedIdProp =
+        idPropRaw != null ? (BeanProperty<Object, Object>) idPropRaw.getProperty() : null;
+    return new WritablePropertyMeta<>(
+        prop, fieldName, strategy, null, associatedIdProp, null, compositeJoinColumns(assoc, fieldName));
+  }
+
+  private static <T> WritablePropertyMeta<T> embeddedAssociationMeta(RuntimePersistentProperty<T> prop, String fieldName) {
+    return new WritablePropertyMeta<>(
+        prop, fieldName, PropertyStrategy.ASSOCIATION_EMBEDDED, null, null, null, List.of());
+  }
+
+  /**
+   * Composite foreign key: more than one @JoinColumn means the association also needs
+   * its own local fields (matching NitriteQueryBuilderHelper's $lookup expectations)
+   * mirroring the referenced properties on the associated entity, in addition to the
+   * normal single-field ID reference used for eager hydration.
+   *
+   * @param assoc the association
+   * @param fieldName the association's persisted name, the default local column name
+   * @return the composite join columns, or an empty list for a single-column reference
+   */
+  private static List<CompositeJoinColumn> compositeJoinColumns(RuntimeAssociation<?> assoc, String fieldName) {
+    List<AnnotationValue<JoinColumn>> joinColumnValues =
+        assoc.getAnnotationMetadata().getAnnotationValuesByType(JoinColumn.class);
+    if (joinColumnValues.size() <= 1) {
+      return List.of();
+    }
+    List<CompositeJoinColumn> list = new ArrayList<>();
+    for (AnnotationValue<JoinColumn> jc : joinColumnValues) {
+      String localName = jc.stringValue("name").orElse(fieldName);
+      jc.stringValue("referencedColumnName").ifPresent(
+          referenced -> list.add(new CompositeJoinColumn(localName, referenced)));
+    }
+    return List.copyOf(list);
   }
 
   /**
@@ -1041,17 +1060,11 @@ public final class NitriteEntityMapper {
         BeanIntrospector.SHARED.getIntrospection(castClass(pojo.getClass()));
     Map<String, Object> map = new LinkedHashMap<>();
     for (BeanProperty<Object, Object> p : intro.getBeanProperties()) {
-      if (p.isWriteOnly()) {
-        continue;
-      }
-      Object v = p.get(pojo);
-      if (v == null) {
-        continue;
-      }
-      if (BeanIntrospector.SHARED.findIntrospection(v.getClass()).isPresent()) {
-        map.put(p.getName(), pojoToMap(v));
-      } else {
-        map.put(p.getName(), toFilterValue(v));
+      Object v = p.isWriteOnly() ? null : p.get(pojo);
+      if (v != null) {
+        map.put(p.getName(), BeanIntrospector.SHARED.findIntrospection(v.getClass()).isPresent()
+            ? pojoToMap(v)
+            : toFilterValue(v));
       }
     }
     return map;
