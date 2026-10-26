@@ -157,7 +157,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
         if (ignoreCase) {
-            handleRegexExpression(leftExpression, true, false, false, false, rightExpression, false);
+            handleRegexExpression(leftExpression, true, false, false, false, rightExpression);
         } else {
             appendOperatorExpression(leftExpression, EQ, rightExpression);
         }
@@ -169,7 +169,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
         if (ignoreCase) {
-            handleRegexExpression(leftExpression, true, true, false, false, rightExpression, false);
+            handleRegexExpression(leftExpression, true, true, false, false, rightExpression);
         } else {
             appendOperatorExpression(leftExpression, NE, rightExpression);
         }
@@ -418,7 +418,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> leftExpression,
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
-        handleRegexExpression(leftExpression, ignoreCase, false, false, false, rightExpression, false);
+        handleRegexExpression(leftExpression, ignoreCase, false, false, false, rightExpression);
     }
 
     @Override
@@ -426,7 +426,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> leftExpression,
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
-        handleRegexExpression(leftExpression, ignoreCase, false, false, true, rightExpression, false);
+        handleRegexExpression(leftExpression, ignoreCase, false, false, true, rightExpression);
     }
 
     @Override
@@ -434,7 +434,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> leftExpression,
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
-        handleRegexExpression(leftExpression, ignoreCase, false, true, false, rightExpression, false);
+        handleRegexExpression(leftExpression, ignoreCase, false, true, false, rightExpression);
     }
 
     @Override
@@ -778,7 +778,6 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
      * @param startsWith whether this is a startsWith operation
      * @param endsWith whether this is an endsWith operation
      * @param rightExpression the value expression
-     * @param isLike whether this is a LIKE operation
      */
     private void handleRegexExpression(
         final Expression<?> leftExpression,
@@ -786,20 +785,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final boolean negated,
         final boolean startsWith,
         final boolean endsWith,
-        final Expression<?> rightExpression,
-        final boolean isLike) {
-        handleRegexExpression(leftExpression, ignoreCase, negated, startsWith, endsWith, rightExpression, isLike, null);
-    }
-
-    private void handleRegexExpression(
-        final Expression<?> leftExpression,
-        final boolean ignoreCase,
-        final boolean negated,
-        final boolean startsWith,
-        final boolean endsWith,
-        final Expression<?> rightExpression,
-        final boolean isLike,
-        @Nullable final Expression<Character> escapeExpression) {
+        final Expression<?> rightExpression) {
         if (leftExpression
             instanceof
             io.micronaut.data.model.jpa.criteria.PersistentPropertyPath<?> propertyPathExpr) {
@@ -807,7 +793,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
             final String fieldName = getFieldName(propertyPath);
             // Both handler impls (Runtime + Compile) always return a String regex value.
             Object regexValue = expressionHandler.handleRegex(
-                fieldName, ignoreCase, negated, startsWith, endsWith, rightExpression, isLike, escapeExpression, queryState, propertyPath);
+                ignoreCase, startsWith, endsWith, rightExpression, queryState, propertyPath);
             Map<String, Object> fieldFilter = operator(REGEX, regexValue);
             query.put(fieldName, negated ? Map.of(NOT, fieldFilter) : fieldFilter);
         }

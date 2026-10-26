@@ -22,7 +22,6 @@ import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
-import io.micronaut.data.nitrite.runtime.query.PatternConverter;
 import jakarta.persistence.criteria.Expression;
 
 import java.util.ArrayList;
@@ -65,14 +64,10 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
 
     @Override
     public @Nullable Object handleRegex(
-        String fieldName,
         boolean ignoreCase,
-        boolean negated,
         boolean startsWith,
         boolean endsWith,
         @Nullable Expression<?> rightExpression,
-        boolean isLike,
-        @Nullable Expression<Character> escapeExpression,
         NitriteQueryState queryState,
         PersistentPropertyPath propertyPath) {
 
@@ -80,7 +75,7 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
             ? ValueConverter.toFilterValueStatic(unwrapLiteral(literal))
             : resolveValue(queryState, propertyPath, rightExpression);
 
-        if (startsWith && !endsWith && !ignoreCase && !isLike) {
+        if (startsWith && !endsWith && !ignoreCase) {
             // A plain prefix stays an indexed range rather than a per-document regex scan.
             Map<String, Object> range = LinkedHashMap.newLinkedHashMap(1);
             range.put(NitriteInternalKeys.RANGE_PREFIX, paramPlaceholder);
@@ -88,10 +83,6 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
         }
         boolean parameterPlaceholder = paramPlaceholder instanceof Map<?, ?> map
             && map.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER);
-        if (isLike) {
-            Character escapeChar = resolveEscapeChar(queryState, propertyPath, escapeExpression);
-            return likePattern(paramPlaceholder, parameterPlaceholder, escapeChar, ignoreCase);
-        }
         if (parameterPlaceholder) {
             return regexDescriptor(paramPlaceholder, startsWith, endsWith, ignoreCase);
         }
@@ -101,21 +92,6 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
         String value = paramPlaceholder != null ? paramPlaceholder.toString() : "";
         // Quote user values; only generated anchors and wildcards remain unquoted.
         return ciPrefix + prefix + Pattern.quote(value) + suffix;
-    }
-
-    private static Object likePattern(@Nullable Object value, boolean parameterPlaceholder,
-                                      @Nullable Character escapeChar, boolean ignoreCase) {
-        if (parameterPlaceholder) {
-            Map<String, Object> pattern = LinkedHashMap.newLinkedHashMap(2);
-            pattern.put(NitriteInternalKeys.LIKE_PATTERN, value);
-            if (escapeChar != null) {
-                pattern.put(NitriteInternalKeys.LIKE_ESCAPE, escapeChar);
-            }
-            return pattern;
-        }
-        String ciPrefix = ignoreCase ? "(?i)" : "";
-        String text = value != null ? value.toString() : "";
-        return ciPrefix + PatternConverter.convertLikeToRegex(text, escapeChar);
     }
 
     private static Map<String, Object> regexDescriptor(@Nullable Object value,
@@ -133,25 +109,6 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
             pattern.put(NitriteInternalKeys.REGEX_IGNORE_CASE, true);
         }
         return pattern;
-    }
-
-    private @Nullable Character resolveEscapeChar(
-        NitriteQueryState queryState,
-        PersistentPropertyPath propertyPath,
-        @Nullable Expression<Character> escapeExpression) {
-        if (escapeExpression == null) {
-            return null;
-        }
-        Object escape = escapeExpression instanceof LiteralExpression<?> literal
-            ? unwrapLiteral(literal)
-            : resolveValue(queryState, propertyPath, escapeExpression);
-        if (escape instanceof Character character) {
-            return character;
-        }
-        if (escape instanceof CharSequence sequence && !sequence.isEmpty()) {
-            return sequence.charAt(0);
-        }
-        return null;
     }
 
     @Override
