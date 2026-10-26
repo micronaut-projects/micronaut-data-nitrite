@@ -157,7 +157,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
         if (ignoreCase) {
-            handleRegexExpression(leftExpression, true, false, false, false, rightExpression);
+            handleRegexExpression(leftExpression, true, false, true, true, rightExpression);
         } else {
             appendOperatorExpression(leftExpression, EQ, rightExpression);
         }
@@ -169,7 +169,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         final Expression<?> rightExpression,
         final boolean ignoreCase) {
         if (ignoreCase) {
-            handleRegexExpression(leftExpression, true, true, false, false, rightExpression);
+            handleRegexExpression(leftExpression, true, true, true, true, rightExpression);
         } else {
             appendOperatorExpression(leftExpression, NE, rightExpression);
         }

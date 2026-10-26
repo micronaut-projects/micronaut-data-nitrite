@@ -244,7 +244,7 @@ class NitriteCriteriaUnitSpec extends Specification {
             criteriaQuery.where(builder.equalStringIgnoreCase(entityRoot.get("name"), criteriaBuilder.literal("Al")))
 
         expect:
-            getQuery(criteriaQuery) == '''{name:{$regex:{$mn_regex_pattern:{$mn_qp:0},$mn_regex_ignore_case:true}}}'''
+            getQuery(criteriaQuery) == '''{name:{$regex:{$mn_regex_pattern:{$mn_qp:0},$mn_regex_starts_with:true,$mn_regex_ends_with:true,$mn_regex_ignore_case:true}}}'''
     }
 
     void "test notEqualStringIgnoreCase covers visitNotEquals ignoreCase branch"() {
@@ -254,7 +254,7 @@ class NitriteCriteriaUnitSpec extends Specification {
             criteriaQuery.where(builder.notEqualStringIgnoreCase(entityRoot.get("name"), criteriaBuilder.literal("Al")))
 
         expect:
-            getQuery(criteriaQuery) == '''{name:{$not:{$regex:{$mn_regex_pattern:{$mn_qp:0},$mn_regex_ignore_case:true}}}}'''
+            getQuery(criteriaQuery) == '''{name:{$not:{$regex:{$mn_regex_pattern:{$mn_qp:0},$mn_regex_starts_with:true,$mn_regex_ends_with:true,$mn_regex_ignore_case:true}}}}'''
     }
 
     void "test in with collection parameter covers visitIn BindingParameter branch"() {
