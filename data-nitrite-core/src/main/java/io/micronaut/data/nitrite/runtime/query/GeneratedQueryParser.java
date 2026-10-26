@@ -76,6 +76,9 @@ public final class GeneratedQueryParser {
     private static final String SELECT_KEYWORD = "SELECT ";
     private static final String FROM_KEYWORD = " FROM ";
     private static final String PARAMETER_PREFIX = ":p";
+    private static final String ORDER_BY_KEYWORD = " ORDER BY ";
+    private static final String AND_KEYWORD = " AND ";
+    private static final String EXPRESSION_KIND = "expression";
 
     /**
      * Clauses a generated {@code SELECT} may append after its {@code WHERE} clause. Ordering and
@@ -83,31 +86,31 @@ public final class GeneratedQueryParser {
      * cut off the predicate text rather than parsed as part of it — leaving them attached makes
      * the trailing operand of the last comparison read as {@code :p1 ORDER BY title ASC}.
      */
-    private static final List<String> TRAILING_CLAUSE_KEYWORDS = List.of(" ORDER BY ", " GROUP BY ", " HAVING ");
+    private static final List<String> TRAILING_CLAUSE_KEYWORDS = List.of(ORDER_BY_KEYWORD, " GROUP BY ", " HAVING ");
 
-    private static final String ORDER_BY_KEYWORD = " ORDER BY ";
     private static final String DESCENDING = "DESC";
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     private static final Pattern COMPARISON_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s*+(=|<>|!=|>=|<=|>|<)\\s*+(.+)", Pattern.DOTALL);
+        "([\\w.]++)\\s*+(=|<>|!=|>=|<=|>|<)\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern NULL_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s++IS\\s++(NOT\\s++)?NULL", Pattern.CASE_INSENSITIVE);
+        "([\\w.]++)\\s++IS\\s++(NOT\\s++)?NULL", Pattern.CASE_INSENSITIVE);
     private static final Pattern IN_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s++(NOT\\s++)?IN\\s*+\\((.+)\\)", Pattern.CASE_INSENSITIVE);
+        "([\\w.]++)\\s++(NOT\\s++)?IN\\s*+\\((.+)\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIKE_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s++(NOT\\s++)?LIKE\\s++(.+)", Pattern.CASE_INSENSITIVE);
+        "([\\w.]++)\\s++(NOT\\s++)?LIKE\\s++(.+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern BETWEEN_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s++BETWEEN\\s++(.+)", Pattern.CASE_INSENSITIVE);
+        "([\\w.]++)\\s++BETWEEN\\s++(.+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern BETWEEN_LOWER_BOUND_PATTERN = Pattern.compile(
-        "[A-Za-z0-9_.]++\\s++BETWEEN\\s++[^\\s]++", Pattern.CASE_INSENSITIVE);
+        "[\\w.]++\\s++BETWEEN\\s++[^\\s]++", Pattern.CASE_INSENSITIVE);
     private static final Pattern ASSIGNMENT_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s*+=\\s*+(.+)", Pattern.DOTALL);
+        "([\\w.]++)\\s*+=\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern UPDATE_EXPRESSION_PATTERN = Pattern.compile(
-        "([A-Za-z0-9_.]++)\\s*+([+\\-*/])\\s*+(.+)", Pattern.DOTALL);
+        "([\\w.]++)\\s*+([+\\-*/])\\s*+(.+)", Pattern.DOTALL);
     private static final Pattern FUNCTION_PATTERN = Pattern.compile(
-        "([A-Za-z]+)\\((.*)\\)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    private static final Pattern FIELD_PATTERN = Pattern.compile("[A-Za-z0-9_.]+");
+        "([a-z]+)\\((.*)\\)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern PROJECTION_ALIAS_PATTERN = Pattern.compile("\\w++");
+    private static final Pattern FIELD_PATTERN = Pattern.compile("[\\w.]+");
 
     /** The compiled form of a query carrying no {@code WHERE} clause. */
     private static final CompiledPredicate NO_PREDICATE = params -> null;
@@ -252,13 +255,20 @@ public final class GeneratedQueryParser {
         }
         List<String> fields = new ArrayList<>();
         for (String selection : splitTopLevel(clause, ",")) {
-            String expression = selection.trim().replaceFirst("(?i)(?<!\\s)\\s++AS\\s++[A-Za-z0-9_]++$", "");
+            String expression = stripProjectionAlias(selection);
             if (!FIELD_PATTERN.matcher(expression).matches() || expression.endsWith("_")) {
                 return List.of();
             }
             fields.add(stripAlias(expression));
         }
         return fields;
+    }
+
+    private static String stripProjectionAlias(String selection) {
+        String expression = selection.trim();
+        String[] parts = WHITESPACE_PATTERN.splitAsStream(expression).toArray(String[]::new);
+        return parts.length == 3 && "AS".equalsIgnoreCase(parts[1]) && PROJECTION_ALIAS_PATTERN.matcher(parts[2]).matches()
+            ? parts[0] : expression;
     }
 
     /**
@@ -338,14 +348,7 @@ public final class GeneratedQueryParser {
                     case "+", "-" -> INC;
                     default -> MUL;
                 };
-                Object value = resolveOperand(update.group(3), params, assignment.trim());
-                if ("-".equals(update.group(2)) || "/".equals(update.group(2))) {
-                    Map<String, Object> wrapped = new LinkedHashMap<>();
-                    wrapped.put(VALUE, value);
-                    wrapped.put("-".equals(update.group(2))
-                        ? NitriteInternalKeys.NEGATE : NitriteInternalKeys.RECIPROCATE, true);
-                    value = wrapped;
-                }
+                Object value = resolveUpdateValue(update, params, assignment.trim());
                 operations.computeIfAbsent(operator, ignored -> new LinkedHashMap<>()).put(field, value);
             } else {
                 operations.computeIfAbsent(SET, ignored -> new LinkedHashMap<>())
@@ -355,6 +358,18 @@ public final class GeneratedQueryParser {
         Map<String, Object> result = new LinkedHashMap<>();
         result.putAll(operations);
         return result;
+    }
+
+    private @Nullable Object resolveUpdateValue(Matcher update, Object[] params, String fragment) {
+        Object value = resolveOperand(update.group(3), params, fragment);
+        String operator = update.group(2);
+        if ("-".equals(operator) || "/".equals(operator)) {
+            Map<String, Object> wrapped = new LinkedHashMap<>();
+            wrapped.put(VALUE, value);
+            wrapped.put("-".equals(operator) ? NitriteInternalKeys.NEGATE : NitriteInternalKeys.RECIPROCATE, true);
+            return wrapped;
+        }
+        return value;
     }
 
     /**
@@ -390,6 +405,10 @@ public final class GeneratedQueryParser {
             return params -> Filter.and(parts.stream().map(part -> part.bind(params)).toArray(Filter[]::new));
         }
 
+        return compileLeafPredicate(predicate, entity);
+    }
+
+    private CompiledFilter compileLeafPredicate(String predicate, RuntimePersistentEntity<?> entity) {
         Matcher nullMatcher = NULL_PATTERN.matcher(predicate);
         if (nullMatcher.matches()) {
             String reference = nullMatcher.group(1);
@@ -399,19 +418,7 @@ public final class GeneratedQueryParser {
 
         Matcher betweenMatcher = BETWEEN_PATTERN.matcher(predicate);
         if (betweenMatcher.matches()) {
-            String reference = betweenMatcher.group(1);
-            List<String> bounds = splitTopLevel(betweenMatcher.group(2), " AND ");
-            if (bounds.size() != 2) {
-                throw unsupported(predicate, "BETWEEN bounds");
-            }
-            String lower = bounds.get(0);
-            String upper = bounds.get(1);
-            return params -> {
-                List<Object> range = new ArrayList<>(2);
-                range.add(resolveOperand(lower, params, predicate));
-                range.add(resolveOperand(upper, params, predicate));
-                return leafFilter(entity, reference, predicate, BETWEEN, range);
-            };
+            return compileBetween(betweenMatcher, predicate, entity);
         }
 
         Matcher inMatcher = IN_PATTERN.matcher(predicate);
@@ -425,15 +432,7 @@ public final class GeneratedQueryParser {
 
         Matcher likeMatcher = LIKE_PATTERN.matcher(predicate);
         if (likeMatcher.matches()) {
-            String reference = likeMatcher.group(1);
-            String operand = likeMatcher.group(3);
-            boolean negated = likeMatcher.group(2) != null;
-            return params -> {
-                Object pattern = resolveOperand(operand, params, predicate);
-                return negated
-                    ? leafFilter(entity, reference, predicate, NOT, Map.of(LIKE, pattern))
-                    : leafFilter(entity, reference, predicate, LIKE, pattern);
-            };
+            return compileLike(likeMatcher, predicate, entity);
         }
 
         Matcher matcher = COMPARISON_PATTERN.matcher(predicate);
@@ -456,6 +455,34 @@ public final class GeneratedQueryParser {
         Map<String, Object> expressionFilter = Map.of(
             EXPR, Map.of(comparisonOperator(comparison.operator()), List.of(left, right)));
         return params -> predicateFilterFactory.build(entity, expressionFilter, params);
+    }
+
+    private CompiledFilter compileBetween(Matcher matcher, String predicate, RuntimePersistentEntity<?> entity) {
+        String reference = matcher.group(1);
+        List<String> bounds = splitTopLevel(matcher.group(2), AND_KEYWORD);
+        if (bounds.size() != 2) {
+            throw unsupported(predicate, "BETWEEN bounds");
+        }
+        String lower = bounds.get(0);
+        String upper = bounds.get(1);
+        return params -> {
+            List<Object> range = new ArrayList<>(2);
+            range.add(resolveOperand(lower, params, predicate));
+            range.add(resolveOperand(upper, params, predicate));
+            return leafFilter(entity, reference, predicate, BETWEEN, range);
+        };
+    }
+
+    private CompiledFilter compileLike(Matcher matcher, String predicate, RuntimePersistentEntity<?> entity) {
+        String reference = matcher.group(1);
+        String operand = matcher.group(3);
+        boolean negated = matcher.group(2) != null;
+        return params -> {
+            Object pattern = resolveOperand(operand, params, predicate);
+            return negated
+                ? leafFilter(entity, reference, predicate, NOT, Map.of(LIKE, pattern))
+                : leafFilter(entity, reference, predicate, LIKE, pattern);
+        };
     }
 
     private static String comparisonOperator(String operator) {
@@ -490,7 +517,7 @@ public final class GeneratedQueryParser {
             if ("LENGTH".equalsIgnoreCase(function.group(1))) {
                 return Map.of(STR_LEN_CP, inner);
             }
-            throw unsupported(fragment, "expression");
+            throw unsupported(fragment, EXPRESSION_KIND);
         }
         BinaryExpression binary = splitBinaryExpression(value);
         if (binary != null) {
@@ -499,30 +526,27 @@ public final class GeneratedQueryParser {
             return switch (binary.operator()) {
                 case "*" -> Map.of(MULTIPLY, List.of(left, right));
                 case "/" -> Map.of(DIVIDE, List.of(left, right));
-                default -> throw unsupported(fragment, "expression");
+                default -> throw unsupported(fragment, EXPRESSION_KIND);
             };
         }
         if (value.startsWith(PARAMETER_PREFIX)) {
-            String index = value.substring(PARAMETER_PREFIX.length());
-            if (!index.isEmpty() && index.chars().allMatch(Character::isDigit)) {
-                int position = Integer.parseInt(index) - 1;
-                if (position >= 0) {
-                    return NitriteInternalKeys.QUERY_PARAMETER_PREFIX + position;
-                }
+            int position = parameterPosition(value, fragment);
+            if (position >= 0) {
+                return NitriteInternalKeys.QUERY_PARAMETER_PREFIX + position;
             }
             throw unsupported(fragment, "parameter reference");
         }
         if (isSimpleOperand(value)) {
             Object literal = resolveOperand(value, new Object[0], fragment);
             if (literal == null) {
-                throw unsupported(fragment, "expression");
+                throw unsupported(fragment, EXPRESSION_KIND);
             }
             return literal;
         }
         if (FIELD_PATTERN.matcher(value).matches()) {
             return "$" + resolveField(value, entity);
         }
-        throw unsupported(fragment, "expression");
+        throw unsupported(fragment, EXPRESSION_KIND);
     }
 
     private static @Nullable Comparison splitComparison(String expression) {
@@ -550,7 +574,8 @@ public final class GeneratedQueryParser {
     private static int indexOfTopLevel(String expression, String token) {
         int depth = 0;
         boolean[] inLiteral = {false};
-        for (int i = 0; i <= expression.length() - token.length(); i++) {
+        int i = 0;
+        while (i <= expression.length() - token.length()) {
             i = skipLiterals(expression, i, inLiteral);
             if (i > expression.length() - token.length()) {
                 break;
@@ -563,6 +588,7 @@ public final class GeneratedQueryParser {
             } else if (depth == 0 && expression.startsWith(token, i)) {
                 return i;
             }
+            i++;
         }
         return -1;
     }
@@ -581,7 +607,7 @@ public final class GeneratedQueryParser {
      */
     private Filter leafFilter(RuntimePersistentEntity<?> entity, String reference, String predicate,
                               String operator, @Nullable Object value) {
-        Map<String, Object> operators = new LinkedHashMap<>(1);
+        Map<String, Object> operators = LinkedHashMap.newLinkedHashMap(1);
         operators.put(operator, value);
         Filter filter = leafFilterFactory.build(entity, stripAlias(reference, entity), operators);
         if (filter == null) {
@@ -622,27 +648,10 @@ public final class GeneratedQueryParser {
         String value = operand.trim();
         Matcher function = FUNCTION_PATTERN.matcher(value);
         if (function.matches() && "CONCAT".equalsIgnoreCase(function.group(1))) {
-            StringBuilder result = new StringBuilder();
-            for (String argument : splitTopLevel(function.group(2), ",")) {
-                Object resolved = resolveOperand(argument, params, fragment);
-                if (resolved == null) {
-                    return null;
-                }
-                result.append(resolved);
-            }
-            return result.toString();
+            return resolveConcatenation(function.group(2), params, fragment);
         }
         if (value.startsWith(PARAMETER_PREFIX)) {
-            String index = value.substring(PARAMETER_PREFIX.length());
-            if (!index.chars().allMatch(Character::isDigit) || index.isEmpty()) {
-                throw unsupported(fragment, "parameter reference");
-            }
-            int position = Integer.parseInt(index) - 1;
-            if (position < 0 || position >= params.length) {
-                throw new IllegalStateException(
-                    "Missing generated parameter " + value + " for: " + fragment);
-            }
-            return params[position];
+            return resolveParameter(value, params, fragment);
         }
         if (value.length() >= 2 && value.startsWith("'") && value.endsWith("'")) {
             return value.substring(1, value.length() - 1).replace("\\'", "'").replace("''", "'");
@@ -661,6 +670,34 @@ public final class GeneratedQueryParser {
         } catch (NumberFormatException _) {
             throw unsupported(fragment, "operand");
         }
+    }
+
+    private @Nullable String resolveConcatenation(String arguments, Object[] params, String fragment) {
+        StringBuilder result = new StringBuilder();
+        for (String argument : splitTopLevel(arguments, ",")) {
+            Object resolved = resolveOperand(argument, params, fragment);
+            if (resolved == null) {
+                return null;
+            }
+            result.append(resolved);
+        }
+        return result.toString();
+    }
+
+    private static @Nullable Object resolveParameter(String value, Object[] params, String fragment) {
+        int position = parameterPosition(value, fragment);
+        if (position < 0 || position >= params.length) {
+            throw new IllegalStateException("Missing generated parameter " + value + " for: " + fragment);
+        }
+        return params[position];
+    }
+
+    private static int parameterPosition(String value, String fragment) {
+        String index = value.substring(PARAMETER_PREFIX.length());
+        if (index.isEmpty() || !index.chars().allMatch(Character::isDigit)) {
+            throw unsupported(fragment, "parameter reference");
+        }
+        return Integer.parseInt(index) - 1;
     }
 
     /**
@@ -727,17 +764,14 @@ public final class GeneratedQueryParser {
             char ch = s.charAt(i);
             if (ch == '\\' && inLiteral[0] && i + 1 < s.length()) {
                 i += 2;
-                continue;
-            }
-            if (ch == '\'') {
+            } else if (ch == '\'') {
                 inLiteral[0] = !inLiteral[0];
                 i++;
-                continue;
+            } else if (!inLiteral[0]) {
+                return i;
+            } else {
+                i++;
             }
-            if (!inLiteral[0]) {
-                break;
-            }
-            i++;
         }
         return i;
     }
@@ -747,7 +781,8 @@ public final class GeneratedQueryParser {
      */
     private static int indexOfKeyword(String query, String keyword) {
         boolean[] inLiteral = {false};
-        for (int i = 0; i <= query.length() - keyword.length(); i++) {
+        int i = 0;
+        while (i <= query.length() - keyword.length()) {
             i = skipLiterals(query, i, inLiteral);
             if (i > query.length() - keyword.length()) {
                 break;
@@ -755,6 +790,7 @@ public final class GeneratedQueryParser {
             if (query.regionMatches(true, i, keyword, 0, keyword.length())) {
                 return i;
             }
+            i++;
         }
         return -1;
     }
@@ -765,9 +801,9 @@ public final class GeneratedQueryParser {
      */
     private static List<String> splitConjunctions(String expression) {
         List<String> parts = new ArrayList<>();
-        for (String part : splitTopLevel(expression, " AND ")) {
+        for (String part : splitTopLevel(expression, AND_KEYWORD)) {
             if (!parts.isEmpty() && BETWEEN_LOWER_BOUND_PATTERN.matcher(parts.getLast()).matches()) {
-                parts.set(parts.size() - 1, parts.getLast() + " AND " + part);
+                parts.set(parts.size() - 1, parts.getLast() + AND_KEYWORD + part);
             } else {
                 parts.add(part);
             }
@@ -783,12 +819,14 @@ public final class GeneratedQueryParser {
         int depth = 0;
         int start = 0;
         boolean[] inLiteral = {false};
-        for (int i = 0; i <= expression.length() - separator.length(); i++) {
+        int i = 0;
+        while (i <= expression.length() - separator.length()) {
             i = skipLiterals(expression, i, inLiteral);
             if (i > expression.length() - separator.length()) {
                 break;
             }
             char ch = expression.charAt(i);
+            int next = i + 1;
             if (ch == '(') {
                 depth++;
             } else if (ch == ')') {
@@ -796,8 +834,9 @@ public final class GeneratedQueryParser {
             } else if (depth == 0 && expression.regionMatches(true, i, separator, 0, separator.length())) {
                 parts.add(expression.substring(start, i).trim());
                 start = i + separator.length();
-                i = start - 1;
+                next = start;
             }
+            i = next;
         }
         if (!parts.isEmpty()) {
             parts.add(expression.substring(start).trim());
@@ -808,29 +847,30 @@ public final class GeneratedQueryParser {
 
     private static String stripOuterParentheses(String expression) {
         String result = expression;
-        while (result.startsWith("(") && result.endsWith(")")) {
-            int depth = 0;
-            boolean enclosesWholeExpression = true;
-            boolean[] inLiteral = {false};
-            for (int i = 0; i < result.length(); i++) {
-                i = skipLiterals(result, i, inLiteral);
-                if (i >= result.length()) {
-                    break;
-                }
-                char ch = result.charAt(i);
-                if (ch == '(') {
-                    depth++;
-                } else if (ch == ')' && --depth == 0 && i < result.length() - 1) {
-                    enclosesWholeExpression = false;
-                    break;
-                }
-            }
-            if (!enclosesWholeExpression) {
-                break;
-            }
+        while (result.startsWith("(") && result.endsWith(")") && enclosesWholeExpression(result)) {
             result = result.substring(1, result.length() - 1).trim();
         }
         return result;
+    }
+
+    private static boolean enclosesWholeExpression(String expression) {
+        int depth = 0;
+        int i = 0;
+        boolean[] inLiteral = {false};
+        while (i < expression.length()) {
+            i = skipLiterals(expression, i, inLiteral);
+            if (i >= expression.length()) {
+                return true;
+            }
+            char ch = expression.charAt(i);
+            if (ch == '(') {
+                depth++;
+            } else if (ch == ')' && --depth == 0 && i < expression.length() - 1) {
+                return false;
+            }
+            i++;
+        }
+        return true;
     }
 
     /**

@@ -247,6 +247,40 @@ class GeneratedQueryParserSpec extends Specification {
                 "SELECT event_.type" + " " * 20_000 + "NOT_ALIAS FROM Event event_").empty
     }
 
+    @Unroll
+    void "projection aliases retain ASCII identifier and whitespace rules for #selection"() {
+        expect:
+        GeneratedQueryParser.parseProjectionFields("SELECT " + selection + " FROM Event event_") == expected
+
+        where:
+        selection                              | expected
+        "event_.type\tas\tlabel_1"              | ["type"]
+        "event_.type AS label_1, event_.priority AS rank" | ["type", "priority"]
+        "event_.type AS label.with.dot"         | []
+        "event_.type AS label\u00e9"            | []
+        "event_.type AS label extra"            | []
+    }
+
+    @Unroll
+    void "quoted separators and nested groups preserve their predicate boundaries for #predicate"() {
+        expect:
+        typesMatching("SELECT event_ FROM Event event_ WHERE " + predicate, 40) == expected
+
+        where:
+        predicate                                                                 | expected
+        "((type = 'alpha AND beta'))"                                              | ["alpha AND beta"]
+        "(type = 'alpha''s AND beta')"                                              | ["alpha's AND beta"]
+        "(type = 'alpha AND beta') AND (priority = :p1 OR priority = 30)"             | ["alpha AND beta"]
+        "type IN ('alpha AND beta', 'alpha''s AND beta') AND (priority >= :p1)"       | ["alpha AND beta", "alpha's AND beta"]
+    }
+
+    @Timeout(5)
+    void "malformed alias suffixes remain bounded after a long whitespace run"() {
+        expect:
+        GeneratedQueryParser.parseProjectionFields(
+                "SELECT event_.type" + " " * 20_000 + "AS invalid.alias FROM Event event_").empty
+    }
+
     void "an unsupported predicate is rejected with an explanatory message"() {
         when:
         typesMatching("UPDATE Event SET payload = :p1 WHERE UPPER(type) = :p2", "x", "ALPHA")
@@ -283,6 +317,20 @@ class GeneratedQueryParserSpec extends Specification {
         expect:
         parser().parseUpdate("UPDATE Event SET priority = ( priority + :p1   )",
                 runtimeEntityRegistry.getEntity(Event), [5] as Object[]) == ["\$inc": [priority: 5]]
+    }
+
+    @Unroll
+    void "generated arithmetic #operator assignments preserve their operand wrappers"() {
+        expect:
+        parser().parseUpdate("UPDATE Event SET priority = (priority " + operator + " :p1)",
+                runtimeEntityRegistry.getEntity(Event), [5] as Object[]) == expected
+
+        where:
+        operator | expected
+        "+"      | ["\$inc": [priority: 5]]
+        "-"      | ["\$inc": [priority: ["\$value": 5, "\$mn_negate": true]]]
+        "*"      | ["\$mul": [priority: 5]]
+        "/"      | ["\$mul": [priority: ["\$value": 5, "\$mn_reciprocate": true]]]
     }
 
     void "an assignment that is not a bound parameter is rejected instead of silently dropped"() {
