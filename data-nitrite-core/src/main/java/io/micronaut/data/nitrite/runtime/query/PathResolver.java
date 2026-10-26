@@ -55,29 +55,16 @@ final class PathResolver {
         }
 
         // Step 1: identity aliases
-        try {
-            RuntimePersistentProperty<?> identity = entity.getIdentity();
-            if (identity != null && (
-                    identity.getName().equals(rawField) ||
-                    identity.getPersistedName().equals(rawField) ||
-                    "id".equals(rawField) ||
-                    "_id".equals(rawField))) {
-                return plain(identity.getPersistedName());
-            }
-        } catch (IllegalStateException _) {
-            // Identity might not exist on embedded or non-entity types
+        RuntimePersistentProperty<?> identity = identityOf(entity);
+        if (identity != null && (isIdentityAlias(identity, rawField) || "id".equals(rawField))) {
+            return plain(identity.getPersistedName());
         }
 
         // Step 2: direct FK match — MANY_TO_ONE whose persistedName == rawField (non-dotted).
         // Matches FK fields stored in the document (e.g. "author" in a Book document).
-        if (!rawField.contains(".")) {
-            for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
-                if (p instanceof RuntimeAssociation<?> assoc
-                        && assoc.getKind() == Relation.Kind.MANY_TO_ONE
-                        && assoc.getPersistedName().equals(rawField)) {
-                    return reference(List.of(assoc), null, rawField);
-                }
-            }
+        RuntimeAssociation<?> foreignKey = rawField.contains(".") ? null : directForeignKey(entity, rawField);
+        if (foreignKey != null) {
+            return reference(List.of(foreignKey), null, rawField);
         }
 
         // Step 3: segment walk via getPersistentProperties().
@@ -87,39 +74,57 @@ final class PathResolver {
         RuntimePersistentEntity<?> currentEntity = entity;
         List<RuntimeAssociation<?>> chain = new ArrayList<>(segments.length - 1);
 
-        for (int i = 0; i < segments.length; i++) {
-            String seg = segments[i];
-            boolean terminal = i == segments.length - 1;
-
-            RuntimePersistentProperty<?> found = findPropertyByName(currentEntity, seg);
-            if (found == null) {
+        for (int i = 0; i < segments.length - 1; i++) {
+            if (!(findPropertyByName(currentEntity, segments[i]) instanceof RuntimeAssociation<?> assoc)) {
+                // Unresolved, or a non-association in a non-terminal position → plain fallback.
                 return plain(rawField);
             }
-
-            if (terminal) {
-                if (chain.isEmpty()) {
-                    if (found instanceof RuntimeAssociation<?> assoc) {
-                        return reference(List.of(assoc), null, assoc.getPersistedName());
-                    }
-                    return plain(found.getPersistedName());
-                }
-                if (chain.getFirst().isEmbedded()) {
-                    // Embedded chain: rawField is the compile-time dotted persisted path.
-                    return new PathResolution(PathResolution.Kind.EMBEDDED, chain, found, rawField);
-                }
-                return reference(chain, found, chain.getFirst().getPersistedName());
-            } else {
-                if (found instanceof RuntimeAssociation<?> assoc) {
-                    chain.add(assoc);
-                    currentEntity = assoc.getAssociatedEntity();
-                } else {
-                    // Non-association in a non-terminal position → plain fallback.
-                    return plain(rawField);
-                }
-            }
+            chain.add(assoc);
+            currentEntity = assoc.getAssociatedEntity();
         }
 
-        return plain(rawField);
+        RuntimePersistentProperty<?> found = findPropertyByName(currentEntity, segments[segments.length - 1]);
+        return found == null ? plain(rawField) : terminalResolution(chain, found, rawField);
+    }
+
+    private static PathResolution terminalResolution(List<RuntimeAssociation<?>> chain,
+                                                     RuntimePersistentProperty<?> found, String rawField) {
+        if (chain.isEmpty()) {
+            return found instanceof RuntimeAssociation<?> assoc
+                ? reference(List.of(assoc), null, assoc.getPersistedName())
+                : plain(found.getPersistedName());
+        }
+        if (chain.getFirst().isEmbedded()) {
+            // Embedded chain: rawField is the compile-time dotted persisted path.
+            return new PathResolution(PathResolution.Kind.EMBEDDED, chain, found, rawField);
+        }
+        return reference(chain, found, chain.getFirst().getPersistedName());
+    }
+
+    private static @Nullable RuntimeAssociation<?> directForeignKey(RuntimePersistentEntity<?> entity, String rawField) {
+        for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
+            if (p instanceof RuntimeAssociation<?> assoc
+                    && assoc.getKind() == Relation.Kind.MANY_TO_ONE
+                    && assoc.getPersistedName().equals(rawField)) {
+                return assoc;
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable RuntimePersistentProperty<?> identityOf(RuntimePersistentEntity<?> entity) {
+        try {
+            return entity.getIdentity();
+        } catch (IllegalStateException _) {
+            // Identity might not exist on embedded or non-entity types
+            return null;
+        }
+    }
+
+    private static boolean isIdentityAlias(RuntimePersistentProperty<?> identity, String name) {
+        return identity.getName().equals(name)
+            || identity.getPersistedName().equals(name)
+            || "_id".equals(name);
     }
 
     /**
@@ -134,15 +139,9 @@ final class PathResolver {
             }
         }
         // Fallback 1: identity aliases ("_id", id.getName(), id.getPersistedName())
-        try {
-            RuntimePersistentProperty<?> id = entity.getIdentity();
-            if (id != null && (id.getName().equals(name)
-                    || id.getPersistedName().equals(name)
-                    || "_id".equals(name))) {
-                return id;
-            }
-        } catch (IllegalStateException _) {
-            // Identity might not exist on embedded or non-entity types
+        RuntimePersistentProperty<?> id = identityOf(entity);
+        if (id != null && isIdentityAlias(id, name)) {
+            return id;
         }
         // Fallback 2: persisted-name match for plain (non-association) properties
         for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
@@ -150,22 +149,27 @@ final class PathResolver {
                 return p;
             }
         }
-        /**
-         * Fallback 3: ONE_TO_MANY/MANY_TO_MANY match by the child-then-owner collection join segment,
-         * or by the association's own persisted name (used by MANY_TO_MANY stored as an array field).
-         * The join-segment convention mirrors NitriteQueryBuilder.addLookups and
-         * NitriteFieldNameResolver; if it changes, update both sides in lockstep.
-         */
+        // Fallback 3: collection associations, see isCollectionSegment.
         for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
-            if (p instanceof RuntimeAssociation<?> assoc
-                    && (assoc.getKind() == Relation.Kind.ONE_TO_MANY || assoc.getKind() == Relation.Kind.MANY_TO_MANY)) {
-                String joinSegment = assoc.getAssociatedEntity().getPersistedName() + "_" + entity.getPersistedName();
-                if (joinSegment.equals(name) || assoc.getPersistedName().equals(name)) {
-                    return p;
-                }
+            if (p instanceof RuntimeAssociation<?> assoc && isCollectionSegment(entity, assoc, name)) {
+                return p;
             }
         }
         return null;
+    }
+
+    /**
+     * Matches a ONE_TO_MANY/MANY_TO_MANY by the child-then-owner collection join segment, or by
+     * the association's own persisted name (used by MANY_TO_MANY stored as an array field).
+     * The join-segment convention mirrors NitriteQueryBuilder.addLookups and
+     * NitriteFieldNameResolver; if it changes, update both sides in lockstep.
+     */
+    private static boolean isCollectionSegment(RuntimePersistentEntity<?> entity, RuntimeAssociation<?> assoc, String name) {
+        if (assoc.getKind() != Relation.Kind.ONE_TO_MANY && assoc.getKind() != Relation.Kind.MANY_TO_MANY) {
+            return false;
+        }
+        String joinSegment = assoc.getAssociatedEntity().getPersistedName() + "_" + entity.getPersistedName();
+        return joinSegment.equals(name) || assoc.getPersistedName().equals(name);
     }
 
     private static PathResolution plain(String persistedField) {

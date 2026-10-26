@@ -224,48 +224,60 @@ public final class NitriteFilterBuilder {
         }
         if (node instanceof Map<?, ?> m && m.size() == 1) {
             Map.Entry<?, ?> entry = m.entrySet().iterator().next();
-            if (STR_LEN_CP.equals(entry.getKey())) {
-                return new NitriteFilterAST.ExprValueNode.StrLen(compileExprValue(entity, entry.getValue()));
-            }
-            if (TO_LOWER.equals(entry.getKey())) {
-                return new NitriteFilterAST.ExprValueNode.ToLower(compileExprValue(entity, entry.getValue()));
-            }
-            if (TO_UPPER.equals(entry.getKey())) {
-                return new NitriteFilterAST.ExprValueNode.ToUpper(compileExprValue(entity, entry.getValue()));
-            }
-            if (MULTIPLY.equals(entry.getKey()) && entry.getValue() instanceof List<?> operands) {
-                List<NitriteFilterAST.ExprValueNode> compiled = operands.stream()
-                    .map(operand -> compileExprValue(entity, operand))
-                    .toList();
-                return new NitriteFilterAST.ExprValueNode.Multiply(compiled);
-            }
-            if (CONCAT.equals(entry.getKey()) && entry.getValue() instanceof List<?> operands) {
-                List<NitriteFilterAST.ExprValueNode> compiled = operands.stream()
-                    .map(operand -> compileExprValue(entity, operand))
-                    .toList();
-                return new NitriteFilterAST.ExprValueNode.Concat(compiled);
-            }
-            if (SUBSTR_CP.equals(entry.getKey()) && entry.getValue() instanceof List<?> operands && operands.size() == 3) {
-                return new NitriteFilterAST.ExprValueNode.Substr(
-                    compileExprValue(entity, operands.getFirst()),
-                    compileExprValue(entity, operands.get(1)),
-                    compileExprValue(entity, operands.get(2)));
-            }
-            if (RIGHT.equals(entry.getKey()) && entry.getValue() instanceof List<?> operands && operands.size() == 2) {
-                return new NitriteFilterAST.ExprValueNode.Right(
-                    compileExprValue(entity, operands.getFirst()),
-                    compileExprValue(entity, operands.get(1)));
-            }
-            if (DIVIDE.equals(entry.getKey()) && entry.getValue() instanceof List<?> operands && operands.size() == 2) {
-                return new NitriteFilterAST.ExprValueNode.Divide(
-                    compileExprValue(entity, operands.getFirst()),
-                    compileExprValue(entity, operands.get(1)));
-            }
-            if (TO_DOUBLE.equals(entry.getKey())) {
-                return new NitriteFilterAST.ExprValueNode.ToDouble(compileExprValue(entity, entry.getValue()));
+            NitriteFilterAST.ExprValueNode computed = compileExprOperator(entity, entry.getKey(), entry.getValue());
+            if (computed != null) {
+                return computed;
             }
         }
         return new NitriteFilterAST.ExprValueNode.Literal(valueResolver.compileValue(node));
+    }
+
+    private NitriteFilterAST.@Nullable ExprValueNode compileExprOperator(RuntimePersistentEntity<?> entity, Object operator, Object operand) {
+        if (STR_LEN_CP.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.StrLen(compileExprValue(entity, operand));
+        }
+        if (TO_LOWER.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.ToLower(compileExprValue(entity, operand));
+        }
+        if (TO_UPPER.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.ToUpper(compileExprValue(entity, operand));
+        }
+        if (TO_DOUBLE.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.ToDouble(compileExprValue(entity, operand));
+        }
+        return operand instanceof List<?> operands ? compileExprListOperator(entity, operator, operands) : null;
+    }
+
+    private NitriteFilterAST.@Nullable ExprValueNode compileExprListOperator(RuntimePersistentEntity<?> entity, Object operator, List<?> operands) {
+        if (MULTIPLY.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.Multiply(compileExprValues(entity, operands));
+        }
+        if (CONCAT.equals(operator)) {
+            return new NitriteFilterAST.ExprValueNode.Concat(compileExprValues(entity, operands));
+        }
+        if (SUBSTR_CP.equals(operator) && operands.size() == 3) {
+            return new NitriteFilterAST.ExprValueNode.Substr(
+                compileExprValue(entity, operands.getFirst()),
+                compileExprValue(entity, operands.get(1)),
+                compileExprValue(entity, operands.get(2)));
+        }
+        if (RIGHT.equals(operator) && operands.size() == 2) {
+            return new NitriteFilterAST.ExprValueNode.Right(
+                compileExprValue(entity, operands.getFirst()),
+                compileExprValue(entity, operands.get(1)));
+        }
+        if (DIVIDE.equals(operator) && operands.size() == 2) {
+            return new NitriteFilterAST.ExprValueNode.Divide(
+                compileExprValue(entity, operands.getFirst()),
+                compileExprValue(entity, operands.get(1)));
+        }
+        return null;
+    }
+
+    private List<NitriteFilterAST.ExprValueNode> compileExprValues(RuntimePersistentEntity<?> entity, List<?> operands) {
+        return operands.stream()
+            .map(operand -> compileExprValue(entity, operand))
+            .toList();
     }
 
     private String normalizeExprField(RuntimePersistentEntity<?> entity, String field) {
@@ -282,21 +294,7 @@ public final class NitriteFilterBuilder {
             final Object rawValue) {
 
         PathResolver.PathResolution resolution = PathResolver.resolve(entity, rawField);
-        String persistedName = resolution.persistedField();
-
-        // Identity fields need the entity-mapper normalization (e.g. "id" → Nitrite's internal name).
-        if (!resolution.isReference() && entity != null) {
-            try {
-                RuntimePersistentProperty<?> identity = entity.getIdentity();
-                if (identity != null && (identity.getName().equals(rawField)
-                        || identity.getPersistedName().equals(rawField)
-                        || "id".equals(rawField) || "_id".equals(rawField))) {
-                    persistedName = entityMapper.normalizeFieldName(rawField, entity);
-                }
-            } catch (IllegalStateException _) {
-                // Entity metadata may not expose an identity property for all mappings.
-            }
-        }
+        String persistedName = compiledFieldName(entity, rawField, resolution);
 
         final Map<String, Object> operators;
         final Map<String, CompiledValue> operatorValues = new LinkedHashMap<>();
@@ -328,6 +326,27 @@ public final class NitriteFilterBuilder {
             bindings.add(new NitriteFilterAST.OperatorBinding(entry.getKey(), entry.getValue()));
         }
         return new NitriteFilterAST.SimpleOperatorNode(this::prepareFilterValue, this::buildOperatorFilter, entity, persistedName, rawField, bindings);
+    }
+
+    /**
+     * Identity fields need the entity-mapper normalization (e.g. "id" → Nitrite's internal name);
+     * every other field keeps its resolved persisted name.
+     */
+    private String compiledFieldName(RuntimePersistentEntity<?> entity, String rawField, PathResolver.PathResolution resolution) {
+        if (resolution.isReference() || entity == null) {
+            return resolution.persistedField();
+        }
+        try {
+            RuntimePersistentProperty<?> identity = entity.getIdentity();
+            if (identity != null && (identity.getName().equals(rawField)
+                    || identity.getPersistedName().equals(rawField)
+                    || "id".equals(rawField) || "_id".equals(rawField))) {
+                return entityMapper.normalizeFieldName(rawField, entity);
+            }
+        } catch (IllegalStateException _) {
+            // Entity metadata may not expose an identity property for all mappings.
+        }
+        return resolution.persistedField();
     }
 
     /**
@@ -447,34 +466,10 @@ public final class NitriteFilterBuilder {
         r.put(NIN, this::buildNotInFilter);
         r.put(NULL,    (e, f, v, p, n) -> Boolean.TRUE.equals(v) ? NitriteFilterUtils.isNullFilter(f) : NitriteFilterUtils.isNotNullFilter(f));
         r.put(NOT_NULL, (e, f, v, p, n) -> Boolean.TRUE.equals(v) ? NitriteFilterUtils.isNotNullFilter(f) : NitriteFilterUtils.isNullFilter(f));
-        r.put(BETWEEN, (e, f, v, p, n) -> {
-            if (v instanceof List<?> list && list.size() == 2) {
-                Object v1 = entityMapper.toFilterValue(valueResolver.preConvertForFilter(valueResolver.resolveValue(list.getFirst(), p, n)));
-                Object v2 = entityMapper.toFilterValue(valueResolver.preConvertForFilter(valueResolver.resolveValue(list.get(1), p, n)));
-                return buildBetweenFilter(e, f, v1, v2);
-            }
-            throw malformedOperand(BETWEEN, f, "expected a two-element range, got " + v);
-        });
-        r.put(REGEX, (e, f, v, p, n) -> {
-            if (v instanceof Map<?, ?> map && map.containsKey(NitriteInternalKeys.RANGE_PREFIX)) {
-                return buildPrefixRangeFilter(e, f, map.get(NitriteInternalKeys.RANGE_PREFIX), p, n);
-            }
-            return NitriteFilterUtils.regex(f, resolveRegexValue(v, p, n));
-        });
-        r.put(LIKE,  (e, f, v, p, n) -> {
-            Object resolved = valueResolver.resolveValue(v, p, n);
-            return NitriteFilterUtils.regex(f, resolved != null ? PatternConverter.convertLikeToRegex(resolved.toString()) : "");
-        });
-        r.put(NOT, (e, f, v, p, n) -> {
-            if (!(v instanceof Map<?, ?> m)) {
-                throw malformedOperand(NOT, f, "expected a nested operator object, got " + v);
-            }
-            Filter filter = buildFieldFilter(e, f, toStringObjectMap(m), p, n);
-            if (filter == null) {
-                throw malformedOperand(NOT, f, "nested operator object produced no filter: " + v);
-            }
-            return filter.not();
-        });
+        r.put(BETWEEN, this::buildBetweenOperatorFilter);
+        r.put(REGEX, this::buildRegexOperatorFilter);
+        r.put(LIKE, (e, f, v, p, n) -> buildLikeOperatorFilter(f, v, p, n));
+        r.put(NOT, this::buildNotOperatorFilter);
         r.put(EXISTS, (e, f, v, p, n) -> Boolean.TRUE.equals(v)
             ? NitriteFilterUtils.exists(f) : NitriteFilterUtils.exists(f).not());
         r.put(EMPTY, (e, f, v, p, n) -> Boolean.TRUE.equals(v)
@@ -488,21 +483,64 @@ public final class NitriteFilterBuilder {
         return Collections.unmodifiableMap(r);
     }
 
+    private Filter buildBetweenOperatorFilter(RuntimePersistentEntity<?> entity, String field, @Nullable Object value,
+                                              Object[] params, Map<String, Object> namedParameters) {
+        if (value instanceof List<?> list && list.size() == 2) {
+            Object v1 = entityMapper.toFilterValue(valueResolver.preConvertForFilter(valueResolver.resolveValue(list.getFirst(), params, namedParameters)));
+            Object v2 = entityMapper.toFilterValue(valueResolver.preConvertForFilter(valueResolver.resolveValue(list.get(1), params, namedParameters)));
+            return buildBetweenFilter(entity, field, v1, v2);
+        }
+        throw malformedOperand(BETWEEN, field, "expected a two-element range, got " + value);
+    }
+
+    private Filter buildRegexOperatorFilter(RuntimePersistentEntity<?> entity, String field, @Nullable Object value,
+                                            Object[] params, Map<String, Object> namedParameters) {
+        if (value instanceof Map<?, ?> map && map.containsKey(NitriteInternalKeys.RANGE_PREFIX)) {
+            return buildPrefixRangeFilter(entity, field, map.get(NitriteInternalKeys.RANGE_PREFIX), params, namedParameters);
+        }
+        return NitriteFilterUtils.regex(field, resolveRegexValue(value, params, namedParameters));
+    }
+
+    private Filter buildLikeOperatorFilter(String field, @Nullable Object value, Object[] params, Map<String, Object> namedParameters) {
+        Object resolved = valueResolver.resolveValue(value, params, namedParameters);
+        return NitriteFilterUtils.regex(field, resolved != null ? PatternConverter.convertLikeToRegex(resolved.toString()) : "");
+    }
+
+    private Filter buildNotOperatorFilter(RuntimePersistentEntity<?> entity, String field, @Nullable Object value,
+                                          Object[] params, Map<String, Object> namedParameters) {
+        if (!(value instanceof Map<?, ?> m)) {
+            throw malformedOperand(NOT, field, "expected a nested operator object, got " + value);
+        }
+        Filter filter = buildFieldFilter(entity, field, toStringObjectMap(m), params, namedParameters);
+        if (filter == null) {
+            throw malformedOperand(NOT, field, "nested operator object produced no filter: " + value);
+        }
+        return filter.not();
+    }
+
     private String resolveRegexValue(@Nullable Object value, Object[] params, Map<String, Object> namedParameters) {
         if (value instanceof Map<?, ?> map && map.containsKey(NitriteInternalKeys.REGEX_PATTERN)) {
-            Object resolvedPattern = valueResolver.resolveValue(map.get(NitriteInternalKeys.REGEX_PATTERN), params, namedParameters);
-            String prefix = Boolean.TRUE.equals(map.get(NitriteInternalKeys.REGEX_STARTS_WITH)) ? "^" : ".*";
-            String suffix = Boolean.TRUE.equals(map.get(NitriteInternalKeys.REGEX_ENDS_WITH)) ? "$" : ".*";
-            String ignoreCase = Boolean.TRUE.equals(map.get(NitriteInternalKeys.REGEX_IGNORE_CASE)) ? "(?i)" : "";
-            return ignoreCase + prefix + Pattern.quote(resolvedPattern != null ? resolvedPattern.toString() : "") + suffix;
+            return regexDescriptorPattern(map, params, namedParameters);
         }
         if (value instanceof Map<?, ?> map && map.containsKey(NitriteInternalKeys.LIKE_PATTERN)) {
-            Object resolvedPattern = valueResolver.resolveValue(map.get(NitriteInternalKeys.LIKE_PATTERN), params, namedParameters);
-            Character escape = resolveLikeEscape(map.get(NitriteInternalKeys.LIKE_ESCAPE), params, namedParameters);
-            String regex = resolvedPattern != null ? PatternConverter.convertLikeToRegex(resolvedPattern.toString(), escape) : "";
-            return Boolean.TRUE.equals(map.get(NitriteInternalKeys.LIKE_IGNORE_CASE)) ? "(?i)" + regex : regex;
+            return likeDescriptorPattern(map, params, namedParameters);
         }
         return PatternConverter.resolveRegexPattern(valueResolver.resolveValue(value, params, namedParameters));
+    }
+
+    private String regexDescriptorPattern(Map<?, ?> descriptor, Object[] params, Map<String, Object> namedParameters) {
+        Object resolvedPattern = valueResolver.resolveValue(descriptor.get(NitriteInternalKeys.REGEX_PATTERN), params, namedParameters);
+        String prefix = Boolean.TRUE.equals(descriptor.get(NitriteInternalKeys.REGEX_STARTS_WITH)) ? "^" : ".*";
+        String suffix = Boolean.TRUE.equals(descriptor.get(NitriteInternalKeys.REGEX_ENDS_WITH)) ? "$" : ".*";
+        String ignoreCase = Boolean.TRUE.equals(descriptor.get(NitriteInternalKeys.REGEX_IGNORE_CASE)) ? "(?i)" : "";
+        return ignoreCase + prefix + Pattern.quote(resolvedPattern != null ? resolvedPattern.toString() : "") + suffix;
+    }
+
+    private String likeDescriptorPattern(Map<?, ?> descriptor, Object[] params, Map<String, Object> namedParameters) {
+        Object resolvedPattern = valueResolver.resolveValue(descriptor.get(NitriteInternalKeys.LIKE_PATTERN), params, namedParameters);
+        Character escape = resolveLikeEscape(descriptor.get(NitriteInternalKeys.LIKE_ESCAPE), params, namedParameters);
+        String regex = resolvedPattern != null ? PatternConverter.convertLikeToRegex(resolvedPattern.toString(), escape) : "";
+        return Boolean.TRUE.equals(descriptor.get(NitriteInternalKeys.LIKE_IGNORE_CASE)) ? "(?i)" + regex : regex;
     }
 
     private @Nullable Character resolveLikeEscape(@Nullable Object value, Object[] params, Map<String, Object> namedParameters) {

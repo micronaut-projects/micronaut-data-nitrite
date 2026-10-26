@@ -106,14 +106,8 @@ public final class PatternConverter {
                 escaping = false;
             } else if (escapeChar != null && ch == escapeChar) {
                 escaping = true;
-            } else if (ch == '%') {
-                regex.append(".*");
-            } else if (ch == '_') {
-                regex.append('.');
-            } else if (ch == '*' && (i == 0 || pattern.charAt(i - 1) != '.')) {
-                regex.append(".*");
             } else {
-                regex.append(ch);
+                appendPatternChar(regex, pattern, i);
             }
         }
         if (escaping && escapeChar != null) {
@@ -124,6 +118,19 @@ public final class PatternConverter {
         }
         String converted = regex.toString();
         return converted.startsWith("(?s)") ? converted : "(?s)" + converted;
+    }
+
+    private static void appendPatternChar(StringBuilder regex, String pattern, int i) {
+        char ch = pattern.charAt(i);
+        if (ch == '%') {
+            regex.append(".*");
+        } else if (ch == '_') {
+            regex.append('.');
+        } else if (ch == '*' && (i == 0 || pattern.charAt(i - 1) != '.')) {
+            regex.append(".*");
+        } else {
+            regex.append(ch);
+        }
     }
 
     private static void appendLiteral(StringBuilder regex, char ch) {

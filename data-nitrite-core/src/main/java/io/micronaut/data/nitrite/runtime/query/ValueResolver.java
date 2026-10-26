@@ -53,60 +53,75 @@ final class ValueResolver {
             return null;
         }
         if (value instanceof String s) {
-            if (s.startsWith(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)
-                && s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX,
-                    NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()) < 0) {
-                try {
-                    int idx = Integer.parseInt(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()));
-                    if (params != null && idx >= 0 && idx < params.length) {
-                        return params[idx];
-                    }
-                } catch (Exception _) {
-                    // Fall through if placeholder is not a valid integer
+            if (isSinglePositionalPlaceholder(s)) {
+                Integer idx = parseIndex(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()));
+                if (idx != null && inRange(params, idx)) {
+                    return params[idx];
                 }
             }
             if (s.contains(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)) {
-                StringBuilder result = new StringBuilder();
-                int pos = 0;
-                while (pos < s.length()) {
-                    int idx = s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX, pos);
-                    if (idx < 0) {
-                        result.append(s.substring(pos));
-                        break;
-                    }
-                    result.append(s, pos, idx);
-                    int paramEnd = idx + NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length();
-                    while (paramEnd < s.length() && Character.isDigit(s.charAt(paramEnd))) {
-                        paramEnd++;
-                    }
-                    try {
-                        int paramIdx = Integer.parseInt(s.substring(
-                            idx + NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length(), paramEnd));
-                        if (params != null && paramIdx >= 0 && paramIdx < params.length) {
-                            Object paramValue = params[paramIdx];
-                            result.append(paramValue != null ? paramValue.toString() : "");
-                        }
-                    } catch (Exception _) {
-                        // If resolution fails for a specific placeholder, keep it as-is in the string
-                        result.append(s, idx, paramEnd);
-                    }
-                    pos = paramEnd;
-                }
-                return result.toString();
+                return interpolateParameters(s, params);
             }
-            if (s.startsWith(":")) {
-                String name = s.substring(1);
-                if (namedParameters.containsKey(name)) {
-                    return namedParameters.get(name);
-                }
+            if (s.startsWith(":") && namedParameters.containsKey(s.substring(1))) {
+                return namedParameters.get(s.substring(1));
             }
         }
         if (value instanceof Map<?, ?> vm && vm.size() == 1
             && vm.get(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER) instanceof Integer idx
-            && params != null && idx >= 0 && idx < params.length) {
+            && inRange(params, idx)) {
             return params[idx];
         }
         return value;
+    }
+
+    /**
+     * Replaces every positional placeholder embedded in a string with its parameter's text. An
+     * out-of-range placeholder is dropped; one whose index cannot be parsed is kept as written.
+     *
+     * @param s the string carrying placeholders
+     * @param params positional query parameters
+     * @return the interpolated string
+     */
+    private static String interpolateParameters(String s, Object[] params) {
+        int prefixLength = NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length();
+        StringBuilder result = new StringBuilder();
+        int pos = 0;
+        int idx = s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX);
+        while (idx >= 0) {
+            result.append(s, pos, idx);
+            int paramEnd = idx + prefixLength;
+            while (paramEnd < s.length() && Character.isDigit(s.charAt(paramEnd))) {
+                paramEnd++;
+            }
+            Integer paramIdx = parseIndex(s.substring(idx + prefixLength, paramEnd));
+            if (paramIdx == null) {
+                result.append(s, idx, paramEnd);
+            } else if (inRange(params, paramIdx)) {
+                Object paramValue = params[paramIdx];
+                result.append(paramValue != null ? paramValue.toString() : "");
+            }
+            pos = paramEnd;
+            idx = s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX, pos);
+        }
+        result.append(s, pos, s.length());
+        return result.toString();
+    }
+
+    private static boolean isSinglePositionalPlaceholder(String s) {
+        return s.startsWith(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)
+            && s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX, NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()) < 0;
+    }
+
+    private static @Nullable Integer parseIndex(String digits) {
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException _) {
+            return null;
+        }
+    }
+
+    private static boolean inRange(@Nullable Object[] params, int idx) {
+        return params != null && idx >= 0 && idx < params.length;
     }
 
     @Nullable Object preConvertForFilter(@Nullable Object value) {
@@ -126,15 +141,11 @@ final class ValueResolver {
 
     CompiledValue compileValue(Object value) {
         if (value instanceof String s) {
-            if (s.startsWith(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)
-                && s.indexOf(NitriteInternalKeys.QUERY_PARAMETER_PREFIX,
-                    NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()) < 0) {
-                try {
-                    return new CompiledValue.Parameter(Integer.parseInt(
-                        s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length())));
-                } catch (Exception _) {
-                    // Fall through if placeholder is not a valid integer
-                }
+            Integer idx = isSinglePositionalPlaceholder(s)
+                ? parseIndex(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()))
+                : null;
+            if (idx != null) {
+                return new CompiledValue.Parameter(idx);
             }
             if (s.startsWith(":")) {
                 return new CompiledValue.NamedParameter(s.substring(1));
@@ -157,38 +168,33 @@ final class ValueResolver {
             Object resolved = resolveValue(list.getFirst(), params, namedParameters);
             if (resolved instanceof Collection<?> coll) {
                 for (Object item : coll) {
-                    Object r = entityMapper.toNitriteFilterValue(preConvertForFilter(item));
-                    if (r instanceof Comparable<?> c) {
-                        resolvedValues.add(c);
-                    }
+                    addFilterValue(resolvedValues, item);
                 }
             } else if (resolved != null && resolved.getClass().isArray()) {
                 int len = Array.getLength(resolved);
                 for (int i = 0; i < len; i++) {
-                    Object r = entityMapper.toNitriteFilterValue(preConvertForFilter(Array.get(resolved, i)));
-                    if (r instanceof Comparable<?> c) {
-                        resolvedValues.add(c);
-                    }
+                    addFilterValue(resolvedValues, Array.get(resolved, i));
                 }
             } else if (resolved instanceof Comparable<?> c) {
                 resolvedValues.add(c);
             }
         } else if (finalValue instanceof Collection<?> coll) {
             for (Object item : coll) {
-                Object r = entityMapper.toNitriteFilterValue(preConvertForFilter(resolveValue(item, params, namedParameters)));
-                if (r instanceof Comparable<?> c) {
-                    resolvedValues.add(c);
-                }
+                addFilterValue(resolvedValues, resolveValue(item, params, namedParameters));
             }
         } else if (finalValue instanceof Object[] array) {
             for (Object item : array) {
-                Object r = entityMapper.toNitriteFilterValue(preConvertForFilter(resolveValue(item, params, namedParameters)));
-                if (r instanceof Comparable<?> c) {
-                    resolvedValues.add(c);
-                }
+                addFilterValue(resolvedValues, resolveValue(item, params, namedParameters));
             }
         }
         return resolvedValues;
+    }
+
+    private void addFilterValue(List<Comparable<?>> values, @Nullable Object item) {
+        Object filterValue = entityMapper.toNitriteFilterValue(preConvertForFilter(item));
+        if (filterValue instanceof Comparable<?> c) {
+            values.add(c);
+        }
     }
 
     private boolean isPlaceholder(Object value) {
