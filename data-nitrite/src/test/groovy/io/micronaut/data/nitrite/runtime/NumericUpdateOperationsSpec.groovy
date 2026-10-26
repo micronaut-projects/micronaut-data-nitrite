@@ -111,38 +111,40 @@ class NumericUpdateOperationsSpec extends Specification {
         2.5d          | new BigDecimal("3.5")
     }
 
-    void "decimal multiplication truncates negative integral results toward zero and preserves floating values"() {
-        expect:
-        def cases = [
-            [current: -5 as Integer, expected: -2 as Integer],
-            [current: -5L, expected: -2L],
-            [current: (short) -5, expected: (short) -2],
-            [current: (byte) -5, expected: (byte) -2],
-            [current: -5.5f, expected: -2.75f],
-            [current: -5.5d, expected: -2.75d]
-        ]
-        cases.each { testCase ->
-            def result = NumericUpdateOperations.apply(testCase.current, new BigDecimal("0.5"), true, "amount")
-            assert result == testCase.expected
-            assert result.class == testCase.current.class
-        }
+    void "decimal multiplication truncates a negative #current.class.simpleName toward zero and preserves floating values"() {
+        when:
+        def result = NumericUpdateOperations.apply(current, new BigDecimal("0.5"), true, "amount")
+
+        then:
+        result == expected
+        result.class == current.class
+
+        where:
+        current         | expected
+        -5 as Integer   | -2 as Integer
+        -5L             | -2L
+        (short) -5      | (short) -2
+        (byte) -5       | (byte) -2
+        -5.5f           | -2.75f
+        -5.5d           | -2.75d
     }
 
-    void "floating point increments preserve values and types at every stored numeric width"() {
-        expect:
-        def cases = [
-            [current: 10 as Integer, expected: 12 as Integer],
-            [current: 10L, expected: 12L],
-            [current: (short) 10, expected: (short) 12],
-            [current: (byte) 10, expected: (byte) 12],
-            [current: 10.5f, expected: 13.0f],
-            [current: 10.5d, expected: 13.0d]
-        ]
-        cases.each { testCase ->
-            def result = NumericUpdateOperations.apply(testCase.current, 2.5d, false, "amount")
-            assert result == testCase.expected
-            assert result.class == testCase.current.class
-        }
+    void "a floating point increment preserves the value and type of a stored #current.class.simpleName"() {
+        when:
+        def result = NumericUpdateOperations.apply(current, 2.5d, false, "amount")
+
+        then:
+        result == expected
+        result.class == current.class
+
+        where:
+        current        | expected
+        10 as Integer  | 12 as Integer
+        10L            | 12L
+        (short) 10     | (short) 12
+        (byte) 10      | (byte) 12
+        10.5f          | 13.0f
+        10.5d          | 13.0d
     }
 
     void "negation preserves decimal precision and integers beyond the long range"() {
