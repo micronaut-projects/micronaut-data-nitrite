@@ -177,19 +177,15 @@ public final class NitriteQueryParser {
      */
     public List<String> extractProjectionFields(@Nullable Object parsed) {
         try {
-            if (parsed instanceof Map<?, ?> map && map.containsKey(NitriteQueryOperators.PROJECT)) {
-                List<String> fields = extractProjectionFieldsFromValue(map.get(NitriteQueryOperators.PROJECT));
-                if (!fields.isEmpty()) {
-                    return fields;
-                }
+            List<String> fields = stageProjectionFields(parsed);
+            if (!fields.isEmpty()) {
+                return fields;
             }
             if (parsed instanceof List<?> pipeline) {
                 for (Object stage : pipeline) {
-                    if (stage instanceof Map<?, ?> map && map.containsKey(NitriteQueryOperators.PROJECT)) {
-                        List<String> fields = extractProjectionFieldsFromValue(map.get(NitriteQueryOperators.PROJECT));
-                        if (!fields.isEmpty()) {
-                            return fields;
-                        }
+                    fields = stageProjectionFields(stage);
+                    if (!fields.isEmpty()) {
+                        return fields;
                     }
                 }
             }
@@ -209,6 +205,12 @@ public final class NitriteQueryParser {
      */
     public List<String> extractProjectionFields(@Nullable Map<String, Object> projection) {
         return extractProjectionFieldsFromValue(projection);
+    }
+
+    private List<String> stageProjectionFields(@Nullable Object stage) {
+        return stage instanceof Map<?, ?> map && map.containsKey(NitriteQueryOperators.PROJECT)
+            ? extractProjectionFieldsFromValue(map.get(NitriteQueryOperators.PROJECT))
+            : List.of();
     }
 
     private List<String> extractProjectionFieldsFromValue(@Nullable Object value) {
@@ -341,16 +343,7 @@ public final class NitriteQueryParser {
         private Map<String, Object> parseObject() {
             pos++; // skip '{'
             Map<String, Object> result = new LinkedHashMap<>();
-            while (pos < src.length()) {
-                skipWhitespaceAndCommas();
-                if (pos >= src.length()) {
-                    break;
-                }
-                if (src.charAt(pos) == '}') {
-                    pos++;
-                    break;
-                }
-
+            while (!atClose('}')) {
                 String key = parseKey();
                 skipWhitespace();
                 if (pos < src.length() && src.charAt(pos) == ':') {
@@ -366,18 +359,26 @@ public final class NitriteQueryParser {
         private List<Object> parseArray() {
             pos++; // skip '['
             List<Object> result = new ArrayList<>();
-            while (pos < src.length()) {
-                skipWhitespaceAndCommas();
-                if (pos >= src.length()) {
-                    break;
-                }
-                if (src.charAt(pos) == ']') {
-                    pos++;
-                    break;
-                }
+            while (!atClose(']')) {
                 result.add(parseValue());
             }
             return result;
+        }
+
+        /**
+         * Skips separators and reports whether the container has ended, consuming {@code close}
+         * when present. Running out of input also ends the container.
+         */
+        private boolean atClose(char close) {
+            skipWhitespaceAndCommas();
+            if (pos >= src.length()) {
+                return true;
+            }
+            if (src.charAt(pos) == close) {
+                pos++;
+                return true;
+            }
+            return false;
         }
 
         // ── Key ──────────────────────────────────────────────────────────────────

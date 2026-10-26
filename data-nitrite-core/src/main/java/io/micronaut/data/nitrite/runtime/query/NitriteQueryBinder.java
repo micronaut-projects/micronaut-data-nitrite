@@ -164,29 +164,29 @@ public final class NitriteQueryBinder {
         }
         int max = -1;
         for (Object value : filterMap.values()) {
-            if (value instanceof Map<?, ?> m) {
-                for (Map.Entry<?, ?> opEntry : m.entrySet()) {
-                    Object opVal = opEntry.getValue();
-                    Integer idx = extractPlaceholderIndex(opVal);
-                    if (idx != null) {
-                        max = Math.max(max, idx);
-                    } else if (opVal instanceof Map<?, ?> nestedMap) {
-                        for (Object nestedVal : nestedMap.values()) {
-                            idx = extractPlaceholderIndex(nestedVal);
-                            if (idx != null) {
-                                max = Math.max(max, idx);
-                            }
-                        }
-                    }
-                }
-            } else {
-                Integer idx = extractPlaceholderIndex(value);
-                if (idx != null) {
-                    max = Math.max(max, idx);
+            max = Math.max(max, value instanceof Map<?, ?> m ? maxOperatorPlaceholderIndex(m) : placeholderIndexOrNone(value));
+        }
+        return max;
+    }
+
+    private static int maxOperatorPlaceholderIndex(Map<?, ?> operators) {
+        int max = -1;
+        for (Object opVal : operators.values()) {
+            Integer idx = extractPlaceholderIndex(opVal);
+            if (idx != null) {
+                max = Math.max(max, idx);
+            } else if (opVal instanceof Map<?, ?> nestedMap) {
+                for (Object nestedVal : nestedMap.values()) {
+                    max = Math.max(max, placeholderIndexOrNone(nestedVal));
                 }
             }
         }
         return max;
+    }
+
+    private static int placeholderIndexOrNone(@Nullable Object value) {
+        Integer idx = extractPlaceholderIndex(value);
+        return idx != null ? idx : -1;
     }
 
     /**
@@ -318,37 +318,46 @@ public final class NitriteQueryBinder {
         for (Map.Entry<String, Object> entry : filterMap.entrySet()) {
             Object value = entry.getValue();
             if ((AND.equals(entry.getKey()) || OR.equals(entry.getKey())) && value instanceof List<?> list) {
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> im) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> sub = (Map<String, Object>) im;
-                        fillMissingParamsFromFilter(sub, methodParams, out);
-                    }
-                }
-                continue;
-            }
-            if (value instanceof Map<?, ?> ops) {
-                for (Object opVal : ops.values()) {
-                    Integer idx = extractPlaceholderIndex(opVal);
-                    if (idx != null && idx >= 0 && idx < out.length && out[idx] == null) {
-                        out[idx] = extractPropertyFromSingleArg(methodParams, entry.getKey());
-                    } else if (opVal instanceof Map<?, ?> nestedMap) {
-                        for (Object nestedVal : nestedMap.values()) {
-                            Integer nestedIdx = extractPlaceholderIndex(nestedVal);
-                            if (nestedIdx != null && nestedIdx >= 0 && nestedIdx < out.length && out[nestedIdx] == null
-                                    && methodParams != null && nestedIdx < methodParams.length) {
-                                out[nestedIdx] = toFilterValue(methodParams[nestedIdx]);
-                            }
-                        }
-                    }
-                }
+                fillMissingParamsFromClauses(list, methodParams, out);
+            } else if (value instanceof Map<?, ?> ops) {
+                fillMissingParamsFromOperators(entry.getKey(), ops, methodParams, out);
             } else {
-                Integer idx = extractPlaceholderIndex(value);
-                if (idx != null && idx >= 0 && idx < out.length && out[idx] == null) {
+                int idx = placeholderIndexOrNone(value);
+                if (isMissing(out, idx)) {
                     out[idx] = extractPropertyFromSingleArg(methodParams, entry.getKey());
                 }
             }
         }
+    }
+
+    private void fillMissingParamsFromClauses(List<?> clauses, Object[] methodParams, Object[] out) {
+        for (Object item : clauses) {
+            if (item instanceof Map<?, ?> im) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> sub = (Map<String, Object>) im;
+                fillMissingParamsFromFilter(sub, methodParams, out);
+            }
+        }
+    }
+
+    private void fillMissingParamsFromOperators(String field, Map<?, ?> ops, Object[] methodParams, Object[] out) {
+        for (Object opVal : ops.values()) {
+            int idx = placeholderIndexOrNone(opVal);
+            if (isMissing(out, idx)) {
+                out[idx] = extractPropertyFromSingleArg(methodParams, field);
+            } else if (opVal instanceof Map<?, ?> nestedMap) {
+                for (Object nestedVal : nestedMap.values()) {
+                    int nestedIdx = placeholderIndexOrNone(nestedVal);
+                    if (isMissing(out, nestedIdx) && methodParams != null && nestedIdx < methodParams.length) {
+                        out[nestedIdx] = toFilterValue(methodParams[nestedIdx]);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isMissing(Object[] out, int idx) {
+        return idx >= 0 && idx < out.length && out[idx] == null;
     }
 
     private @Nullable Object extractPropertyFromSingleArg(@Nullable Object[] methodParams, String property) {
