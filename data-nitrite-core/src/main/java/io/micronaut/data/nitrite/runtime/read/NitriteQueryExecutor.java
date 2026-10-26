@@ -558,17 +558,9 @@ public final class NitriteQueryExecutor {
         if (requiresDocumentUpdate(updateOperations)) {
             // The new value is derived from the stored one, so the read and the write have to be
             // held together: Nitrite releases its own lock between the two calls.
-            count = CollectionUpdateLock.withLock(collection.getName(), () -> {
-                long updated = 0;
-                for (Document doc : collection.find(finalFilter).toList()) {
-                    Document updateDoc = versionedUpdateDocument(updateOperations, doc, jsonParams, namedParameters, versioned ? entity : null);
-                    Object id = doc.get("id");
-                    Filter idFilter = id == null ? finalFilter : NitriteFilterUtils.eq("id", id);
-                    helper.logUpdate(collection.getName(), idFilter, updateDoc);
-                    updated += collection.update(idFilter, updateDoc, UpdateOptions.updateOptions(false)).getAffectedCount();
-                }
-                return updated;
-            });
+            RuntimePersistentEntity<?> versionedEntity = versioned ? entity : null;
+            count = CollectionUpdateLock.withLock(collection.getName(),
+                () -> updateEachDocument(collection, finalFilter, updateOperations, jsonParams, namedParameters, versionedEntity));
         } else {
             Document updateDoc = versionedUpdateDocument(updateOperations, null, jsonParams, namedParameters, versioned ? entity : null);
             helper.logUpdate(collection.getName(), finalFilter, updateDoc);
@@ -578,6 +570,20 @@ public final class NitriteQueryExecutor {
             throw new OptimisticLockException("Execute update returned unexpected row count. Expected: 1 got: 0");
         }
         return Optional.of(count);
+    }
+
+    private long updateEachDocument(NitriteCollection collection, Filter filter, Map<String, Object> updateOperations,
+                                    Object[] jsonParams, Map<String, Object> namedParameters,
+                                    @Nullable RuntimePersistentEntity<?> versionedEntity) {
+        long updated = 0;
+        for (Document doc : collection.find(filter).toList()) {
+            Document updateDoc = versionedUpdateDocument(updateOperations, doc, jsonParams, namedParameters, versionedEntity);
+            Object id = doc.get("id");
+            Filter idFilter = id == null ? filter : NitriteFilterUtils.eq("id", id);
+            helper.logUpdate(collection.getName(), idFilter, updateDoc);
+            updated += collection.update(idFilter, updateDoc, UpdateOptions.updateOptions(false)).getAffectedCount();
+        }
+        return updated;
     }
 
     private @Nullable Filter updateFilter(PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq,

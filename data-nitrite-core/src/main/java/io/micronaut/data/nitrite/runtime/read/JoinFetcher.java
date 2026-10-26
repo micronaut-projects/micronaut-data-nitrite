@@ -148,23 +148,46 @@ public final class JoinFetcher {
 
         String finalBackFieldName = associatedEntity.getIdentity().equals(backProp) ? "id" : backProp.getPersistedName();
 
+        Filter filter = backReferenceFilter(finalBackFieldName, parentIds);
+        List<Object> fetchedChildren = new ArrayList<>();
+        Map<Object, List<Object>> resultsByParentId = groupByParentId(
+            assocCollection.find(filter), finalBackFieldName, associatedType, fetchedChildren);
+
+        var beanProperty = (BeanProperty<Object, Object>) association.getProperty();
+        for (Object entity : entities) {
+            Object parentId = idProperty.get(entity);
+            if (parentId != null) {
+                List<Object> children = resultsByParentId.getOrDefault(entityMapper.toFilterValue(parentId), new ArrayList<>());
+                beanProperty.set(entity, conversionService.convert(children, beanProperty.asArgument()).orElse(null));
+            }
+        }
+        return fetchedChildren;
+    }
+
+    /**
+     * A MANY_TO_MANY back-reference is a collection in the document; both arms handle that,
+     * because EqualsFilter and InFilter each fall through to element containment for an
+     * Iterable field, mirroring the index path, which treats arrays element-wise.
+     */
+    private static Filter backReferenceFilter(String backFieldName, List<Object> parentIds) {
+        if (parentIds.size() == 1) {
+            return NitriteFilterUtils.eq(backFieldName, parentIds.getFirst());
+        }
         Comparable<?>[] comparableIds = parentIds.stream()
             .map(id -> id instanceof Comparable<?> c ? c : id.toString())
             .toArray(Comparable<?>[]::new);
+        return NitriteFilterUtils.in(backFieldName, comparableIds);
+    }
 
-        /*
-         * A MANY_TO_MANY back-reference is a collection in the document; both arms handle that,
-         * because EqualsFilter and InFilter each fall through to element containment for an
-         * Iterable field, mirroring the index path, which treats arrays element-wise.
-         */
-        Filter filter = parentIds.size() == 1
-            ? NitriteFilterUtils.eq(finalBackFieldName, parentIds.getFirst())
-            : NitriteFilterUtils.in(finalBackFieldName, comparableIds);
-
+    /**
+     * Maps each fetched child under every parent id its back-reference names, collecting the
+     * children into {@code fetchedChildren} as it goes.
+     */
+    private Map<Object, List<Object>> groupByParentId(Iterable<Document> docs, String backFieldName,
+                                                      Class<?> associatedType, List<Object> fetchedChildren) {
         Map<Object, List<Object>> resultsByParentId = new HashMap<>();
-        List<Object> fetchedChildren = new ArrayList<>();
-        for (Document doc : assocCollection.find(filter)) {
-            Object backRefValue = doc.get(finalBackFieldName);
+        for (Document doc : docs) {
+            Object backRefValue = doc.get(backFieldName);
             if (backRefValue != null) {
                 Object assocEntity = entityMapper.fromDocument(doc, associatedType);
                 fetchedChildren.add(assocEntity);
@@ -176,16 +199,7 @@ public final class JoinFetcher {
                 }
             }
         }
-
-        var beanProperty = (BeanProperty<Object, Object>) association.getProperty();
-        for (Object entity : entities) {
-            Object parentId = idProperty.get(entity);
-            if (parentId != null) {
-                List<Object> children = resultsByParentId.getOrDefault(entityMapper.toFilterValue(parentId), new ArrayList<>());
-                beanProperty.set(entity, conversionService.convert(children, beanProperty.asArgument()).orElse(null));
-            }
-        }
-        return fetchedChildren;
+        return resultsByParentId;
     }
 
     @SuppressWarnings("unchecked")

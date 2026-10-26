@@ -66,12 +66,11 @@ final class NitriteFieldNameResolver {
         boolean inIdentityPath = false;
         for (Association association : associations) {
             if (association.isEmbedded()) {
-                boolean isIdentityAssoc = isIdentity(association);
-                sb.append(isIdentityAssoc ? "_id" : association.getPersistedName()).append(".");
-                inIdentityPath |= isIdentityAssoc;
+                sb.append(embeddedSegment(association)).append(".");
+                inIdentityPath |= isIdentity(association);
             } else if (inIdentityPath) {
                 sb.append(embeddedIdentitySegment(association)).append(".");
-            } else if (association.getKind() == Relation.Kind.ONE_TO_MANY || association.getKind() == Relation.Kind.MANY_TO_MANY) {
+            } else if (isToMany(association)) {
                 sb.append(association.getPersistedName()).append(".");
             } else if (association.equals(associations.getLast()) && isAssociatedIdentity(association, property)) {
                 return association.getPersistedName();
@@ -81,6 +80,14 @@ final class NitriteFieldNameResolver {
         }
         sb.append(inIdentityPath && isIdentity(property) ? "_id" : property.getPersistedName());
         return sb.toString();
+    }
+
+    private static String embeddedSegment(Association association) {
+        return isIdentity(association) ? "_id" : association.getPersistedName();
+    }
+
+    private static boolean isToMany(Association association) {
+        return association.getKind() == Relation.Kind.ONE_TO_MANY || association.getKind() == Relation.Kind.MANY_TO_MANY;
     }
 
     private static String embeddedIdentitySegment(Association association) {
@@ -95,8 +102,7 @@ final class NitriteFieldNameResolver {
 
     private static boolean isIdentity(PersistentProperty property) {
         try {
-            PersistentProperty identity = property.getOwner().getIdentity();
-            return identity != null && identity.equals(property);
+            return property.getOwner().getIdentity().equals(property);
         } catch (IllegalStateException _) {
             // Entity may not have an identity property
             return false;

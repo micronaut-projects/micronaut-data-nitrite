@@ -110,7 +110,7 @@ public final class PatternConverter {
                 appendPatternChar(regex, pattern, i);
             }
         }
-        if (escaping && escapeChar != null) {
+        if (escaping) {
             appendLiteral(regex, escapeChar);
         }
         if (regex.isEmpty() || regex.charAt(regex.length() - 1) != '$') {

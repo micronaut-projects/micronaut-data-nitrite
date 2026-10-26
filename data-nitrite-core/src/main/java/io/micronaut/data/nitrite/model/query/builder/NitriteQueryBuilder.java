@@ -21,6 +21,7 @@ import io.micronaut.core.annotation.Introspected;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.annotation.TypeHint;
+import io.micronaut.data.model.PersistentEntity;
 import io.micronaut.data.model.PersistentProperty;
 import io.micronaut.data.model.Sort;
 import io.micronaut.data.model.jpa.criteria.IPredicate;
@@ -120,19 +121,8 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         boolean needsPipeline = hasLookups || hasAggregation || (sortObj != null && !predicateObj.isEmpty());
         String queryString;
         if (needsPipeline) {
-            List<Map<String, Object>> pipeline = new ArrayList<>(lookupPipeline);
-            if (!predicateObj.isEmpty()) {
-                pipeline.add(Map.of(NitriteQueryOperators.MATCH, predicateObj));
-            }
-            if (!group.isEmpty()) {
-                group.putIfAbsent("_id", null);
-                pipeline.add(Map.of(NitriteQueryOperators.GROUP, group));
-            }
-            if (!countObj.isEmpty()) {
-                pipeline.add(countObj);
-            }
-            Map<String, Object> stages = selectStages(sortObj, projectionObj, query);
-            stages.forEach((operator, operand) -> pipeline.add(Map.of(operator, operand)));
+            List<Map<String, Object>> pipeline = pipelineStages(lookupPipeline, predicateObj, group, countObj);
+            selectStages(sortObj, projectionObj, query).forEach((operator, operand) -> pipeline.add(Map.of(operator, operand)));
             queryString = NitriteQuerySerializer.toJsonString(pipeline);
         } else {
             Map<String, Object> topLevel = new LinkedHashMap<>(predicateObj);
@@ -147,6 +137,22 @@ public final class NitriteQueryBuilder implements QueryBuilder {
             query.limit(),
             query.offset(),
             query.getJoinPaths());
+    }
+
+    private static List<Map<String, Object>> pipelineStages(List<Map<String, Object>> lookupPipeline, Map<String, Object> predicateObj,
+                                                            Map<String, Object> group, Map<String, Object> countObj) {
+        List<Map<String, Object>> pipeline = new ArrayList<>(lookupPipeline);
+        if (!predicateObj.isEmpty()) {
+            pipeline.add(Map.of(NitriteQueryOperators.MATCH, predicateObj));
+        }
+        if (!group.isEmpty()) {
+            group.putIfAbsent("_id", null);
+            pipeline.add(Map.of(NitriteQueryOperators.GROUP, group));
+        }
+        if (!countObj.isEmpty()) {
+            pipeline.add(countObj);
+        }
+        return pipeline;
     }
 
     /**
@@ -232,15 +238,7 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         Map<String, Object> propertiesToUpdate = definition.propertiesToUpdate();
         if (propertiesToUpdate != null) {
             for (Map.Entry<String, Object> entry : propertiesToUpdate.entrySet()) {
-                String fieldName = entry.getKey();
-                Object value = entry.getValue();
-                PersistentProperty property = definition.persistentEntity().getPropertyByName(fieldName);
-                String persistedName = property != null ? property.getPersistedName() : fieldName;
-                if (value instanceof BinaryExpression<?> binaryExpression) {
-                    putArithmeticUpdate(queryState, property, persistedName, binaryExpression, operations);
-                } else {
-                    operations.get(NitriteQueryOperators.SET).put(persistedName, updateExpressionValue(queryState, property, value));
-                }
+                putUpdate(queryState, definition.persistentEntity(), entry.getKey(), entry.getValue(), operations);
             }
         }
 
@@ -274,6 +272,17 @@ public final class NitriteQueryBuilder implements QueryBuilder {
                 return parameterBindings;
             }
         };
+    }
+
+    private void putUpdate(NitriteQueryState queryState, PersistentEntity entity, String fieldName, Object value,
+                           Map<String, Map<String, Object>> operations) {
+        PersistentProperty property = entity.getPropertyByName(fieldName);
+        String persistedName = property != null ? property.getPersistedName() : fieldName;
+        if (value instanceof BinaryExpression<?> binaryExpression) {
+            putArithmeticUpdate(queryState, property, persistedName, binaryExpression, operations);
+        } else {
+            operations.get(NitriteQueryOperators.SET).put(persistedName, updateExpressionValue(queryState, property, value));
+        }
     }
 
     /**

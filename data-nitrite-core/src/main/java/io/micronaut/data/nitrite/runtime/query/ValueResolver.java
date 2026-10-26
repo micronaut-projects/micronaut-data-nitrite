@@ -165,19 +165,7 @@ final class ValueResolver {
     List<Comparable<?>> resolveCollection(Object finalValue, Object[] params, Map<String, Object> namedParameters) {
         List<Comparable<?>> resolvedValues = new ArrayList<>();
         if (finalValue instanceof List<?> list && list.size() == 1 && isPlaceholder(list.getFirst())) {
-            Object resolved = resolveValue(list.getFirst(), params, namedParameters);
-            if (resolved instanceof Collection<?> coll) {
-                for (Object item : coll) {
-                    addFilterValue(resolvedValues, item);
-                }
-            } else if (resolved != null && resolved.getClass().isArray()) {
-                int len = Array.getLength(resolved);
-                for (int i = 0; i < len; i++) {
-                    addFilterValue(resolvedValues, Array.get(resolved, i));
-                }
-            } else if (resolved instanceof Comparable<?> c) {
-                resolvedValues.add(c);
-            }
+            addBoundCollection(resolvedValues, resolveValue(list.getFirst(), params, namedParameters));
         } else if (finalValue instanceof Collection<?> coll) {
             for (Object item : coll) {
                 addFilterValue(resolvedValues, resolveValue(item, params, namedParameters));
@@ -188,6 +176,25 @@ final class ValueResolver {
             }
         }
         return resolvedValues;
+    }
+
+    /**
+     * Adds the elements of a single bound parameter: a collection or array contributes each
+     * element, any other comparable value contributes itself.
+     */
+    private void addBoundCollection(List<Comparable<?>> values, @Nullable Object resolved) {
+        if (resolved instanceof Collection<?> coll) {
+            for (Object item : coll) {
+                addFilterValue(values, item);
+            }
+        } else if (resolved != null && resolved.getClass().isArray()) {
+            int len = Array.getLength(resolved);
+            for (int i = 0; i < len; i++) {
+                addFilterValue(values, Array.get(resolved, i));
+            }
+        } else if (resolved instanceof Comparable<?> c) {
+            values.add(c);
+        }
     }
 
     private void addFilterValue(List<Comparable<?>> values, @Nullable Object item) {
