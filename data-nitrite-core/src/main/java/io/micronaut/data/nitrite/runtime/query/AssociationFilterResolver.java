@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.EQ;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.OR;
@@ -84,16 +85,11 @@ final class AssociationFilterResolver {
         }
 
         PathResolution resolution = PathResolver.resolve(entity, field);
-        if (!resolution.isReference()) {
-            return null;
-        }
-        if (resolution.chain().isEmpty()) {
+        if (!resolution.isReference() || resolution.chain().isEmpty()) {
             return null;
         }
 
         RuntimeAssociation<?> headAssoc = resolution.chain().getFirst();
-        Relation.Kind kind = headAssoc.getKind();
-
         RuntimePersistentEntity<?> associatedEntity = headAssoc.getAssociatedEntity();
         if (!associatedEntity.hasIdentity()) {
             // The sub-query below filters on a single id property, so the target must have exactly
@@ -101,33 +97,21 @@ final class AssociationFilterResolver {
             // composite one; neither can drive that filter.
             return null;
         }
-        RuntimePersistentProperty<?> assocIdentity = associatedEntity.getIdentity();
-        boolean useSubQuery = false;
-        if (value instanceof String strValue) {
-            if (assocIdentity.getType() == UUID.class) {
-                useSubQuery = !looksLikeId(strValue, assocIdentity.getType());
-            } else if (assocIdentity.getType() == String.class) {
-                useSubQuery = strValue.contains(" ");
-            }
+        if (subQueryExecutor == null || !needsSubQuery(value, associatedEntity.getIdentity().getType())) {
+            return null;
         }
 
+        Relation.Kind kind = headAssoc.getKind();
         if (kind == Relation.Kind.MANY_TO_ONE) {
             // Dotted MANY_TO_ONE paths (e.g. "author.name") go through buildNestedFilter.
-            if (field.contains(".")) {
-                return null;
-            }
-            if (!useSubQuery || subQueryExecutor == null) {
-                return null;
-            }
             // Use the association's persisted FK name (e.g. "widget_id"), not the raw property
             // name ("widget"), so the final where(...).in(ids) targets the stored column.
-            return buildForwardLookupFilter(resolution.persistedField(), headAssoc, value, params, namedParameters);
+            return field.contains(".")
+                ? null
+                : buildForwardLookupFilter(resolution.persistedField(), headAssoc, value, params, namedParameters);
         }
 
-        if (kind == Relation.Kind.ONE_TO_MANY || kind == Relation.Kind.MANY_TO_MANY) {
-            if (!useSubQuery || subQueryExecutor == null) {
-                return null;
-            }
+        if (isToMany(kind)) {
             // For dotted paths (e.g. "children.name"), extract target from the resolved terminal.
             String targetPropertyName = field.contains(".") && resolution.terminal() != null
                 ? resolution.terminal().getName()
@@ -136,6 +120,24 @@ final class AssociationFilterResolver {
         }
 
         return null;
+    }
+
+    /**
+     * Decides whether an equality value on an association must be matched through a sub-query
+     * against the associated entity rather than compared to the stored id directly.
+     *
+     * @param value the resolved equality value
+     * @param idType the associated entity's identity type
+     * @return {@code true} when the value cannot be an id of that type
+     */
+    private boolean needsSubQuery(Object value, Class<?> idType) {
+        if (!(value instanceof String strValue)) {
+            return false;
+        }
+        if (idType == UUID.class) {
+            return !looksLikeId(strValue, idType);
+        }
+        return idType == String.class && strValue.contains(" ");
     }
 
     private @Nullable Filter buildReverseLookupFilter(
@@ -147,37 +149,57 @@ final class AssociationFilterResolver {
             return null;
         }
         String mappedBy = association.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
-        if (mappedBy == null) {
-            return null;
-        }
-        if (targetPropertyName == null || targetPropertyName.equals(mappedBy)) {
+        if (mappedBy == null || targetPropertyName == null || targetPropertyName.equals(mappedBy)) {
             return null;
         }
 
         RuntimePersistentEntity<?> associatedEntity = association.getAssociatedEntity();
-
-        RuntimePersistentProperty<?> targetProperty = associatedEntity.getPropertyByName(targetPropertyName);
-        if (targetProperty == null) {
-            for (RuntimePersistentProperty<?> p : associatedEntity.getPersistentProperties()) {
-                if (p.getPersistedName().equals(targetPropertyName)) {
-                    targetProperty = p;
-                    break;
-                }
-            }
-        }
-        if (targetProperty == null) {
-            return null;
-        }
-
+        RuntimePersistentProperty<?> targetProperty = findTargetProperty(associatedEntity, targetPropertyName);
         RuntimePersistentProperty<?> backRefProp = associatedEntity.getPropertyByName(mappedBy);
-        if (backRefProp == null) {
+        if (targetProperty == null || backRefProp == null) {
             return null;
         }
-        String backRefPersistedName = backRefProp.getPersistedName();
 
         Map<String, Object> subFilterMap = Collections.singletonMap(
             targetProperty.getPersistedName(), Collections.singletonMap(EQ, value));
+        return buildBackReferenceFilter(entity, associatedEntity, mappedBy, backRefProp, subFilterMap, params, namedParameters);
+    }
 
+    private static @Nullable RuntimePersistentProperty<?> findTargetProperty(
+            RuntimePersistentEntity<?> entity, String name) {
+        RuntimePersistentProperty<?> property = entity.getPropertyByName(name);
+        if (property != null) {
+            return property;
+        }
+        for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
+            if (p.getPersistedName().equals(name)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Matches owners through the associated entity's back-reference: composite join columns
+     * match whole key tuples, a single back-reference matches the owner ids it selects.
+     *
+     * @param entity the owning entity being queried
+     * @param associatedEntity the entity holding the back-reference
+     * @param mappedBy the back-reference property name
+     * @param backRefProp the back-reference property
+     * @param subFilterMap the filter applied to the associated entity
+     * @param params positional query parameters
+     * @param namedParameters named query parameters
+     * @return the filter on the owning entity
+     */
+    private Filter buildBackReferenceFilter(
+            RuntimePersistentEntity<?> entity,
+            RuntimePersistentEntity<?> associatedEntity,
+            String mappedBy,
+            RuntimePersistentProperty<?> backRefProp,
+            Map<String, Object> subFilterMap,
+            Object[] params,
+            Map<String, Object> namedParameters) {
         List<CompositeJoinColumn> joinColumns = entityMapper.getCompositeJoinColumns(
             associatedEntity.getIntrospection().getBeanType(), mappedBy);
         if (!joinColumns.isEmpty()) {
@@ -185,20 +207,17 @@ final class AssociationFilterResolver {
                 entity, associatedEntity, joinColumns, subFilterMap, params, namedParameters);
         }
 
+        String backRefPersistedName = backRefProp.getPersistedName();
         if (LOG.isDebugEnabled()) {
             LOG.debug("Reverse lookup sub-query: entity={}, filter={}, backRef={}",
                 associatedEntity.getName(), subFilterMap, backRefPersistedName);
         }
 
-        List<Object> matchingValues = subQueryExecutor.executeSubQuery(
+        List<Object> matchingValues = Objects.requireNonNull(subQueryExecutor).executeSubQuery(
             associatedEntity, subFilterMap, backRefPersistedName, false, params, namedParameters);
-        if (matchingValues.isEmpty()) {
-            return none();
-        }
-
-        // The identity is stored under the canonical document field, not the mapped identity name.
-        Comparable<?>[] ids = toComparableArray(matchingValues);
-        return ids.length == 0 ? none() : NitriteFilterUtils.in(NitriteEntityMapper.ID_FIELD, ids);
+        // The identity is stored under the canonical document field, not under the mapped
+        // identity name, so an entity whose id carries a mapped name is matched here too.
+        return idsIn(NitriteEntityMapper.ID_FIELD, matchingValues);
     }
 
     private @Nullable Filter buildForwardLookupFilter(
@@ -221,12 +240,7 @@ final class AssociationFilterResolver {
         Map<String, Object> subFilterMap = Map.of(OR, orClauses);
         List<Object> matchingIds = subQueryExecutor.executeSubQuery(
             associatedEntity, subFilterMap, null, false, params, namedParameters);
-        if (matchingIds.isEmpty()) {
-            return none();
-        }
-
-        Comparable<?>[] ids = toComparableArray(matchingIds);
-        return ids.length == 0 ? none() : NitriteFilterUtils.in(field, ids);
+        return idsIn(field, matchingIds);
     }
 
     @Nullable Filter buildNestedFilter(
@@ -253,92 +267,69 @@ final class AssociationFilterResolver {
 
         if (prop instanceof RuntimeAssociation<?> assoc) {
             Relation.Kind kind = assoc.getKind();
-            boolean isCollection = kind == Relation.Kind.ONE_TO_MANY || kind == Relation.Kind.MANY_TO_MANY;
-            boolean isManyToOne = kind == Relation.Kind.MANY_TO_ONE;
-            RuntimePersistentEntity<?> associatedEntity = assoc.getAssociatedEntity();
-
-            if (isCollection) {
-                if (subQueryExecutor == null) {
-                    Filter subFilter = fieldFilterProvider.build(associatedEntity, remaining, operators, params, namedParameters);
-                    return NitriteFilterUtils.elemMatch(fieldName, subFilter);
-                }
-
-                Map<String, Object> resolvedOperators = new LinkedHashMap<>();
-                for (Map.Entry<String, Object> entry : operators.entrySet()) {
-                    resolvedOperators.put(entry.getKey(), valueResolver.resolveValue(entry.getValue(), params, namedParameters));
-                }
-                Map<String, Object> subFilterMap = Map.of(remaining, resolvedOperators);
-
-                String mappedBy = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
-                if (mappedBy == null) {
-                    if (kind == Relation.Kind.MANY_TO_MANY) {
-                        List<Object> matchingIds = subQueryExecutor.executeSubQuery(
-                            associatedEntity, subFilterMap, null, false, params, namedParameters);
-                        if (matchingIds.isEmpty()) {
-                            return none();
-                        }
-                        /*
-                         * The owning side stores the association as an array, which InFilter
-                         * matches by element containment, the same way its index path does.
-                         */
-                        return NitriteFilterUtils.in(fieldName, toComparableArray(matchingIds));
-                    }
-                    return none();
-                }
-
-                RuntimePersistentProperty<?> backRefProp = associatedEntity.getPropertyByName(mappedBy);
-                if (backRefProp == null) {
-                    return none();
-                }
-                String backRefPersistedName = backRefProp.getPersistedName();
-
-                List<CompositeJoinColumn> joinColumns = entityMapper.getCompositeJoinColumns(
-                    associatedEntity.getIntrospection().getBeanType(), mappedBy);
-                if (!joinColumns.isEmpty()) {
-                    return buildCompositeReverseLookupFilter(
-                        entity, associatedEntity, joinColumns, subFilterMap, params, namedParameters);
-                }
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Collection reverse lookup: entity={}, filter={}, backRef={}",
-                        associatedEntity.getName(), subFilterMap, backRefPersistedName);
-                }
-
-                List<Object> matchingValues = subQueryExecutor.executeSubQuery(
-                    associatedEntity, subFilterMap, backRefPersistedName, false, params, namedParameters);
-                if (matchingValues.isEmpty()) {
-                    return none();
-                }
-
-                // The identity is stored under the canonical document field, not under the mapped
-                // identity name, so an entity whose id carries a mapped name is matched here too.
-                Comparable<?>[] ids = toComparableArray(matchingValues);
-                return ids.length == 0 ? none() : NitriteFilterUtils.in(NitriteEntityMapper.ID_FIELD, ids);
-
-            } else if (isManyToOne && subQueryExecutor != null) {
-                Map<String, Object> resolvedOperators = new LinkedHashMap<>();
-                for (Map.Entry<String, Object> entry : operators.entrySet()) {
-                    resolvedOperators.put(entry.getKey(), valueResolver.resolveValue(entry.getValue(), params, namedParameters));
-                }
-                Map<String, Object> subFilterMap = Map.of(remaining, resolvedOperators);
+            if (isToMany(kind)) {
+                return buildCollectionFilter(entity, assoc, fieldName, remaining, operators, params, namedParameters);
+            }
+            if (kind == Relation.Kind.MANY_TO_ONE && subQueryExecutor != null) {
+                RuntimePersistentEntity<?> associatedEntity = assoc.getAssociatedEntity();
+                Map<String, Object> subFilterMap = Map.of(remaining, resolveOperators(operators, params, namedParameters));
                 if (associatedEntity.hasCompositeIdentity()) {
                     return buildCompositeForwardLookupFilter(
                         entity, firstPart, associatedEntity, subFilterMap, params, namedParameters);
                 }
                 List<Object> matchingIds = subQueryExecutor.executeSubQuery(
                     associatedEntity, subFilterMap, null, false, params, namedParameters);
-                if (matchingIds.isEmpty()) {
-                    return none();
-                }
-                Comparable<?>[] ids = toComparableArray(matchingIds);
-                return ids.length == 0 ? none() : NitriteFilterUtils.in(fieldName, ids);
-            } else {
-                return operatorFiltersForPath.build(entity, fieldName + "." + remaining, operators, params, namedParameters);
+                return idsIn(fieldName, matchingIds);
             }
         }
 
-        // Non-association property or unresolved path — use persisted field name for dotted access.
+        // Non-association property, unresolved path, or an association without a sub-query —
+        // use persisted field name for dotted access.
         return operatorFiltersForPath.build(entity, fieldName + "." + remaining, operators, params, namedParameters);
+    }
+
+    private @Nullable Filter buildCollectionFilter(
+            RuntimePersistentEntity<?> entity,
+            RuntimeAssociation<?> assoc,
+            String fieldName,
+            String remaining,
+            Map<String, Object> operators,
+            Object[] params,
+            Map<String, Object> namedParameters) {
+        RuntimePersistentEntity<?> associatedEntity = assoc.getAssociatedEntity();
+        if (subQueryExecutor == null) {
+            Filter subFilter = fieldFilterProvider.build(associatedEntity, remaining, operators, params, namedParameters);
+            return NitriteFilterUtils.elemMatch(fieldName, subFilter);
+        }
+
+        Map<String, Object> subFilterMap = Map.of(remaining, resolveOperators(operators, params, namedParameters));
+        String mappedBy = assoc.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
+        if (mappedBy == null) {
+            if (assoc.getKind() != Relation.Kind.MANY_TO_MANY) {
+                return none();
+            }
+            List<Object> matchingIds = subQueryExecutor.executeSubQuery(
+                associatedEntity, subFilterMap, null, false, params, namedParameters);
+            /*
+             * The owning side stores the association as an array, which InFilter
+             * matches by element containment, the same way its index path does.
+             */
+            return idsIn(fieldName, matchingIds);
+        }
+
+        RuntimePersistentProperty<?> backRefProp = associatedEntity.getPropertyByName(mappedBy);
+        if (backRefProp == null) {
+            return none();
+        }
+        return buildBackReferenceFilter(entity, associatedEntity, mappedBy, backRefProp, subFilterMap, params, namedParameters);
+    }
+
+    private Map<String, Object> resolveOperators(Map<String, Object> operators, Object[] params, Map<String, Object> namedParameters) {
+        Map<String, Object> resolvedOperators = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : operators.entrySet()) {
+            resolvedOperators.put(entry.getKey(), valueResolver.resolveValue(entry.getValue(), params, namedParameters));
+        }
+        return resolvedOperators;
     }
 
     private Filter buildCompositeForwardLookupFilter(
@@ -357,35 +348,26 @@ final class AssociationFilterResolver {
         SubQueryExecutor executor = Objects.requireNonNull(subQueryExecutor);
         List<Object> matchingDocuments = executor.executeSubQuery(
             associatedEntity, subFilterMap, null, true, params, namedParameters);
-        List<Filter> matchingRows = new ArrayList<>(matchingDocuments.size());
-        for (Object matchingDocument : matchingDocuments) {
-            if (!(matchingDocument instanceof Document document)) {
-                continue;
+        return anyRow(matchingDocuments, document -> forwardRow(document, joinColumns, associatedEntity));
+    }
+
+    /**
+     * @return the owner-side key filter for one matched associated document, or {@code null}
+     *         when the document lacks part of its identity
+     */
+    private @Nullable Filter forwardRow(Document document, List<CompositeJoinColumn> joinColumns,
+                                        RuntimePersistentEntity<?> associatedEntity) {
+        List<Filter> rowFilters = new ArrayList<>(joinColumns.size());
+        for (CompositeJoinColumn joinColumn : joinColumns) {
+            RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
+                associatedEntity, joinColumn.referencedProperty());
+            Object value = referenced == null ? null : document.get(referenced.getPersistedName());
+            if (value == null) {
+                return null;
             }
-            List<Filter> rowFilters = new ArrayList<>(joinColumns.size());
-            boolean completeIdentity = true;
-            for (CompositeJoinColumn joinColumn : joinColumns) {
-                RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
-                    associatedEntity, joinColumn.referencedProperty());
-                Object value = referenced == null ? null : document.get(referenced.getPersistedName());
-                if (value == null) {
-                    completeIdentity = false;
-                    break;
-                }
-                rowFilters.add(NitriteFilterUtils.eq(joinColumn.localName(), value));
-            }
-            if (completeIdentity) {
-                matchingRows.add(rowFilters.size() == 1
-                    ? rowFilters.getFirst()
-                    : Filter.and(rowFilters.toArray(new Filter[0])));
-            }
+            rowFilters.add(NitriteFilterUtils.eq(joinColumn.localName(), value));
         }
-        if (matchingRows.isEmpty()) {
-            return none();
-        }
-        return matchingRows.size() == 1
-            ? matchingRows.getFirst()
-            : Filter.or(matchingRows.toArray(new Filter[0]));
+        return allOf(rowFilters);
     }
 
     private Filter buildCompositeReverseLookupFilter(
@@ -398,31 +380,37 @@ final class AssociationFilterResolver {
         SubQueryExecutor executor = Objects.requireNonNull(subQueryExecutor);
         List<Object> matchingDocuments = executor.executeSubQuery(
             associatedEntity, subFilterMap, null, true, params, namedParameters);
+        return anyRow(matchingDocuments, document -> reverseRow(document, joinColumns, entity));
+    }
+
+    /**
+     * @return the owner key filter for one matched referencing document, or {@code null} when
+     *         the document does not carry a complete reference
+     */
+    private @Nullable Filter reverseRow(Document document, List<CompositeJoinColumn> joinColumns,
+                                        RuntimePersistentEntity<?> entity) {
+        List<Filter> rowFilters = new ArrayList<>(joinColumns.size());
+        for (CompositeJoinColumn joinColumn : joinColumns) {
+            RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
+                entity, joinColumn.referencedProperty());
+            if (referenced == null) {
+                return null;
+            }
+            Object value = document.get(joinColumn.localName());
+            if (value == null) {
+                return null;
+            }
+            rowFilters.add(NitriteFilterUtils.eq(referenced.getPersistedName(), value));
+        }
+        return allOf(rowFilters);
+    }
+
+    private static Filter anyRow(List<Object> matchingDocuments, Function<Document, @Nullable Filter> rowFilter) {
         List<Filter> matchingRows = new ArrayList<>(matchingDocuments.size());
         for (Object matchingDocument : matchingDocuments) {
-            if (!(matchingDocument instanceof Document document)) {
-                continue;
-            }
-            List<Filter> rowFilters = new ArrayList<>(joinColumns.size());
-            boolean completeReference = true;
-            for (CompositeJoinColumn joinColumn : joinColumns) {
-                RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
-                    entity, joinColumn.referencedProperty());
-                if (referenced == null) {
-                    completeReference = false;
-                    break;
-                }
-                Object value = document.get(joinColumn.localName());
-                if (value == null) {
-                    completeReference = false;
-                    break;
-                }
-                rowFilters.add(NitriteFilterUtils.eq(referenced.getPersistedName(), value));
-            }
-            if (completeReference) {
-                matchingRows.add(rowFilters.size() == 1
-                    ? rowFilters.getFirst()
-                    : Filter.and(rowFilters.toArray(new Filter[0])));
+            Filter row = matchingDocument instanceof Document document ? rowFilter.apply(document) : null;
+            if (row != null) {
+                matchingRows.add(row);
             }
         }
         if (matchingRows.isEmpty()) {
@@ -431,6 +419,21 @@ final class AssociationFilterResolver {
         return matchingRows.size() == 1
             ? matchingRows.getFirst()
             : Filter.or(matchingRows.toArray(new Filter[0]));
+    }
+
+    private static Filter allOf(List<Filter> filters) {
+        return filters.size() == 1
+            ? filters.getFirst()
+            : Filter.and(filters.toArray(new Filter[0]));
+    }
+
+    private static boolean isToMany(Relation.Kind kind) {
+        return kind == Relation.Kind.ONE_TO_MANY || kind == Relation.Kind.MANY_TO_MANY;
+    }
+
+    private static Filter idsIn(String field, List<Object> values) {
+        Comparable<?>[] ids = toComparableArray(values);
+        return ids.length == 0 ? none() : NitriteFilterUtils.in(field, ids);
     }
 
     private boolean looksLikeId(String value, Class<?> idType) {
