@@ -55,6 +55,7 @@ import io.micronaut.data.nitrite.runtime.read.CollectionAggregator;
 import io.micronaut.data.nitrite.runtime.read.CollectionProjectionMapper;
 import io.micronaut.data.nitrite.runtime.read.CursorWindow;
 import io.micronaut.data.nitrite.runtime.read.JoinFetcher;
+import io.micronaut.data.nitrite.runtime.read.NitriteReadSupport;
 import io.micronaut.data.nitrite.runtime.read.NitriteSortPlan;
 import jakarta.persistence.criteria.CriteriaDelete;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -105,30 +106,21 @@ public final class NitriteCriteriaExecutor {
      * Creates a new NitriteCriteriaExecutor.
      *
      * @param queryBuilder the query builder
-     * @param entityMapper the entity mapper
-     * @param queryParser the query parser
-     * @param filterBuilder the filter builder
-     * @param conversionService the conversion service
-     * @param collectionFactory the collection factory function
-     * @param entityFactory the entity factory function
-     * @param useCursorLimitForSortedReads whether sorted bounds should be moved to the cursor
+     * @param readSupport the collaborators shared with the query executor
      */
-    public NitriteCriteriaExecutor(QueryBuilder queryBuilder,
-                                   NitriteEntityMapper entityMapper,
-                                   NitriteQueryParser queryParser,
-                                   NitriteFilterBuilder filterBuilder,
-                                   ConversionService conversionService,
-                                   Function<Class<?>, NitriteCollection> collectionFactory,
-                                   Function<Class<?>, RuntimePersistentEntity<?>> entityFactory,
-                                   boolean useCursorLimitForSortedReads) {
+    public NitriteCriteriaExecutor(QueryBuilder queryBuilder, NitriteReadSupport readSupport) {
+        NitriteEntityMapper entityMapper = readSupport.entityMapper();
+        ConversionService conversionService = readSupport.conversionService();
+        Function<Class<?>, NitriteCollection> collectionFactory = readSupport.collectionFactory();
+        Function<Class<?>, RuntimePersistentEntity<?>> entityFactory = readSupport.entityFactory();
         this.queryBuilder = queryBuilder;
         this.entityMapper = entityMapper;
-        this.queryParser = queryParser;
-        this.filterBuilder = filterBuilder;
+        this.queryParser = readSupport.queryParser();
+        this.filterBuilder = readSupport.filterBuilder();
         this.collectionFactory = collectionFactory;
         this.entityFactory = entityFactory;
         this.conversionService = conversionService;
-        this.useCursorLimitForSortedReads = useCursorLimitForSortedReads;
+        this.useCursorLimitForSortedReads = readSupport.useCursorLimitForSortedReads();
         this.projectionMapper = new CollectionProjectionMapper(new ValueConverter(conversionService), entityMapper);
         this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService);
     }

@@ -18,10 +18,8 @@ package io.micronaut.data.nitrite.runtime.write;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanProperty;
-import io.micronaut.core.convert.ConversionService;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.event.EntityEventContext;
-import io.micronaut.data.event.EntityEventListener;
 import io.micronaut.data.exceptions.EntityExistsException;
 import io.micronaut.data.exceptions.OptimisticLockException;
 import io.micronaut.data.model.runtime.RuntimeAssociation;
@@ -32,7 +30,6 @@ import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMeta;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
 import io.micronaut.data.runtime.operations.internal.AbstractSyncEntityOperations;
-import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations;
 import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
@@ -104,32 +101,24 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
      * Creates a new NitriteEntityOperations.
      *
      * @param ctx the operation context
-     * @param cascadeOperations the cascade operations
-     * @param entityEventListener the entity event listener
+     * @param writeSupport the collaborators shared by every write operation
      * @param persistentEntity the persistent entity
-     * @param conversionService the conversion service
-     * @param entityMapper the entity mapper
-     * @param helper the operations helper
-     * @param cascadeHelper the cascade operations helper
      * @param entity the entity to operate on
      * @param operationType the operation type
      */
     public NitriteEntityOperations(
             NitriteOperationContext ctx,
-            SyncCascadeOperations<NitriteOperationContext> cascadeOperations,
-            EntityEventListener<Object> entityEventListener,
+            NitriteWriteSupport writeSupport,
             RuntimePersistentEntity<T> persistentEntity,
-            ConversionService conversionService,
-            NitriteEntityMapper entityMapper,
-            NitriteOperationsHelper helper,
-            SyncCascadeOperationsHelper<NitriteOperationContext> cascadeHelper,
             T entity,
             OperationType operationType) {
-        super(ctx, cascadeOperations, entityEventListener, persistentEntity, conversionService, entity, operationType == OperationType.INSERT);
-        this.entityMapper = entityMapper;
+        super(ctx, writeSupport.cascadeOperations(), writeSupport.entityEventListener(), persistentEntity,
+            writeSupport.conversionService(), entity, operationType == OperationType.INSERT);
+        NitriteOperationsHelper helper = writeSupport.helper();
+        this.entityMapper = writeSupport.entityMapper();
         this.repositoryWriter = new ObjectRepositoryWriter<>(entityMapper, persistentEntity);
         this.helper = helper;
-        this.cascadeHelper = cascadeHelper;
+        this.cascadeHelper = writeSupport.cascadeHelper();
         this.collection = helper.getCollection(persistentEntity.getIntrospection().getBeanType());
         this.operationType = operationType;
     }

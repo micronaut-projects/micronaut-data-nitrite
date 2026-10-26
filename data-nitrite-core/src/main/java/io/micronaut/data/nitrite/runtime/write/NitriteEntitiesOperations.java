@@ -18,10 +18,8 @@ package io.micronaut.data.nitrite.runtime.write;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanProperty;
-import io.micronaut.core.convert.ConversionService;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.event.EntityEventContext;
-import io.micronaut.data.event.EntityEventListener;
 import io.micronaut.data.exceptions.EntityExistsException;
 import io.micronaut.data.exceptions.OptimisticLockException;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
@@ -89,28 +87,22 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
      * Creates a new NitriteEntitiesOperations.
      *
      * @param ctx the operation context
-     * @param cascadeOperations the cascade operations
-     * @param entityEventListener the entity event listener
+     * @param writeSupport the collaborators shared by every write operation
      * @param persistentEntity the persistent entity
-     * @param conversionService the conversion service
-     * @param entityMapper the entity mapper
-     * @param helper the operations helper
      * @param entities the entities to operate on
      * @param insert true if this is an insert operation
      */
     public NitriteEntitiesOperations(
             NitriteOperationContext ctx,
-            SyncCascadeOperations<NitriteOperationContext> cascadeOperations,
-            EntityEventListener<Object> entityEventListener,
+            NitriteWriteSupport writeSupport,
             RuntimePersistentEntity<T> persistentEntity,
-            ConversionService conversionService,
-            NitriteEntityMapper entityMapper,
-            NitriteOperationsHelper helper,
             Iterable<T> entities,
             boolean insert) {
-        super(entityEventListener, persistentEntity, conversionService);
+        super(writeSupport.entityEventListener(), persistentEntity, writeSupport.conversionService());
+        NitriteEntityMapper entityMapper = writeSupport.entityMapper();
+        NitriteOperationsHelper helper = writeSupport.helper();
         this.ctx = ctx;
-        this.cascadeOperations = cascadeOperations;
+        this.cascadeOperations = writeSupport.cascadeOperations();
         this.entityMapper = entityMapper;
         this.helper = helper;
         this.collection = helper.getCollection(persistentEntity.getIntrospection().getBeanType());
