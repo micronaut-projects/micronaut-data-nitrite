@@ -272,7 +272,8 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         switch (operationType) {
             case INSERT -> executeInsert(meta, type);
             case UPDATE -> executeUpdate(meta);
-            case null, default -> executeDelete(meta);
+            case DELETE -> executeDelete(meta);
+            default -> throw new IllegalStateException("Unsupported operation type: " + operationType);
         }
     }
 
@@ -319,14 +320,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             return;
         }
         persistNewCascadeChildren(meta);
-        Filter filter = entityMapper.idEqualsFilter(meta, id);
-        if (meta.versionProp() != null) {
-            Object versionValue = preVersionValue;
-            if (versionValue == null) {
-                versionValue = meta.versionProp().getProperty().get(entity);
-            }
-            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
-        }
+        Filter filter = versionedIdentityFilter(meta, id);
         Document update = repositoryWriter.toDocument(entity);
         if (update != null) {
             helper.logUpdate(collection.getName(), filter, update);
@@ -338,7 +332,6 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
     }
 
     private void executeDelete(NitriteEntityMeta<T> meta) {
-        // Delete operation
         Object id = entityMapper.getEntityIdValue(meta, entity);
         if (id == null) {
             // Without an identity there is no document to remove; an "id == null" filter would
@@ -346,18 +339,25 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             affectedCount = 0;
             return;
         }
-        Filter filter = entityMapper.idEqualsFilter(meta, id);
-        if (meta.versionProp() != null) {
-            Object versionValue = preVersionValue;
-            if (versionValue == null) {
-                versionValue = meta.versionProp().getProperty().get(entity);
-            }
-            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
-        }
+        Filter filter = versionedIdentityFilter(meta, id);
         helper.logFind(collection.getName(), filter);
         long rows = NitriteCrudOperations.remove(collection, filter);
         affectedCount = rows;
         checkOptimisticLocking(rows);
+    }
+
+    /**
+     * Matches the entity's document by identity and, for a versioned entity, by the version it
+     * held before the pre-event listeners ran (an update listener increments it).
+     */
+    private Filter versionedIdentityFilter(NitriteEntityMeta<T> meta, Object id) {
+        Filter filter = entityMapper.idEqualsFilter(meta, id);
+        RuntimePersistentProperty<T> versionProp = meta.versionProp();
+        if (versionProp == null) {
+            return filter;
+        }
+        Object versionValue = preVersionValue != null ? preVersionValue : versionProp.getProperty().get(entity);
+        return Filter.and(filter, NitriteFilterUtils.eq(versionProp.getPersistedName(), helper.toFilterValue(versionValue)));
     }
 
     private void persistNewCascadeChildren(NitriteEntityMeta<T> meta) {
