@@ -10,4 +10,6 @@ import io.micronaut.data.annotation.Repository;
 public interface VersionedBookRepository extends CrudRepository<VersionedBook, Long> {
 
     int update(@Id Long id, @Version Long version, String title);
+
+    long deleteByTitle(String title);
 }

@@ -87,8 +87,6 @@ import java.util.regex.Pattern;
 public final class NitriteQueryExecutor {
 
     private static final Pattern TOP_FIRST_PATTERN = Pattern.compile("(?:Top|First)(\\d*)");
-    private static final Pattern GENERATED_EQUALITY_PATTERN = Pattern.compile(
-        "(?<![A-Za-z0-9_.])([A-Za-z0-9_.]++)\\s*+=\\s*+:p\\d++");
     private static final Object[] EMPTY_PARAMS = new Object[0];
 
     private final NitriteEntityMapper entityMapper;
@@ -869,15 +867,77 @@ public final class NitriteQueryExecutor {
         if (whereStart < 0) {
             return false;
         }
-        Matcher matcher = GENERATED_EQUALITY_PATTERN.matcher(queryString.substring(whereStart + 7));
-        while (matcher.find()) {
-            String reference = matcher.group(1);
+        for (String reference : generatedEqualityReferences(queryString.substring(whereStart + 7))) {
             String property = reference.substring(reference.lastIndexOf('.') + 1);
             if (version.getName().equals(property) || version.getPersistedName().equals(property)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Collects the {@code reference} of every {@code reference = :pN} equality in a generated
+     * {@code WHERE} clause. One forward scan keeps this linear in the clause length, which a
+     * {@code find()} loop over an identifier regex cannot guarantee.
+     */
+    static List<String> generatedEqualityReferences(String where) {
+        List<String> references = new ArrayList<>();
+        int i = 0;
+        while (i < where.length()) {
+            if (isReferenceChar(where.charAt(i))) {
+                int end = skipReference(where, i);
+                int parameterEnd = generatedParameterEnd(where, end);
+                if (parameterEnd > end) {
+                    references.add(where.substring(i, end));
+                    i = skipReference(where, parameterEnd);
+                } else {
+                    i = end;
+                }
+            } else {
+                i++;
+            }
+        }
+        return references;
+    }
+
+    /**
+     * Returns the index after {@code \s*=\s*:pN} at {@code i}, or {@code i} when none starts there.
+     */
+    private static int generatedParameterEnd(String s, int i) {
+        int cursor = skipWhitespace(s, i);
+        if (cursor == s.length() || s.charAt(cursor) != '=') {
+            return i;
+        }
+        cursor = skipWhitespace(s, cursor + 1);
+        if (!s.startsWith(":p", cursor)) {
+            return i;
+        }
+        int digitsStart = cursor + 2;
+        int digitsEnd = digitsStart;
+        while (digitsEnd < s.length() && s.charAt(digitsEnd) >= '0' && s.charAt(digitsEnd) <= '9') {
+            digitsEnd++;
+        }
+        return digitsEnd > digitsStart ? digitsEnd : i;
+    }
+
+    private static int skipReference(String s, int i) {
+        while (i < s.length() && isReferenceChar(s.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    // Regex \s: space, \t, \n, \x0B, \f and \r.
+    private static int skipWhitespace(String s, int i) {
+        while (i < s.length() && (s.charAt(i) == ' ' || (s.charAt(i) >= '\t' && s.charAt(i) <= '\r'))) {
+            i++;
+        }
+        return i;
+    }
+
+    private static boolean isReferenceChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '.';
     }
 
     private void applyVersionIncrement(Document updateDoc, RuntimePersistentEntity<?> entity, Map<String, Object> namedParameters) {
