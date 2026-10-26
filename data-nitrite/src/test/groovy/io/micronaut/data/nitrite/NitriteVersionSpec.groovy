@@ -1,5 +1,6 @@
 package io.micronaut.data.nitrite
 
+import io.micronaut.data.exceptions.OptimisticLockException
 import io.micronaut.data.nitrite.model.VersionedBook
 import io.micronaut.data.nitrite.repository.VersionedBookRepository
 import io.micronaut.test.extensions.spock.annotation.MicronautTest
@@ -31,7 +32,20 @@ class NitriteVersionSpec extends Specification {
         repository.update(book.id, 0L, "stale")
 
         then:
-        thrown(io.micronaut.data.exceptions.OptimisticLockException)
+        thrown(OptimisticLockException)
+    }
+
+    void "a derived delete matching nothing on a versioned entity is not an optimistic lock failure"() {
+        given:
+        repository.save(new VersionedBook("kept"))
+
+        when: "the WHERE clause binds title, not version"
+        def deleted = repository.deleteByTitle("absent")
+
+        then:
+        deleted == 0
+        notThrown(OptimisticLockException)
+        repository.count() > 0
     }
 
     void "an entity update carries the version into the identity fallback filter"() {
@@ -53,7 +67,7 @@ class NitriteVersionSpec extends Specification {
         repository.update(stale)
 
         then:
-        thrown(io.micronaut.data.exceptions.OptimisticLockException)
+        thrown(OptimisticLockException)
     }
 
     void "a batch entity update carries the version into the identity fallback filter"() {
@@ -76,7 +90,7 @@ class NitriteVersionSpec extends Specification {
         repository.updateAll([stale])
 
         then:
-        thrown(io.micronaut.data.exceptions.OptimisticLockException)
+        thrown(OptimisticLockException)
     }
 
     void "deleting a versioned entity carries the version into the identity fallback filter"() {

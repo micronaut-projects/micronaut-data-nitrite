@@ -9,6 +9,7 @@ if (System.getenv("SONAR_TOKEN") != null) {
     sonarqube {
         properties {
             property "sonar.exclusions", "**/example/**, **/data/tck/**"
+            property "sonar.test.exclusions", "**/example/**, **/jakarta-data-tck/**"
         }
     }
 }
