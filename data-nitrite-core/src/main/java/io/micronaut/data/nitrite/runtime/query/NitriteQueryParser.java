@@ -94,7 +94,7 @@ public final class NitriteQueryParser {
     public @Nullable String extractGroupFieldPath(@Nullable String jsonQuery) {
         try {
             return extractGroupFieldPath(parseJson(jsonQuery));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Best-effort JSON parsing; if it fails, treat as non-distinct count
             return null;
         }
@@ -122,7 +122,7 @@ public final class NitriteQueryParser {
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Best-effort structure matching
         }
         return null;
@@ -193,7 +193,7 @@ public final class NitriteQueryParser {
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Best-effort JSON parsing; if it fails, assume no projection
         }
         return List.of();
@@ -262,7 +262,7 @@ public final class NitriteQueryParser {
                         updateMap = parseUpdateAnnotation(storedQuery);
                     }
                 }
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 // Best-effort JSON parsing for stored queries
             }
         }
@@ -279,7 +279,7 @@ public final class NitriteQueryParser {
             if (parsed instanceof Map<?, ?> m) {
                 return extractUpdateMap(m);
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Best-effort parsing of @Query(update=...) annotation
         }
         return null;
@@ -455,7 +455,7 @@ public final class NitriteQueryParser {
             }
             try {
                 return isDecimalLiteral(s) ? parseDecimal(s) : parseIntegral(s);
-            } catch (NumberFormatException notANumber) {
+            } catch (NumberFormatException _) {
                 return s;
             }
         }

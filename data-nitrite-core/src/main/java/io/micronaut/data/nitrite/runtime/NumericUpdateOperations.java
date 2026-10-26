@@ -125,12 +125,12 @@ public final class NumericUpdateOperations {
      */
     private static Object narrowDecimal(BigDecimal result, Object currentValue) {
         return switch (currentValue) {
-            case Integer ignored -> Math.toIntExact(result.setScale(0, RoundingMode.DOWN).longValueExact());
-            case Long ignored -> result.setScale(0, RoundingMode.DOWN).longValueExact();
-            case Short ignored -> (short) result.setScale(0, RoundingMode.DOWN).longValueExact();
-            case Byte ignored -> (byte) result.setScale(0, RoundingMode.DOWN).longValueExact();
-            case Float ignored -> result.floatValue();
-            case Double ignored -> result.doubleValue();
+            case Integer _ -> Math.toIntExact(result.setScale(0, RoundingMode.DOWN).longValueExact());
+            case Long _ -> result.setScale(0, RoundingMode.DOWN).longValueExact();
+            case Short _ -> (short) result.setScale(0, RoundingMode.DOWN).longValueExact();
+            case Byte _ -> (byte) result.setScale(0, RoundingMode.DOWN).longValueExact();
+            case Float _ -> result.floatValue();
+            case Double _ -> result.doubleValue();
             default -> result;
         };
     }
@@ -139,10 +139,10 @@ public final class NumericUpdateOperations {
         return switch (number) {
             case BigDecimal decimal -> decimal;
             case BigInteger integer -> new BigDecimal(integer);
-            case Byte ignored -> BigDecimal.valueOf(number.longValue());
-            case Short ignored -> BigDecimal.valueOf(number.longValue());
-            case Integer ignored -> BigDecimal.valueOf(number.longValue());
-            case Long ignored -> BigDecimal.valueOf(number.longValue());
+            case Byte _ -> BigDecimal.valueOf(number.longValue());
+            case Short _ -> BigDecimal.valueOf(number.longValue());
+            case Integer _ -> BigDecimal.valueOf(number.longValue());
+            case Long _ -> BigDecimal.valueOf(number.longValue());
             default -> BigDecimal.valueOf(number.doubleValue());
         };
     }
@@ -153,9 +153,9 @@ public final class NumericUpdateOperations {
 
     private static Object convertIntegralNumber(long value, Object currentValue) {
         return switch (currentValue) {
-            case Integer ignored -> Math.toIntExact(value);
-            case Short ignored -> narrowExact(value, Short.MIN_VALUE, Short.MAX_VALUE, "short");
-            case Byte ignored -> narrowExact(value, Byte.MIN_VALUE, Byte.MAX_VALUE, "byte");
+            case Integer _ -> Math.toIntExact(value);
+            case Short _ -> narrowExact(value, Short.MIN_VALUE, Short.MAX_VALUE, "short");
+            case Byte _ -> narrowExact(value, Byte.MIN_VALUE, Byte.MAX_VALUE, "byte");
             default -> value;
         };
     }
@@ -172,11 +172,11 @@ public final class NumericUpdateOperations {
 
     private static Object convertNumber(double value, Object currentValue) {
         return switch (currentValue) {
-            case Integer ignored -> (int) value;
-            case Long ignored -> (long) value;
-            case Float ignored -> (float) value;
-            case Short ignored -> (short) value;
-            case Byte ignored -> (byte) value;
+            case Integer _ -> (int) value;
+            case Long _ -> (long) value;
+            case Float _ -> (float) value;
+            case Short _ -> (short) value;
+            case Byte _ -> (byte) value;
             default -> value;
         };
     }

@@ -857,7 +857,7 @@ public final class NitriteCriteriaExecutor {
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // The normal query path reports malformed criteria queries.
         }
         return null;

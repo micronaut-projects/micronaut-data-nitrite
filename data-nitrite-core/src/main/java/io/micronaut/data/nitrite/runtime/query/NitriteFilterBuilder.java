@@ -291,7 +291,7 @@ public final class NitriteFilterBuilder {
                         || "id".equals(rawField) || "_id".equals(rawField))) {
                     persistedName = entityMapper.normalizeFieldName(rawField, entity);
                 }
-            } catch (IllegalStateException ignored) {
+            } catch (IllegalStateException _) {
                 // Entity metadata may not expose an identity property for all mappings.
             }
         }
@@ -601,7 +601,7 @@ public final class NitriteFilterBuilder {
             if (identity != null && (identity.getName().equals(field) || identity.getPersistedName().equals(field) || "_id".equals(field))) {
                 return identity;
             }
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException _) {
             // Entity has no identity.
         }
         return null;

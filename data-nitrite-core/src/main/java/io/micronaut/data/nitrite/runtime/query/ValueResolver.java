@@ -61,7 +61,7 @@ final class ValueResolver {
                     if (params != null && idx >= 0 && idx < params.length) {
                         return params[idx];
                     }
-                } catch (Exception ignored) {
+                } catch (Exception _) {
                     // Fall through if placeholder is not a valid integer
                 }
             }
@@ -86,7 +86,7 @@ final class ValueResolver {
                             Object paramValue = params[paramIdx];
                             result.append(paramValue != null ? paramValue.toString() : "");
                         }
-                    } catch (Exception ignored) {
+                    } catch (Exception _) {
                         // If resolution fails for a specific placeholder, keep it as-is in the string
                         result.append(s, idx, paramEnd);
                     }
@@ -118,7 +118,7 @@ final class ValueResolver {
         if (value instanceof String s && ("id".equals(field) || "_id".equals(field))) {
             try {
                 return UUID.fromString(s);
-            } catch (IllegalArgumentException ignored) {
+            } catch (IllegalArgumentException _) {
                 // Keep the original string if it is not a UUID.
             }
         }
@@ -133,7 +133,7 @@ final class ValueResolver {
                 try {
                     return new CompiledValue.Parameter(Integer.parseInt(
                         s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length())));
-                } catch (Exception ignored) {
+                } catch (Exception _) {
                     // Fall through if placeholder is not a valid integer
                 }
             }

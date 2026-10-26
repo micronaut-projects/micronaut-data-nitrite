@@ -147,7 +147,7 @@ public final class CollectionAggregator {
                     case "Min" -> dates.stream().min(LocalDate::compareTo).orElse(null);
                     default -> null;
                 };
-            } catch (Exception e) {
+            } catch (Exception _) {
                 // Not a parseable date string, fall through to generic Comparable handling
             }
         }
@@ -208,10 +208,10 @@ public final class CollectionAggregator {
         return switch (value) {
             case BigDecimal decimal -> decimal;
             case BigInteger integer -> new BigDecimal(integer);
-            case Byte ignored -> BigDecimal.valueOf(value.longValue());
-            case Short ignored -> BigDecimal.valueOf(value.longValue());
-            case Integer ignored -> BigDecimal.valueOf(value.longValue());
-            case Long ignored -> BigDecimal.valueOf(value.longValue());
+            case Byte _ -> BigDecimal.valueOf(value.longValue());
+            case Short _ -> BigDecimal.valueOf(value.longValue());
+            case Integer _ -> BigDecimal.valueOf(value.longValue());
+            case Long _ -> BigDecimal.valueOf(value.longValue());
             default -> BigDecimal.valueOf(value.doubleValue());
         };
     }

@@ -68,7 +68,7 @@ final class NitriteQuerySerializer {
             case Boolean b -> {
                 return b.toString();
             }
-            case Number ignored -> {
+            case Number _ -> {
                 return obj.toString();
             }
             default -> {

@@ -658,7 +658,7 @@ public final class GeneratedQueryParser {
                 return Double.valueOf(value);
             }
             return Long.valueOf(value);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             throw unsupported(fragment, "operand");
         }
     }

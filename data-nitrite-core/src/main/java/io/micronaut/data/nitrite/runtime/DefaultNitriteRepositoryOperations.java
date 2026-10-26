@@ -734,7 +734,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
                     .orElse(null);
             }
             return NitriteSortKeys.fromJson(sortValue);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Best-effort JSON sort parsing; if it fails, assume no sort
             return List.of();
         }

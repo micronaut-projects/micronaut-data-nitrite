@@ -170,8 +170,8 @@ final class JakartaDataRestrictionsConverter<T> implements TypeConverter<Restric
                 expression.in(asExpressionList(root, criteriaBuilder, in.expressions()));
             case NotIn<V> notIn ->
                 criteriaBuilder.not(expression.in(asExpressionList(root, criteriaBuilder, notIn.expressions())));
-            case Null<V> ignored -> criteriaBuilder.isNull(expression);
-            case NotNull<V> ignored -> criteriaBuilder.isNotNull(expression);
+            case Null<V> _ -> criteriaBuilder.isNull(expression);
+            case NotNull<V> _ -> criteriaBuilder.isNotNull(expression);
             case Like like -> criteriaBuilder.like(
                 (jakarta.persistence.criteria.Expression<String>) expression,
                 asExpression(root, criteriaBuilder, like.pattern()),
@@ -222,15 +222,15 @@ final class JakartaDataRestrictionsConverter<T> implements TypeConverter<Restric
                 jakarta.persistence.criteria.Path<?> path1 = asPath(root, path);
                 yield path1.get(path.attribute().name());
             }
-            case CurrentDateTime<?> ignore ->
+            case CurrentDateTime<?> _ ->
                 (jakarta.persistence.criteria.Expression<V>) criteriaBuilder.literal(
                     dateTimeProvider.getNow().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
                 );
-            case CurrentDate<?> ignore ->
+            case CurrentDate<?> _ ->
                 (jakarta.persistence.criteria.Expression<V>) criteriaBuilder.literal(
                     dateTimeProvider.getNow().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                 );
-            case CurrentTime<?> ignore ->
+            case CurrentTime<?> _ ->
                 (jakarta.persistence.criteria.Expression<V>) criteriaBuilder.literal(
                     dateTimeProvider.getNow().toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
                 );

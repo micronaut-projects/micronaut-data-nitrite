@@ -48,7 +48,7 @@ public final class NitriteTckCompatibilityVisitor implements TypeElementVisitor<
             if (input != null) {
                 properties.load(input);
             }
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             // Ignore an unreadable optional TCK marker.
         }
         nitrite = "nitrite".equals(properties.getProperty("implementation"));

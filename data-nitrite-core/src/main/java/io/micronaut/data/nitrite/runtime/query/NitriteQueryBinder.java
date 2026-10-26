@@ -78,7 +78,7 @@ public final class NitriteQueryBinder {
         if (value instanceof String s && s.startsWith(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)) {
             try {
                 return Integer.parseInt(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()));
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException _) {
                 // Fall back if the suffix is not a valid integer placeholder
             }
         }
@@ -309,14 +309,14 @@ public final class NitriteQueryBinder {
 
     private static boolean isDirectBindableScalar(@Nullable Object value) {
         return switch (value) {
-            case CharSequence ignored -> true;
-            case Number ignored -> true;
-            case Boolean ignored -> true;
-            case Character ignored -> true;
-            case Enum<?> ignored -> true;
-            case UUID ignored -> true;
-            case Temporal ignored -> true;
-            case Date ignored -> true;
+            case CharSequence _ -> true;
+            case Number _ -> true;
+            case Boolean _ -> true;
+            case Character _ -> true;
+            case Enum<?> _ -> true;
+            case UUID _ -> true;
+            case Temporal _ -> true;
+            case Date _ -> true;
             case null, default -> false;
         };
     }

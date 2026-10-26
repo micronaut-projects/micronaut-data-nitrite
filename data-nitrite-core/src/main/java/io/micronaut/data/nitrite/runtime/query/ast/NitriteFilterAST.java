@@ -403,7 +403,7 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
             }
             try {
                 return Integer.parseInt(value.toString());
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 return null;
             }
         }
@@ -631,7 +631,7 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
                 }
                 try {
                     return Double.parseDouble(v.toString());
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException _) {
                     return null;
                 }
             }
