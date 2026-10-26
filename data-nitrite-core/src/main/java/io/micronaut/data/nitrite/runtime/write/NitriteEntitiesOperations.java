@@ -153,77 +153,24 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
         try {
             collectAutoPopulatedPreviousValues();
 
-            NitriteEntityMeta<T> meta = entityMapper.getOrBuildMeta(persistentEntity.getIntrospection().getBeanType());
-
-            // Jakarta Data save determines insert/update from whether the identity exists in the
-            // store. A non-null assigned identity is not enough to select update. Explicit insert
-            // is strict and therefore bypasses the existence check entirely.
             List<T> newEntities = new ArrayList<>();
             List<T> existingEntities = new ArrayList<>();
-            if (insert || ctx.isSave()) {
-                for (T entity : entities) {
-                    Object id = entityMapper.getEntityIdValue(meta, entity);
-                    boolean existing = false;
-                    if (!ctx.isStrictInsert() && id != null) {
-                        Filter identityFilter = entityMapper.idEqualsFilter(meta, id);
-                        existing = NitriteCrudOperations.exists(collection, identityFilter);
-                    }
-                    if (existing) {
-                        existingEntities.add(entity);
-                    } else {
-                        newEntities.add(entity);
-                    }
-                }
-            } else {
-                existingEntities.addAll(entities);
-            }
+            partitionByExistence(newEntities, existingEntities);
 
-            // Pre-phase: new entities (persist lifecycle).
-            if (!newEntities.isEmpty()) {
-                this.entities = newEntities;
-                if (!triggerPrePersist() && persistentEntity.cascadesPersist()) {
-                    cascadePre(Relation.Cascade.PERSIST);
-                }
-            }
-
-            // Pre-phase: existing entities (update lifecycle).
-            if (!existingEntities.isEmpty()) {
-                this.entities = existingEntities;
-                if (!triggerPreUpdate() && persistentEntity.cascadesUpdate()) {
-                    cascadePre(Relation.Cascade.UPDATE);
-                }
-            }
+            // Pre-phase: new entities (persist lifecycle), then existing ones (update lifecycle).
+            prePersist(newEntities);
+            preUpdate(existingEntities);
 
             // Execute each lifecycle half using its matching write operation. The collection
             // insert must not be attempted for entities that were classified as existing.
-            if (!newEntities.isEmpty()) {
-                this.entities = newEntities;
-                executingInsert = true;
-                execute();
-            }
-            if (!existingEntities.isEmpty()) {
-                this.entities = existingEntities;
-                executingInsert = false;
-                execute();
-            }
+            executeHalf(newEntities, true);
+            executeHalf(existingEntities, false);
 
             // Post-phase over the halves themselves. An immutable entity given a generated id or
             // an initial version is replaced by a new instance in the list execute() was handed,
             // so the combined view has to be built from the halves after execute() has run.
-            if (!newEntities.isEmpty()) {
-                this.entities = newEntities;
-                triggerPostPersist();
-                if (persistentEntity.cascadesPersist()) {
-                    cascadePost(Relation.Cascade.PERSIST);
-                }
-            }
-            if (!existingEntities.isEmpty()) {
-                this.entities = existingEntities;
-                triggerPostUpdate();
-                if (persistentEntity.cascadesUpdate()) {
-                    cascadePost(Relation.Cascade.UPDATE);
-                }
-            }
+            postPersist(newEntities);
+            postUpdate(existingEntities);
             List<T> combined = new ArrayList<>(newEntities.size() + existingEntities.size());
             combined.addAll(newEntities);
             combined.addAll(existingEntities);
@@ -233,6 +180,86 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
             throw e;
         } catch (Exception e) {
             failed(e, "PERSIST");
+        }
+    }
+
+    /**
+     * Jakarta Data save determines insert/update from whether the identity exists in the store. A
+     * non-null assigned identity is not enough to select update. Explicit insert is strict and
+     * therefore bypasses the existence check entirely.
+     */
+    private void partitionByExistence(List<T> newEntities, List<T> existingEntities) {
+        if (!insert && !ctx.isSave()) {
+            existingEntities.addAll(entities);
+            return;
+        }
+        NitriteEntityMeta<T> meta = entityMapper.getOrBuildMeta(persistentEntity.getIntrospection().getBeanType());
+        for (T entity : entities) {
+            if (existsInStore(meta, entity)) {
+                existingEntities.add(entity);
+            } else {
+                newEntities.add(entity);
+            }
+        }
+    }
+
+    private boolean existsInStore(NitriteEntityMeta<T> meta, T entity) {
+        Object id = entityMapper.getEntityIdValue(meta, entity);
+        if (ctx.isStrictInsert() || id == null) {
+            return false;
+        }
+        Filter identityFilter = entityMapper.idEqualsFilter(meta, id);
+        return NitriteCrudOperations.exists(collection, identityFilter);
+    }
+
+    private void prePersist(List<T> half) {
+        if (half.isEmpty()) {
+            return;
+        }
+        this.entities = half;
+        if (!triggerPrePersist() && persistentEntity.cascadesPersist()) {
+            cascadePre(Relation.Cascade.PERSIST);
+        }
+    }
+
+    private void preUpdate(List<T> half) {
+        if (half.isEmpty()) {
+            return;
+        }
+        this.entities = half;
+        if (!triggerPreUpdate() && persistentEntity.cascadesUpdate()) {
+            cascadePre(Relation.Cascade.UPDATE);
+        }
+    }
+
+    private void executeHalf(List<T> half, boolean asInsert) {
+        if (half.isEmpty()) {
+            return;
+        }
+        this.entities = half;
+        executingInsert = asInsert;
+        execute();
+    }
+
+    private void postPersist(List<T> half) {
+        if (half.isEmpty()) {
+            return;
+        }
+        this.entities = half;
+        triggerPostPersist();
+        if (persistentEntity.cascadesPersist()) {
+            cascadePost(Relation.Cascade.PERSIST);
+        }
+    }
+
+    private void postUpdate(List<T> half) {
+        if (half.isEmpty()) {
+            return;
+        }
+        this.entities = half;
+        triggerPostUpdate();
+        if (persistentEntity.cascadesUpdate()) {
+            cascadePost(Relation.Cascade.UPDATE);
         }
     }
 
@@ -306,83 +333,104 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
         NitriteEntityMeta<T> meta = entityMapper.getOrBuildMeta(type);
 
         if (executingInsert) {
-            // Standard save/insert operations use a strict batch insert. Existing save entities
-            // were partitioned into the update lifecycle above; no insert-if-absent update is used.
-            List<Document> docsToInsert = new ArrayList<>();
-
-            for (int i = 0; i < entities.size(); i++) {
-                T entity = entities.get(i);
-
-                if (ctx.persisted.contains(entity)) {
-                    continue;
-                }
-
-                if (entityMapper.getEntityIdValue(meta, entity) == null) {
-                    helper.generateIdIfNecessary(entity, type);
-                }
-                if (meta.versionProp() != null && repositoryWriter.needsVersionInit(entity)) {
-                    BeanProperty<T, Object> versionProperty = meta.versionProp().getProperty();
-                    entity = helper.updateEntityId(versionProperty, entity, 0L);
-                    entities.set(i, entity);
-                }
-                Document doc = repositoryWriter.toDocument(entity);
-                if (doc != null) {
-                    docsToInsert.add(doc);
-                }
-            }
-
-            if (!docsToInsert.isEmpty()) {
-                if (DataSettings.QUERY_LOG.isDebugEnabled()) {
-                    helper.logInsert(collection.getName(), "batch of " + docsToInsert.size());
-                }
-                try {
-                    collection.insert(docsToInsert.toArray(new Document[0]));
-                } catch (UniqueConstraintException e) {
-                    // Nitrite reports the collision without naming the document, and the batch is
-                    // written as one call, so the identity cannot be narrowed down here.
-                    throw new EntityExistsException(
-                        "One or more entities already exist in collection: " + collection.getName(), e);
-                }
-                affectedCount = docsToInsert.size();
-                ctx.persisted.addAll(entities);
-            }
+            executeInsert(type, meta);
         } else {
-            // updateAll() operation: replace existing documents by ID.
-            int expectedCount = 0;
-            long updatedCount = 0;
+            executeUpdate(meta);
+        }
+    }
 
-            for (int i = 0; i < entities.size(); i++) {
-                T entity = entities.get(i);
-                Object id = entityMapper.getEntityIdValue(meta, entity);
-                if (id == null) {
-                    continue;
-                }
-                expectedCount++;
-                Filter filter = entityMapper.idEqualsFilter(meta, id);
-                Object versionValue = null;
-                if (meta.versionProp() != null) {
-                    versionValue = priorVersions != null ? priorVersions.get(entity) : null;
-                    if (versionValue == null) {
-                        versionValue = meta.versionProp().getProperty().get(entity);
-                    }
-                    filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
-                    long nextVersion = (versionValue == null ? 0L : ((Number) versionValue).longValue()) + 1;
-                    entity = helper.updateEntityId(meta.versionProp().getProperty(), entity, nextVersion);
-                    entities.set(i, entity);
-                }
-                Document update = repositoryWriter.toDocument(entity);
-                if (update != null) {
-                    helper.logUpdate(collection.getName(), filter, update);
-                    long rows = NitriteCrudOperations.update(collection, filter, update);
-                    updatedCount += rows;
-                }
+    /**
+     * Standard save/insert operations use a strict batch insert. Existing save entities were
+     * partitioned into the update lifecycle in persist(); no insert-if-absent update is used.
+     */
+    private void executeInsert(Class<T> type, NitriteEntityMeta<T> meta) {
+        List<Document> docsToInsert = new ArrayList<>();
+        for (int i = 0; i < entities.size(); i++) {
+            T entity = entities.get(i);
+            if (ctx.persisted.contains(entity)) {
+                continue;
             }
-
-            affectedCount = updatedCount;
-            if (updatedCount != expectedCount) {
-                throw new OptimisticLockException("Execute update returned unexpected row count. Expected: " + expectedCount + " got: " + updatedCount);
+            Document doc = toInsertDocument(i, entity, type, meta);
+            if (doc != null) {
+                docsToInsert.add(doc);
             }
         }
+        if (!docsToInsert.isEmpty()) {
+            insertBatch(docsToInsert);
+        }
+    }
+
+    @Nullable
+    private Document toInsertDocument(int index, T entity, Class<T> type, NitriteEntityMeta<T> meta) {
+        if (entityMapper.getEntityIdValue(meta, entity) == null) {
+            helper.generateIdIfNecessary(entity, type);
+        }
+        if (meta.versionProp() != null && repositoryWriter.needsVersionInit(entity)) {
+            BeanProperty<T, Object> versionProperty = meta.versionProp().getProperty();
+            entity = helper.updateEntityId(versionProperty, entity, 0L);
+            entities.set(index, entity);
+        }
+        return repositoryWriter.toDocument(entity);
+    }
+
+    private void insertBatch(List<Document> docsToInsert) {
+        if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+            helper.logInsert(collection.getName(), "batch of " + docsToInsert.size());
+        }
+        try {
+            collection.insert(docsToInsert.toArray(new Document[0]));
+        } catch (UniqueConstraintException e) {
+            // Nitrite reports the collision without naming the document, and the batch is
+            // written as one call, so the identity cannot be narrowed down here.
+            throw new EntityExistsException(
+                "One or more entities already exist in collection: " + collection.getName(), e);
+        }
+        affectedCount = docsToInsert.size();
+        ctx.persisted.addAll(entities);
+    }
+
+    /**
+     * updateAll() operation: replace existing documents by ID.
+     */
+    private void executeUpdate(NitriteEntityMeta<T> meta) {
+        int expectedCount = 0;
+        long updatedCount = 0;
+        for (int i = 0; i < entities.size(); i++) {
+            Object id = entityMapper.getEntityIdValue(meta, entities.get(i));
+            if (id == null) {
+                continue;
+            }
+            expectedCount++;
+            updatedCount += updateById(i, id, meta);
+        }
+        affectedCount = updatedCount;
+        if (updatedCount != expectedCount) {
+            throw new OptimisticLockException("Execute update returned unexpected row count. Expected: " + expectedCount + " got: " + updatedCount);
+        }
+    }
+
+    private long updateById(int index, Object id, NitriteEntityMeta<T> meta) {
+        T entity = entities.get(index);
+        Filter filter = entityMapper.idEqualsFilter(meta, id);
+        if (meta.versionProp() != null) {
+            Object versionValue = priorVersion(meta, entity);
+            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
+            long nextVersion = (versionValue == null ? 0L : ((Number) versionValue).longValue()) + 1;
+            entity = helper.updateEntityId(meta.versionProp().getProperty(), entity, nextVersion);
+            entities.set(index, entity);
+        }
+        Document update = repositoryWriter.toDocument(entity);
+        if (update == null) {
+            return 0;
+        }
+        helper.logUpdate(collection.getName(), filter, update);
+        return NitriteCrudOperations.update(collection, filter, update);
+    }
+
+    @Nullable
+    private Object priorVersion(NitriteEntityMeta<T> meta, T entity) {
+        Object versionValue = priorVersions != null ? priorVersions.get(entity) : null;
+        return versionValue != null ? versionValue : meta.versionProp().getProperty().get(entity);
     }
 
     @SuppressWarnings("unchecked")
