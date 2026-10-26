@@ -150,10 +150,12 @@ final class PathResolver {
                 return p;
             }
         }
-        // Fallback 3: ONE_TO_MANY/MANY_TO_MANY — match by join-segment {child_collection}_{owner_collection}
-        // or by the association's own persisted name (used by MANY_TO_MANY stored as an array field).
-        // The {child}_{owner} naming convention mirrors NitriteQueryBuilder.addLookups / NitriteFieldNameResolver;
-        // if that convention changes, update both sides in lockstep.
+        /**
+         * Fallback 3: ONE_TO_MANY/MANY_TO_MANY match by the child-then-owner collection join segment,
+         * or by the association's own persisted name (used by MANY_TO_MANY stored as an array field).
+         * The join-segment convention mirrors NitriteQueryBuilder.addLookups and
+         * NitriteFieldNameResolver; if it changes, update both sides in lockstep.
+         */
         for (RuntimePersistentProperty<?> p : entity.getPersistentProperties()) {
             if (p instanceof RuntimeAssociation<?> assoc
                     && (assoc.getKind() == Relation.Kind.ONE_TO_MANY || assoc.getKind() == Relation.Kind.MANY_TO_MANY)) {

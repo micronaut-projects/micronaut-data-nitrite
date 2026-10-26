@@ -1624,20 +1624,21 @@ public final class NitriteEntityMapper {
      *
      * @param entity The persistent entity
      * @param name The Java or persisted property name
+     * @param <E> The entity type
      * @return The matching property, or {@code null} if none matches
      */
-    public @Nullable RuntimePersistentProperty<?> findPropertyByNameOrPersistedName(
-        RuntimePersistentEntity<?> entity, String name) {
-        RuntimePersistentProperty<?> property = entity.getPropertyByName(name);
+    public <E> @Nullable RuntimePersistentProperty<E> findPropertyByNameOrPersistedName(
+        RuntimePersistentEntity<E> entity, String name) {
+        RuntimePersistentProperty<E> property = entity.getPropertyByName(name);
         if (property != null) {
             return property;
         }
-        for (RuntimePersistentProperty<?> candidate : entity.getRuntimeIdentityProperties()) {
+        for (RuntimePersistentProperty<E> candidate : entity.getRuntimeIdentityProperties()) {
             if (candidate.getPersistedName().equals(name)) {
                 return candidate;
             }
         }
-        for (RuntimePersistentProperty<?> candidate : entity.getPersistentProperties()) {
+        for (RuntimePersistentProperty<E> candidate : entity.getPersistentProperties()) {
             if (candidate.getPersistedName().equals(name)) {
                 return candidate;
             }

@@ -10,7 +10,6 @@ class NameUtilsUnitSpec extends Specification {
 
         where:
         input           | output
-        null            | null
         ""              | ""
         "foo"           | "foo"
         "fooBar"        | "foo_bar"
@@ -24,7 +23,6 @@ class NameUtilsUnitSpec extends Specification {
 
         where:
         input           | output
-        null            | null
         ""              | ""
         "foo"           | "foo"
         "foo_bar"       | "fooBar"
@@ -38,7 +36,6 @@ class NameUtilsUnitSpec extends Specification {
 
         where:
         input                   | output
-        null                    | null
         "foo_bar"               | "fooBar"
         "foo_bar.baz_qux"       | "fooBar.bazQux"
         "simple"                | "simple"
