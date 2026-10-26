@@ -213,44 +213,22 @@ public final class NitriteQueryExecutor {
     public <T, R> @Nullable R findOne(@NonNull PreparedQuery<T, R> q, NitritePreparedQuery<T, R> nq) {
         NitriteCollection coll = collectionFactory.apply(nq.getRootEntity());
         if (nq.getUpdateMap() != null) {
-            Optional<Number> result = executeUpdate(q, nq);
-            return isNumericResultType(nq.getResultType())
-                ? valueConverter.convertWithTemporalHandling(result.orElse(0L), nq.getResultType())
-                : null;
+            return updateResult(q, nq);
         }
 
         Filter filter = nq.getNitriteFilter();
         helper.logFind(coll.getName(), filter);
 
-        // Handle count queries
-        if (isNumericResultType(nq.getResultType())) {
-            String methodName = q.getName();
-            String queryStr = nq.getQuery();
-            boolean isCountQuery = methodName.startsWith("count") ||
-                (nq.getOperationType() != null && nq.getOperationType() == StoredQuery.OperationType.COUNT) ||
-                (queryStr != null && (queryStr.contains(NitriteQueryOperators.COUNT)
-                    || GeneratedQueryParser.isCountProjection(queryStr)));
-            if (isCountQuery) {
-                if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
-                    return valueConverter.convertWithTemporalHandling(
-                        handleDistinctCount(coll, filter, queryStr), nq.getResultType());
-                }
-                return valueConverter.convertWithTemporalHandling(
-                    Long.valueOf(coll.find(filter).size()), nq.getResultType());
-            }
+        if (isCountQuery(q, nq)) {
+            return count(coll, filter, nq);
         }
 
         String methodName = q.getName();
 
         // Handle aggregation methods (findMax/Min/Sum/Avg...By)
-        if (aggregationHandler.isAggregationMethod(methodName)) {
-            String aggFunc = aggregationHandler.extractAggFunc(methodName);
-            String fieldName = aggregationHandler.extractFieldName(methodName);
-            if (aggFunc != null && fieldName != null) {
-                List<Document> docs = coll.find(filter).toList();
-                Object result = aggregationHandler.aggregate(docs, persistedField(fieldName, nq), aggFunc);
-                return valueConverter.convertWithTemporalHandling(result, nq.getResultType());
-            }
+        AggregationCall aggregation = aggregationCall(methodName);
+        if (aggregation != null) {
+            return aggregate(coll.find(filter).toList(), aggregation, nq);
         }
 
         List<NitriteSortKey> sortKeys = querySortKeys(nq);
@@ -258,10 +236,7 @@ public final class NitriteQueryExecutor {
         NitriteFind find = findOptionsFactory.build(nq.getPageable(), sortKeys, entityFactory.apply(q.getRootEntity()));
         FindOptions findOptions = find.options();
         boolean bounded = limit.maxResults() > 0;
-        if (nq.getPageable().getMode() == Pageable.Mode.OFFSET && bounded) {
-            findOptions.limit((long) limit.maxResults());
-            findOptions.skip(limit.offset());
-        }
+        applyOffsetLimit(findOptions, nq, limit);
         boolean hasFindOptions = !sortKeys.isEmpty() || nq.getPageable().getSort().isSorted() || bounded;
         long cursorLimit = CursorWindow.withholdSortedLimit(findOptions, useCursorLimitForSortedReads);
         // A query that is nothing but an identity equality is answered by the document key when
@@ -289,29 +264,102 @@ public final class NitriteQueryExecutor {
 
         // Handle native single-field projection (result type differs from root entity)
         if (!nq.getResultType().equals(nq.getRootEntity())) {
-            String fieldName = projectedFields.size() == 1 ? projectedFields.getFirst() : null;
-            if (fieldName == null) {
-                fieldName = nativeProjectionHandler.extractFieldName(nq.getQuery(), methodName);
-            }
-            if (fieldName != null) {
-                RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
-                R result = projectionMapper.mapDocument(doc, List.of(fieldName), entity, nq.getResultType(), false);
-                if (result != null) {
-                    return result;
-                }
+            R result = mapSingleFieldProjection(doc, projectedFields, nq, methodName);
+            if (result != null) {
+                return result;
             }
         }
 
         // Handle full entity load
         R entity = nq.getResultType().cast(entityMapperHandler.loadEntity(doc, nq.getRootEntity()));
+        fetchJoins(List.of(entity), nq);
+        return entity;
+    }
 
-        // Fetch joined associations if specified
+    private <R> @Nullable R updateResult(PreparedQuery<?, R> q, NitritePreparedQuery<?, R> nq) {
+        Optional<Number> result = executeUpdate(q, nq);
+        return isNumericResultType(nq.getResultType())
+            ? valueConverter.convertWithTemporalHandling(result.orElse(0L), nq.getResultType())
+            : null;
+    }
+
+    private boolean isCountQuery(PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq) {
+        if (!isNumericResultType(nq.getResultType())) {
+            return false;
+        }
+        String queryStr = nq.getQuery();
+        return q.getName().startsWith("count")
+            || nq.getOperationType() == StoredQuery.OperationType.COUNT
+            || (queryStr != null && (queryStr.contains(NitriteQueryOperators.COUNT)
+                || GeneratedQueryParser.isCountProjection(queryStr)));
+    }
+
+    private <R> @Nullable R count(NitriteCollection coll, Filter filter, NitritePreparedQuery<?, R> nq) {
+        String queryStr = nq.getQuery();
+        Long count = queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)
+            ? handleDistinctCount(coll, filter, queryStr)
+            : Long.valueOf(coll.find(filter).size());
+        return valueConverter.convertWithTemporalHandling(count, nq.getResultType());
+    }
+
+    private @Nullable AggregationCall aggregationCall(String methodName) {
+        if (!aggregationHandler.isAggregationMethod(methodName)) {
+            return null;
+        }
+        String aggFunc = aggregationHandler.extractAggFunc(methodName);
+        String fieldName = aggregationHandler.extractFieldName(methodName);
+        return aggFunc != null && fieldName != null ? new AggregationCall(aggFunc, fieldName) : null;
+    }
+
+    private <R> @Nullable R aggregate(List<Document> docs, AggregationCall aggregation, NitritePreparedQuery<?, R> nq) {
+        Object result = aggregationHandler.aggregate(docs, persistedField(aggregation.field(), nq), aggregation.function());
+        return valueConverter.convertWithTemporalHandling(result, nq.getResultType());
+    }
+
+    private static void applyOffsetLimit(FindOptions findOptions, NitritePreparedQuery<?, ?> nq, Limit limit) {
+        if (nq.getPageable().getMode() == Pageable.Mode.OFFSET && limit.maxResults() > 0) {
+            findOptions.limit((long) limit.maxResults());
+            findOptions.skip(limit.offset());
+        }
+    }
+
+    private <R> @Nullable R mapSingleFieldProjection(Document doc, List<String> projectedFields,
+                                                    NitritePreparedQuery<?, R> nq, String methodName) {
+        String fieldName = projectedFields.size() == 1
+            ? projectedFields.getFirst()
+            : nativeProjectionHandler.extractFieldName(nq.getQuery(), methodName);
+        if (fieldName == null) {
+            return null;
+        }
+        RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
+        return projectionMapper.mapDocument(doc, List.of(fieldName), entity, nq.getResultType(), false);
+    }
+
+    private List<String> nativeProjectionFields(List<String> projectedFields, NitritePreparedQuery<?, ?> nq, String methodName) {
+        if (!projectedFields.isEmpty()) {
+            return projectedFields;
+        }
+        String fieldName = nativeProjectionHandler.extractFieldName(nq.getQuery(), methodName);
+        return fieldName != null ? List.of(fieldName) : List.of();
+    }
+
+    private <R> List<R> mapDtoResults(Iterable<Document> cursor, NitritePreparedQuery<?, R> nq) {
+        RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
+        List<R> results = new ArrayList<>();
+        for (Document doc : cursor) {
+            R result = projectionMapper.mapDocument(remapDtoProjectionDocument(doc, nq), List.of(), entity, nq.getResultType(), true);
+            if (result != null) {
+                results.add(result);
+            }
+        }
+        return results;
+    }
+
+    private <R> void fetchJoins(List<R> results, NitritePreparedQuery<?, R> nq) {
         Set<JoinPath> joinPaths = nq.getJoinPaths();
         if (joinPaths != null && !joinPaths.isEmpty()) {
-            joinFetcher.fetch(List.of(entity), joinPaths, nq.getRootEntity());
+            joinFetcher.fetch(results, joinPaths, nq.getRootEntity());
         }
-
-        return entity;
     }
 
     /**
@@ -430,59 +478,26 @@ public final class NitriteQueryExecutor {
         Filter filter = nq.getNitriteFilter();
         helper.logFind(coll.getName(), filter);
 
-        // Handle count queries
-        if (isNumericResultType(nq.getResultType())) {
-            String methodName = q.getName();
-            String queryStr = nq.getQuery();
-            boolean isCountQuery = methodName.startsWith("count") ||
-                (nq.getOperationType() != null && nq.getOperationType() == StoredQuery.OperationType.COUNT) ||
-                (queryStr != null && (queryStr.contains(NitriteQueryOperators.COUNT)
-                    || GeneratedQueryParser.isCountProjection(queryStr)));
-            if (isCountQuery) {
-                if (queryStr != null && queryStr.contains(NitriteQueryOperators.GROUP)) {
-                    return Collections.singletonList(valueConverter.convertWithTemporalHandling(
-                        handleDistinctCount(coll, filter, queryStr), nq.getResultType()));
-                }
-                return List.of(valueConverter.convertWithTemporalHandling(
-                    Long.valueOf(coll.find(filter).size()), nq.getResultType()));
-            }
+        if (isCountQuery(q, nq)) {
+            return Collections.singletonList(count(coll, filter, nq));
         }
 
         // Setup sort and limit
         List<NitriteSortKey> sortKeys = querySortKeys(nq);
-        Limit limit = nq.getQueryLimit();
-        if (limit.maxResults() <= 0) {
-            String methodName = q.getName();
-            Matcher matcher = TOP_FIRST_PATTERN.matcher(methodName);
-            if (matcher.find()) {
-                String value = matcher.group(1);
-                limit = Limit.of(value.isEmpty() ? 1 : Integer.parseInt(value), 0);
-            }
-        }
-
+        Limit limit = resolveTopFirstLimit(q.getName(), nq.getQueryLimit());
         NitriteFind find = findOptionsFactory.build(nq.getPageable(), sortKeys, entityFactory.apply(q.getRootEntity()));
         FindOptions findOptions = find.options();
-        if (nq.getPageable().getMode() == Pageable.Mode.OFFSET && limit.maxResults() > 0) {
-            findOptions.limit((long) limit.maxResults());
-            findOptions.skip(limit.offset());
-        }
+        applyOffsetLimit(findOptions, nq, limit);
         // A sorted find is issued unbounded and bounded while its cursor is read: see CursorWindow.
         final long cursorLimit = CursorWindow.withholdSortedLimit(findOptions, useCursorLimitForSortedReads);
 
         String methodName = q.getName();
-        String query = nq.getQuery();
 
-        // Handle aggregation methods - not typically used with findAll, but handle for completeness
-        if (aggregationHandler.isAggregationMethod(methodName)) {
-            // Aggregation with findAll returns single aggregated value
+        // Aggregation with findAll returns a single aggregated value
+        AggregationCall aggregation = aggregationCall(methodName);
+        if (aggregation != null) {
             var cursor = read(coll, filter, findOptions, cursorLimit, find.sortPlan());
-            List<Document> docs = cursor.toList();
-            String aggFunc = aggregationHandler.extractAggFunc(methodName);
-            String fieldName = aggregationHandler.extractFieldName(methodName);
-            if (aggFunc != null && fieldName != null) {
-                Object result = aggregationHandler.aggregate(docs, persistedField(fieldName, nq), aggFunc);
-                return Collections.singletonList(valueConverter.convertWithTemporalHandling(result, nq.getResultType()));
-            }
+            return Collections.singletonList(aggregate(cursor.toList(), aggregation, nq));
         }
 
         List<String> projectedFields = getProjectedFields(nq);
@@ -494,31 +509,16 @@ public final class NitriteQueryExecutor {
 
         // Handle DTO projection
         if (nq.isDtoProjection()) {
-            var cursor = read(coll, filter, findOptions, cursorLimit, find.sortPlan());
-            RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
-            List<R> results = new ArrayList<>();
-            for (Document doc : cursor) {
-                R result = projectionMapper.mapDocument(remapDtoProjectionDocument(doc, nq), List.of(), entity, nq.getResultType(), true);
-                if (result != null) {
-                    results.add(result);
-                }
-            }
-            return results;
+            return mapDtoResults(read(coll, filter, findOptions, cursorLimit, find.sortPlan()), nq);
         }
 
         // Handle native single-field projection
-        if (!nq.getResultType().equals(nq.getRootEntity()) && !nq.isDtoProjection()) {
-            if (projectedFields.isEmpty()) {
-                String fieldName = nativeProjectionHandler.extractFieldName(query, methodName);
-                if (fieldName != null) {
-                    projectedFields = List.of(fieldName);
-                }
-            }
-
-            if (!projectedFields.isEmpty()) {
+        if (!nq.getResultType().equals(nq.getRootEntity())) {
+            List<String> nativeFields = nativeProjectionFields(projectedFields, nq, methodName);
+            if (!nativeFields.isEmpty()) {
                 var cursor = read(coll, filter, findOptions, cursorLimit, find.sortPlan());
                 RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
-                return projectionMapper.mapResults(cursor, projectedFields, entity, nq.getResultType(), false);
+                return projectionMapper.mapResults(cursor, nativeFields, entity, nq.getResultType(), false);
             }
         }
 
@@ -528,13 +528,7 @@ public final class NitriteQueryExecutor {
         for (Document doc : cursor) {
             results.add(nq.getResultType().cast(entityMapperHandler.loadEntity(doc, nq.getRootEntity())));
         }
-
-        // Fetch joined associations if specified
-        Set<JoinPath> joinPaths = nq.getJoinPaths();
-        if (joinPaths != null && !joinPaths.isEmpty()) {
-            joinFetcher.fetch(results, joinPaths, nq.getRootEntity());
-        }
-
+        fetchJoins(results, nq);
         return results;
     }
 
@@ -555,18 +549,11 @@ public final class NitriteQueryExecutor {
             return Optional.of(0);
         }
 
-        Filter filter;
-        if (nq.getCompiledFilter() != null) {
-            filter = nq.getCompiledFilter().bind(jsonParams, namedParameters);
-        } else if (nq.getFilterMap() != null) {
-            filter = filterBuilder.buildFilterFromJson(entityFactory.apply(nq.getRootEntity()), nq.getFilterMap(), jsonParams, namedParameters);
-        } else {
-            filter = buildGeneratedFilter(q, entityFactory.apply(nq.getRootEntity()), jsonParams);
-        }
-
+        Filter filter = updateFilter(q, nq, jsonParams, namedParameters);
         Filter finalFilter = filter != null ? filter : nq.getNitriteFilter();
         NitriteCollection collection = collectionFactory.apply(nq.getRootEntity());
         RuntimePersistentEntity<?> entity = entityFactory.apply(nq.getRootEntity());
+        boolean versioned = isOptimisticLocking(q, entity);
         long count;
         if (requiresDocumentUpdate(updateOperations)) {
             // The new value is derived from the stored one, so the read and the write have to be
@@ -574,10 +561,7 @@ public final class NitriteQueryExecutor {
             count = CollectionUpdateLock.withLock(collection.getName(), () -> {
                 long updated = 0;
                 for (Document doc : collection.find(finalFilter).toList()) {
-                    Document updateDoc = buildUpdateDocument(updateOperations, doc, jsonParams, namedParameters);
-                    if (isOptimisticLocking(q, entity)) {
-                        applyVersionIncrement(updateDoc, entity, namedParameters);
-                    }
+                    Document updateDoc = versionedUpdateDocument(updateOperations, doc, jsonParams, namedParameters, versioned ? entity : null);
                     Object id = doc.get("id");
                     Filter idFilter = id == null ? finalFilter : NitriteFilterUtils.eq("id", id);
                     helper.logUpdate(collection.getName(), idFilter, updateDoc);
@@ -586,17 +570,41 @@ public final class NitriteQueryExecutor {
                 return updated;
             });
         } else {
-            Document updateDoc = buildUpdateDocument(updateOperations, null, jsonParams, namedParameters);
-            if (isOptimisticLocking(q, entity)) {
-                applyVersionIncrement(updateDoc, entity, namedParameters);
-            }
+            Document updateDoc = versionedUpdateDocument(updateOperations, null, jsonParams, namedParameters, versioned ? entity : null);
             helper.logUpdate(collection.getName(), finalFilter, updateDoc);
             count = collection.update(finalFilter, updateDoc, UpdateOptions.updateOptions(false)).getAffectedCount();
         }
-        if (count == 0 && !Filter.ALL.equals(finalFilter) && isOptimisticLocking(q, entity)) {
+        if (count == 0 && !Filter.ALL.equals(finalFilter) && versioned) {
             throw new OptimisticLockException("Execute update returned unexpected row count. Expected: 1 got: 0");
         }
         return Optional.of(count);
+    }
+
+    private @Nullable Filter updateFilter(PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq,
+                                          Object[] jsonParams, Map<String, Object> namedParameters) {
+        if (nq.getCompiledFilter() != null) {
+            return nq.getCompiledFilter().bind(jsonParams, namedParameters);
+        }
+        if (nq.getFilterMap() != null) {
+            return filterBuilder.buildFilterFromJson(entityFactory.apply(nq.getRootEntity()), nq.getFilterMap(), jsonParams, namedParameters);
+        }
+        return buildGeneratedFilter(q, entityFactory.apply(nq.getRootEntity()), jsonParams);
+    }
+
+    /**
+     * Builds the update document for one write, adding the version increment when the entity is
+     * optimistically locked.
+     *
+     * @param versionedEntity the entity whose version to increment, {@code null} when not versioned
+     */
+    private Document versionedUpdateDocument(Map<String, Object> updateOperations, @Nullable Document current,
+                                             Object[] jsonParams, Map<String, Object> namedParameters,
+                                             @Nullable RuntimePersistentEntity<?> versionedEntity) {
+        Document updateDoc = buildUpdateDocument(updateOperations, current, jsonParams, namedParameters);
+        if (versionedEntity != null) {
+            applyVersionIncrement(updateDoc, versionedEntity, namedParameters);
+        }
+        return updateDoc;
     }
 
     @SuppressWarnings("unchecked")
@@ -996,5 +1004,14 @@ public final class NitriteQueryExecutor {
          * @return the find
          */
         NitriteFind build(Pageable pageable, List<NitriteSortKey> sortKeys, RuntimePersistentEntity<?> entity);
+    }
+
+    /**
+     * A derived aggregation (findMax/Min/Sum/Avg...By) resolved from its method name.
+     *
+     * @param function the aggregate function
+     * @param field the aggregated property name
+     */
+    private record AggregationCall(String function, String field) {
     }
 }

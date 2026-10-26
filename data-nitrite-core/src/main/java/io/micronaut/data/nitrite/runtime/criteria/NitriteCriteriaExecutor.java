@@ -836,30 +836,35 @@ public final class NitriteCriteriaExecutor {
                 return null;
             }
             for (Object stage : pipeline) {
-                if (!(stage instanceof Map<?, ?> stageMap) || !(stageMap.get(NitriteQueryOperators.GROUP) instanceof Map<?, ?> group)) {
-                    continue;
-                }
-                if (group.get("_id") != null) {
-                    // A grouped aggregate produces one value per key; only the ungrouped form can
-                    // be answered by collapsing the whole result set to a single value.
-                    return null;
-                }
-                for (Map.Entry<?, ?> entry : group.entrySet()) {
-                    if (!(entry.getValue() instanceof Map<?, ?> operation)) {
-                        continue;
+                if (stage instanceof Map<?, ?> stageMap && stageMap.get(NitriteQueryOperators.GROUP) instanceof Map<?, ?> group) {
+                    if (group.get("_id") != null) {
+                        // A grouped aggregate produces one value per key; only the ungrouped form can
+                        // be answered by collapsing the whole result set to a single value.
+                        return null;
                     }
-                    for (String operator : List.of(NitriteQueryOperators.MAX, NitriteQueryOperators.MIN,
-                        NitriteQueryOperators.SUM, NitriteQueryOperators.AVG)) {
-                        Object field = operation.get(operator);
-                        if (field instanceof String path && path.startsWith("$")) {
-                            String function = Character.toUpperCase(operator.charAt(1)) + operator.substring(2);
-                            return new AggregateSelection(function, path.substring(1));
-                        }
+                    AggregateSelection selection = ungroupedAggregateSelection(group);
+                    if (selection != null) {
+                        return selection;
                     }
                 }
             }
         } catch (Exception _) {
             // The normal query path reports malformed criteria queries.
+        }
+        return null;
+    }
+
+    private static @Nullable AggregateSelection ungroupedAggregateSelection(Map<?, ?> group) {
+        for (Object value : group.values()) {
+            if (value instanceof Map<?, ?> operation) {
+                for (String operator : List.of(NitriteQueryOperators.MAX, NitriteQueryOperators.MIN,
+                    NitriteQueryOperators.SUM, NitriteQueryOperators.AVG)) {
+                    if (operation.get(operator) instanceof String path && path.startsWith("$")) {
+                        String function = Character.toUpperCase(operator.charAt(1)) + operator.substring(2);
+                        return new AggregateSelection(function, path.substring(1));
+                    }
+                }
+            }
         }
         return null;
     }

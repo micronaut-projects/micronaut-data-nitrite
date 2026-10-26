@@ -126,10 +126,10 @@ public final class JoinFetcher {
             return fetchCompositeIdentityCollection(entities, persistentEntity, association, mappedBy);
         }
 
-        RuntimePersistentProperty<?> idProp = persistentEntity.getIdentity();
+        var idProperty = (BeanProperty<Object, Object>) persistentEntity.getIdentity().getProperty();
         List<Object> parentIds = new ArrayList<>(entities.size());
         for (Object entity : entities) {
-            Object idValue = ((BeanProperty<Object, Object>) idProp.getProperty()).get(entity);
+            Object idValue = idProperty.get(entity);
             if (idValue != null) {
                 parentIds.add(entityMapper.toFilterValue(idValue));
             }
@@ -146,11 +146,7 @@ public final class JoinFetcher {
             return List.of();
         }
 
-        String backFieldName = backProp.getPersistedName();
-        if (associatedEntity.getIdentity().equals(backProp)) {
-            backFieldName = "id";
-        }
-        final String finalBackFieldName = backFieldName;
+        String finalBackFieldName = associatedEntity.getIdentity().equals(backProp) ? "id" : backProp.getPersistedName();
 
         Comparable<?>[] comparableIds = parentIds.stream()
             .map(id -> id instanceof Comparable<?> c ? c : id.toString())
@@ -172,15 +168,10 @@ public final class JoinFetcher {
             if (backRefValue != null) {
                 Object assocEntity = entityMapper.fromDocument(doc, associatedType);
                 fetchedChildren.add(assocEntity);
-                if (backRefValue instanceof Collection<?> collection) {
-                    for (Object parentId : collection) {
-                        resultsByParentId
-                            .computeIfAbsent(entityMapper.toFilterValue(parentId), k -> new ArrayList<>())
-                            .add(assocEntity);
-                    }
-                } else {
+                Iterable<?> parents = backRefValue instanceof Collection<?> collection ? collection : List.of(backRefValue);
+                for (Object parentId : parents) {
                     resultsByParentId
-                        .computeIfAbsent(entityMapper.toFilterValue(backRefValue), k -> new ArrayList<>())
+                        .computeIfAbsent(entityMapper.toFilterValue(parentId), k -> new ArrayList<>())
                         .add(assocEntity);
                 }
             }
@@ -188,7 +179,7 @@ public final class JoinFetcher {
 
         var beanProperty = (BeanProperty<Object, Object>) association.getProperty();
         for (Object entity : entities) {
-            Object parentId = ((BeanProperty<Object, Object>) idProp.getProperty()).get(entity);
+            Object parentId = idProperty.get(entity);
             if (parentId != null) {
                 List<Object> children = resultsByParentId.getOrDefault(entityMapper.toFilterValue(parentId), new ArrayList<>());
                 beanProperty.set(entity, conversionService.convert(children, beanProperty.asArgument()).orElse(null));
@@ -213,37 +204,20 @@ public final class JoinFetcher {
         RuntimePersistentEntity<?> associatedEntity = association.getAssociatedEntity();
         var beanProperty = (BeanProperty<Object, Object>) association.getProperty();
         List<Object> fetchedChildren = new ArrayList<>();
+        List<@Nullable BeanProperty<Object, Object>> referencedProperties = new ArrayList<>(joinColumns.size());
+        for (CompositeJoinColumn joinColumn : joinColumns) {
+            RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
+                persistentEntity, joinColumn.referencedProperty());
+            referencedProperties.add(referenced == null ? null : (BeanProperty<Object, Object>) referenced.getProperty());
+        }
 
         for (Object entity : entities) {
-            List<Filter> filters = new ArrayList<>(joinColumns.size());
-            boolean completeIdentity = true;
-            for (CompositeJoinColumn joinColumn : joinColumns) {
-                RuntimePersistentProperty<?> referenced = entityMapper.findPropertyByNameOrPersistedName(
-                    persistentEntity, joinColumn.referencedProperty());
-                if (referenced == null) {
-                    completeIdentity = false;
-                    break;
-                }
-                Object value = ((BeanProperty) referenced.getProperty()).get(entity);
-                if (value == null) {
-                    completeIdentity = false;
-                    break;
-                }
-                filters.add(entityMapper.eqWithNumericCoercion(
-                    associatedEntity,
-                    joinColumn.localName(),
-                    entityMapper.toFilterValue(value),
-                    joinColumn.localName()));
-            }
-            if (!completeIdentity) {
+            Filter filter = compositeParentFilter(entity, joinColumns, referencedProperties, associatedEntity);
+            if (filter == null) {
                 // Matches the single-identity path: a parent with no identity to match on keeps
                 // whatever the property already holds rather than being handed a foreign type.
                 continue;
             }
-
-            Filter filter = filters.size() == 1
-                ? filters.getFirst()
-                : Filter.and(filters.toArray(new Filter[0]));
             List<Object> children = new ArrayList<>();
             for (Document doc : assocCollection.find(filter)) {
                 Object child = entityMapper.fromDocument(doc, associatedType);
@@ -253,6 +227,32 @@ public final class JoinFetcher {
             beanProperty.set(entity, conversionService.convert(children, beanProperty.asArgument()).orElse(null));
         }
         return fetchedChildren;
+    }
+
+    /**
+     * @return the filter selecting the children of one composite-identity parent, or {@code null}
+     *         when the parent lacks part of its identity
+     */
+    private @Nullable Filter compositeParentFilter(Object entity, List<CompositeJoinColumn> joinColumns,
+                                                   List<@Nullable BeanProperty<Object, Object>> referencedProperties,
+                                                   RuntimePersistentEntity<?> associatedEntity) {
+        List<Filter> filters = new ArrayList<>(joinColumns.size());
+        for (int i = 0; i < joinColumns.size(); i++) {
+            CompositeJoinColumn joinColumn = joinColumns.get(i);
+            BeanProperty<Object, Object> referenced = referencedProperties.get(i);
+            Object value = referenced == null ? null : referenced.get(entity);
+            if (value == null) {
+                return null;
+            }
+            filters.add(entityMapper.eqWithNumericCoercion(
+                associatedEntity,
+                joinColumn.localName(),
+                entityMapper.toFilterValue(value),
+                joinColumn.localName()));
+        }
+        return filters.size() == 1
+            ? filters.getFirst()
+            : Filter.and(filters.toArray(new Filter[0]));
     }
 
     private static Map<String, List<String>> splitPaths(List<String> paths) {
