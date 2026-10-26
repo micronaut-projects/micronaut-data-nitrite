@@ -112,27 +112,20 @@ public final class NitriteQueryExecutor {
     /**
      * Creates a new NitriteQueryExecutor.
      *
-     * @param entityMapper the entity mapper
-     * @param queryParser the query parser
-     * @param filterBuilder the filter builder
-     * @param conversionService the conversion service
-     * @param collectionFactory the collection factory function
-     * @param entityFactory the entity factory function
+     * @param readSupport the collaborators shared with the criteria executor
      * @param findOptionsFactory the find options factory function
      * @param helper the operations helper
-     * @param useCursorLimitForSortedReads whether sorted bounds should be moved to the cursor
      */
-    public NitriteQueryExecutor(NitriteEntityMapper entityMapper,
-                                NitriteQueryParser queryParser,
-                                NitriteFilterBuilder filterBuilder,
-                                ConversionService conversionService,
-                                Function<Class<?>, NitriteCollection> collectionFactory,
-                                Function<Class<?>, RuntimePersistentEntity<?>> entityFactory,
+    public NitriteQueryExecutor(NitriteReadSupport readSupport,
                                 FindOptionsBuilder findOptionsFactory,
-                                NitriteOperationsHelper helper,
-                                boolean useCursorLimitForSortedReads) {
+                                NitriteOperationsHelper helper) {
+        NitriteEntityMapper entityMapper = readSupport.entityMapper();
+        NitriteFilterBuilder filterBuilder = readSupport.filterBuilder();
+        ConversionService conversionService = readSupport.conversionService();
+        Function<Class<?>, NitriteCollection> collectionFactory = readSupport.collectionFactory();
+        Function<Class<?>, RuntimePersistentEntity<?>> entityFactory = readSupport.entityFactory();
         this.entityMapper = entityMapper;
-        this.queryParser = queryParser;
+        this.queryParser = readSupport.queryParser();
         this.filterBuilder = filterBuilder;
         this.generatedQueryParser = new GeneratedQueryParser(
             (entity, propertyPath, operators) ->
@@ -143,7 +136,7 @@ public final class NitriteQueryExecutor {
         this.entityFactory = entityFactory;
         this.findOptionsFactory = findOptionsFactory;
         this.helper = helper;
-        this.useCursorLimitForSortedReads = useCursorLimitForSortedReads;
+        this.useCursorLimitForSortedReads = readSupport.useCursorLimitForSortedReads();
 
         // Initialize centralized strategy classes
         this.valueConverter = new ValueConverter(conversionService);

@@ -65,10 +65,12 @@ import io.micronaut.data.nitrite.runtime.query.ast.CompiledNitriteFilter;
 import io.micronaut.data.nitrite.runtime.read.CursorWindow;
 import io.micronaut.data.nitrite.runtime.read.NitriteFind;
 import io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor;
+import io.micronaut.data.nitrite.runtime.read.NitriteReadSupport;
 import io.micronaut.data.nitrite.runtime.read.NitriteSortPlan;
 import io.micronaut.data.nitrite.runtime.write.NitriteEntitiesOperations;
 import io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations;
 import io.micronaut.data.nitrite.runtime.write.NitriteOperationContext;
+import io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport;
 import io.micronaut.data.operations.CriteriaRepositoryOperations;
 import io.micronaut.data.runtime.config.DataSettings;
 import io.micronaut.data.runtime.convert.DataConversionService;
@@ -163,6 +165,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     private final NitriteQueryParser queryParser;
     private final NitriteFilterBuilder filterBuilder;
     private final SyncCascadeOperations<NitriteOperationContext> cascadeOperations;
+    private final NitriteWriteSupport writeSupport;
     private final CriteriaBuilder criteriaBuilder;
     private final NitriteCriteriaExecutor criteriaExecutor;
     private final NitriteQueryExecutor queryExecutor;
@@ -205,8 +208,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         this.valueConverter = new ValueConverter(conversionService);
         QueryBuilder queryBuilder = new NitriteQueryBuilder();
         this.criteriaBuilder = new RuntimeCriteriaBuilder(runtimeEntityRegistry);
-        this.criteriaExecutor = new NitriteCriteriaExecutor(
-            queryBuilder,
+        NitriteReadSupport readSupport = new NitriteReadSupport(
             entityMapper,
             queryParser,
             filterBuilder,
@@ -214,16 +216,10 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             collectionRegistry::getCollection,
             this::getEntity,
             useCursorLimitForSortedReads);
-        this.queryExecutor = new NitriteQueryExecutor(
-            entityMapper,
-            queryParser,
-            filterBuilder,
-            conversionService,
-            collectionRegistry::getCollection,
-            this::getEntity,
-            this::buildFind,
-            this,
-            useCursorLimitForSortedReads);
+        this.criteriaExecutor = new NitriteCriteriaExecutor(queryBuilder, readSupport);
+        this.queryExecutor = new NitriteQueryExecutor(readSupport, this::buildFind, this);
+        this.writeSupport = new NitriteWriteSupport(
+            cascadeOperations, runtimeEntityRegistry.getEntityEventListener(), conversionService, entityMapper, this, this);
         this.queryBinder = new NitriteQueryBinder(entityMapper);
     }
 
@@ -358,8 +354,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         setBackReferences(meta, entityValue);
 
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.INSERT);
+            ctx, writeSupport, persistentEntity, entityValue, NitriteEntityOperations.OperationType.INSERT);
         op.persist();
         return op.getEntity();
     }
@@ -405,8 +400,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     public <T> T updateOne(NitriteOperationContext ctx, T entityValue, RuntimePersistentEntity<T> persistentEntity) {
         collectionRegistry.checkWritable();
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.UPDATE);
+            ctx, writeSupport, persistentEntity, entityValue, NitriteEntityOperations.OperationType.UPDATE);
         op.update();
         return op.getEntity();
     }
@@ -520,9 +514,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntitiesOperations<T> op = new NitriteEntitiesOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            getEntity(operation.getRootEntity()), conversionService, entityMapper, this,
-            operation, true);
+            ctx, writeSupport, getEntity(operation.getRootEntity()), operation, true);
         op.persist();
         return op.getEntities();
     }
@@ -538,9 +530,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntitiesOperations<T> op = new NitriteEntitiesOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            getEntity(operation.getRootEntity()), conversionService, entityMapper, this,
-            operation, false);
+            ctx, writeSupport, getEntity(operation.getRootEntity()), operation, false);
         op.persist(); // base class persistAll() will call execute() which handles insert vs update
         return op.getEntities();
     }
@@ -550,8 +540,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         collectionRegistry.checkWritable();
         NitriteOperationContext ctx = new NitriteOperationContext(operation.getAnnotationMetadata(), operation.getRepositoryType(), operation.getName());
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            getEntity(operation.getRootEntity()), conversionService, entityMapper, this, this,
+            ctx, writeSupport, getEntity(operation.getRootEntity()),
             operation.getEntity(), NitriteEntityOperations.OperationType.DELETE);
         op.delete();
         return (int) op.getAffectedCount();
@@ -570,9 +559,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             return Optional.of(size);
         }
         NitriteEntitiesOperations<T> op = new NitriteEntitiesOperations<>(
-            ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
-            getEntity(operation.getRootEntity()), conversionService, entityMapper, this,
-            operation, false);
+            ctx, writeSupport, getEntity(operation.getRootEntity()), operation, false);
         op.delete();
         return Optional.of(op.getAffectedCount());
     }
