@@ -156,13 +156,14 @@ final class NitriteOperationsFactory {
       AttributeConverterRegistry attributeConverterRegistry,
       @Nullable ObjectMapper serdeObjectMapper) {
     return new DefaultNitriteRepositoryOperations(
-        forDatasource(beanLocator, Nitrite.class, configuration),
-        configuration,
+        new NitriteDatasource(
+            forDatasource(beanLocator, Nitrite.class, configuration),
+            configuration,
+            forDatasource(beanLocator, NitriteTransactionHolder.class, configuration)),
         dateTimeProvider,
         runtimeEntityRegistry,
         conversionService,
         attributeConverterRegistry,
-        forDatasource(beanLocator, NitriteTransactionHolder.class, configuration),
         serdeObjectMapper);
   }
 

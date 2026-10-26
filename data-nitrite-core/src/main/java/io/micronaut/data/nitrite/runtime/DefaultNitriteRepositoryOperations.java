@@ -69,7 +69,6 @@ import io.micronaut.data.nitrite.runtime.read.NitriteSortPlan;
 import io.micronaut.data.nitrite.runtime.write.NitriteEntitiesOperations;
 import io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations;
 import io.micronaut.data.nitrite.runtime.write.NitriteOperationContext;
-import io.micronaut.data.nitrite.transaction.NitriteTransactionHolder;
 import io.micronaut.data.operations.CriteriaRepositoryOperations;
 import io.micronaut.data.runtime.config.DataSettings;
 import io.micronaut.data.runtime.convert.DataConversionService;
@@ -175,29 +174,27 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     /**
      * Create Nitrite repository operations.
      *
-     * @param database                   The Nitrite database
-     * @param configuration              The Nitrite configuration
+     * @param datasource                 The Nitrite database, configuration and transaction holder
      * @param dateTimeProvider           Date/time provider used by the base operations
      * @param runtimeEntityRegistry      Entity metadata registry
      * @param conversionService          Conversion service (for field-level conversions)
      * @param attributeConverterRegistry Attribute converter registry
-     * @param transactionHolder          Transaction context holder
      * @param serdeObjectMapper          Optional Micronaut Serde ObjectMapper
      */
     public DefaultNitriteRepositoryOperations(
-        final Nitrite database,
-        final NitriteConfiguration configuration,
+        final NitriteDatasource datasource,
         final DateTimeProvider<Object> dateTimeProvider,
         final RuntimeEntityRegistry runtimeEntityRegistry,
         final DataConversionService conversionService,
         final AttributeConverterRegistry attributeConverterRegistry,
-        final NitriteTransactionHolder transactionHolder,
         final @Nullable ObjectMapper serdeObjectMapper) {
         super(dateTimeProvider, runtimeEntityRegistry, conversionService, attributeConverterRegistry);
+        NitriteConfiguration configuration = datasource.configuration();
         this.useCursorLimitForSortedReads = configuration.getSortedReadStrategy()
             .usesCursorLimit(configuration.getStorageMode());
-        this.database = database;
-        this.collectionRegistry = new NitriteCollectionRegistry(database, transactionHolder, configuration, this::getEntity);
+        this.database = datasource.database();
+        this.collectionRegistry = new NitriteCollectionRegistry(
+            database, datasource.transactionHolder(), configuration, this::getEntity);
         this.entityMapper =
             new NitriteEntityMapper(conversionService, serdeObjectMapper, runtimeEntityRegistry);
         this.entityMapper.setHelper(this);
