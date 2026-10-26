@@ -24,7 +24,6 @@ import io.micronaut.data.nitrite.model.query.builder.RuntimeExpressionHandler;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.annotation.Nullable;
-import io.micronaut.data.nitrite.runtime.query.PatternConverter;
 import jakarta.persistence.criteria.Expression;
 
 import java.util.ArrayList;
@@ -65,20 +64,16 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
 
     @Override
     public @Nullable Object handleRegex(
-        String fieldName,
         boolean ignoreCase,
-        boolean negated,
         boolean startsWith,
         boolean endsWith,
         @Nullable Expression<?> rightExpression,
-        boolean isLike,
-        @Nullable Expression<Character> escapeExpression,
         NitriteQueryState queryState,
         PersistentPropertyPath propertyPath) {
 
         if (rightExpression instanceof LiteralExpression<?> literal) {
             Object val = unwrapLiteral(literal);
-            if (startsWith && !endsWith && !ignoreCase && !isLike) {
+            if (startsWith && !endsWith && !ignoreCase) {
                 // A pure prefix match is a lexicographic range, not a pattern: NitriteFilterBuilder
                 // turns this into an indexed GTE/LT pair instead of RegexFilter's per-document scan.
                 Map<String, Object> range = LinkedHashMap.newLinkedHashMap(1);
@@ -87,9 +82,7 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
             }
             String ciPrefix = ignoreCase ? "(?i)" : "";
             String pattern = val != null ? val.toString() : "";
-            if (isLike) {
-                pattern = PatternConverter.convertLikeToRegex(pattern, resolveEscapeChar(escapeExpression));
-            } else if (startsWith) {
+            if (startsWith) {
                 pattern = "^" + Pattern.quote(pattern) + ".*";
             } else if (endsWith) {
                 pattern = ".*" + Pattern.quote(pattern) + "$";
@@ -99,20 +92,7 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
             return ciPrefix + pattern;
         }
 
-        return fallback.handleRegex(fieldName, ignoreCase, negated, startsWith, endsWith, rightExpression, isLike, escapeExpression, queryState, propertyPath);
-    }
-
-    private static @Nullable Character resolveEscapeChar(@Nullable Expression<Character> escapeExpression) {
-        if (escapeExpression instanceof LiteralExpression<?> literal) {
-            Object value = unwrapLiteral(literal);
-            if (value instanceof Character character) {
-                return character;
-            }
-            if (value instanceof CharSequence sequence && !sequence.isEmpty()) {
-                return sequence.charAt(0);
-            }
-        }
-        return null;
+        return fallback.handleRegex(ignoreCase, startsWith, endsWith, rightExpression, queryState, propertyPath);
     }
 
     @Override

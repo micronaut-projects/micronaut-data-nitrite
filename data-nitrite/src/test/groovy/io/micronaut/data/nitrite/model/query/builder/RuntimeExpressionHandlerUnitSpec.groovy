@@ -12,27 +12,15 @@ class RuntimeExpressionHandlerUnitSpec extends Specification {
         def queryState = new NitriteQueryState()
 
         expect:
-        // startsWith only (no endsWith/ignoreCase/isLike): a lexicographic range, not a pattern.
-        handler.handleRegex("name", false, false, true, false, new LiteralExpression("Ali"), false, null, queryState, null) ==
+        // startsWith only (no endsWith/ignoreCase): a lexicographic range, not a pattern.
+        handler.handleRegex(false, true, false, new LiteralExpression("Ali"), queryState, null) ==
             [(NitriteInternalKeys.RANGE_PREFIX): "Ali"]
 
         // Any other combination still falls back to a regex, unchanged.
-        handler.handleRegex("name", true, false, true, false, new LiteralExpression("Ali"), false, null, queryState, null) ==
+        handler.handleRegex(true, true, false, new LiteralExpression("Ali"), queryState, null) ==
             '(?i)^\\QAli\\E.*'
-        handler.handleRegex("name", false, false, true, true, new LiteralExpression("Ali"), false, null, queryState, null) ==
+        handler.handleRegex(false, true, true, new LiteralExpression("Ali"), queryState, null) ==
             '^\\QAli\\E$'
-    }
-
-    void "handleRegex unwraps literal expressions for runtime LIKE"() {
-        given:
-        def handler = new RuntimeExpressionHandler()
-        def queryState = new NitriteQueryState()
-
-        expect:
-        handler.handleRegex("hexadecimal", false, false, false, false, new LiteralExpression("4_"), true, null, queryState, null) == '(?s)^4.$'
-        handler.handleRegex("hexadecimal", false, false, false, false, new LiteralExpression(new LiteralExpression("4_")), true, null, queryState, null) == '(?s)^4.$'
-        handler.handleRegex("hexadecimal", false, false, false, false, new LiteralExpression("4\\_"), true, new LiteralExpression('\\' as char), queryState, null) == '(?s)^4_$'
-        handler.handleRegex("hexadecimal", false, false, false, false, new LiteralExpression("4\\_"), true, new LiteralExpression("\\"), queryState, null) == '(?s)^4_$'
     }
 
     void "handleRegex quotes regex metacharacters in literal values"() {
@@ -41,7 +29,7 @@ class RuntimeExpressionHandlerUnitSpec extends Specification {
         def queryState = new NitriteQueryState()
 
         expect:
-        handler.handleRegex("field", false, false, true, true, new LiteralExpression("a.b[0]"), false, null, queryState, null) == '^\\Qa.b[0]\\E$'
+        handler.handleRegex(false, true, true, new LiteralExpression("a.b[0]"), queryState, null) == '^\\Qa.b[0]\\E$'
     }
 
     void "resolveCollectionValue unwraps literal iterable expressions"() {

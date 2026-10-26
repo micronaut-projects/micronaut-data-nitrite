@@ -113,12 +113,12 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         NitriteQueryBuilderHelper.buildProjection(query.selection(), group, projectionObj, countObj);
 
         List<NitriteSortKey> sortKeys = buildSortKeys(query.order(), queryState);
-        Object sortObj = NitriteSortKeys.toJson(sortKeys);
-        boolean hasSort = !sortKeys.isEmpty();
+        Object sortObj = sortKeys.isEmpty() ? null : NitriteSortKeys.toJson(sortKeys);
 
         boolean hasLookups = !lookupPipeline.isEmpty();
         boolean hasAggregation = !group.isEmpty() || !countObj.isEmpty();
-        boolean needsPipeline = hasLookups || hasAggregation || (hasSort && !predicateObj.isEmpty());
+        boolean needsPipeline = hasLookups || hasAggregation || (sortObj != null && !predicateObj.isEmpty());
+        String queryString;
         if (needsPipeline) {
             List<Map<String, Object>> pipeline = new ArrayList<>(lookupPipeline);
             if (!predicateObj.isEmpty()) {
@@ -131,47 +131,14 @@ public final class NitriteQueryBuilder implements QueryBuilder {
             if (!countObj.isEmpty()) {
                 pipeline.add(countObj);
             }
-            if (hasSort) {
-                pipeline.add(Map.of(NitriteQueryOperators.SORT, sortObj));
-            }
-            if (!projectionObj.isEmpty()) {
-                pipeline.add(Map.of(NitriteQueryOperators.PROJECT, projectionObj));
-            }
-            if (query.offset() > 0) {
-                pipeline.add(Map.of(NitriteQueryOperators.SKIP, query.offset()));
-            }
-            if (query.limit() != -1) {
-                pipeline.add(Map.of(NitriteQueryOperators.LIMIT, query.limit()));
-            }
-            String queryString = NitriteQuerySerializer.toJsonString(pipeline);
-            return QueryResult.of(
-                queryString,
-                List.of(),
-                queryState.getParameterBindings(),
-                Map.of(),
-                query.limit(),
-                query.offset(),
-                query.getJoinPaths());
+            Map<String, Object> stages = selectStages(sortObj, projectionObj, query);
+            stages.forEach((operator, operand) -> pipeline.add(Map.of(operator, operand)));
+            queryString = NitriteQuerySerializer.toJsonString(pipeline);
+        } else {
+            Map<String, Object> topLevel = new LinkedHashMap<>(predicateObj);
+            topLevel.putAll(selectStages(sortObj, projectionObj, query));
+            queryString = topLevel.isEmpty() ? "{}" : NitriteQuerySerializer.toJsonString(topLevel);
         }
-
-        Map<String, Object> topLevel = new LinkedHashMap<>();
-        if (!predicateObj.isEmpty()) {
-            topLevel.putAll(predicateObj);
-        }
-        if (hasSort) {
-            topLevel.put(NitriteQueryOperators.SORT, sortObj);
-        }
-        if (!projectionObj.isEmpty()) {
-            topLevel.put(NitriteQueryOperators.PROJECT, projectionObj);
-        }
-        if (query.offset() > 0) {
-            topLevel.put(NitriteQueryOperators.SKIP, query.offset());
-        }
-        if (query.limit() != -1) {
-            topLevel.put(NitriteQueryOperators.LIMIT, query.limit());
-        }
-
-        String queryString = topLevel.isEmpty() ? "{}" : NitriteQuerySerializer.toJsonString(topLevel);
         return QueryResult.of(
             queryString,
             List.of(),
@@ -180,6 +147,32 @@ public final class NitriteQueryBuilder implements QueryBuilder {
             query.limit(),
             query.offset(),
             query.getJoinPaths());
+    }
+
+    /**
+     * Collects the sort, projection, skip and limit operators that close a select, in that order.
+     * The pipeline form wraps each as its own stage; the top-level form merges them into the query.
+     *
+     * @param sortObj the sort document, {@code null} when unsorted
+     * @param projectionObj the projection document
+     * @param query the select definition carrying offset and limit
+     * @return the operators keyed by name, in emission order
+     */
+    private static Map<String, Object> selectStages(@Nullable Object sortObj, Map<String, Object> projectionObj, SelectQueryDefinition query) {
+        Map<String, Object> stages = new LinkedHashMap<>();
+        if (sortObj != null) {
+            stages.put(NitriteQueryOperators.SORT, sortObj);
+        }
+        if (!projectionObj.isEmpty()) {
+            stages.put(NitriteQueryOperators.PROJECT, projectionObj);
+        }
+        if (query.offset() > 0) {
+            stages.put(NitriteQueryOperators.SKIP, query.offset());
+        }
+        if (query.limit() != -1) {
+            stages.put(NitriteQueryOperators.LIMIT, query.limit());
+        }
+        return stages;
     }
 
     /**
@@ -232,10 +225,10 @@ public final class NitriteQueryBuilder implements QueryBuilder {
             predicateObj = buildWhereClauseFromCriteria(predicate, queryState);
         }
 
-        Map<String, Object> setObj = new LinkedHashMap<>();
-        Map<String, Object> incObj = new LinkedHashMap<>();
-        Map<String, Object> mulObj = new LinkedHashMap<>();
-        Map<String, Object> concatObj = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> operations = new LinkedHashMap<>();
+        for (String operator : List.of(NitriteQueryOperators.SET, NitriteQueryOperators.INC, NitriteQueryOperators.MUL, NitriteQueryOperators.CONCAT)) {
+            operations.put(operator, new LinkedHashMap<>());
+        }
         Map<String, Object> propertiesToUpdate = definition.propertiesToUpdate();
         if (propertiesToUpdate != null) {
             for (Map.Entry<String, Object> entry : propertiesToUpdate.entrySet()) {
@@ -244,41 +237,20 @@ public final class NitriteQueryBuilder implements QueryBuilder {
                 PersistentProperty property = definition.persistentEntity().getPropertyByName(fieldName);
                 String persistedName = property != null ? property.getPersistedName() : fieldName;
                 if (value instanceof BinaryExpression<?> binaryExpression) {
-                    PersistentPropertyPath<?> leftProperty = CriteriaUtils.requireProperty(binaryExpression.getLeft());
-                    if (property != null && !leftProperty.getProperty().getName().equals(property.getName())) {
-                        throw new IllegalStateException("Left property path does not match property path");
-                    }
-                    Object updateValue = Objects.requireNonNull(
-                        updateExpressionValue(queryState, property, binaryExpression.getRight()),
-                        () -> "Null operand in arithmetic update of property: " + persistedName);
-                    switch (binaryExpression.getType()) {
-                        case CONCAT -> concatObj.put(persistedName, updateValue);
-                        case SUM -> incObj.put(persistedName, updateValue);
-                        case PROD -> mulObj.put(persistedName, updateValue);
-                        case QUOT -> mulObj.put(persistedName, withFlag(updateValue, NitriteInternalKeys.RECIPROCATE));
-                        case DIFF -> incObj.put(persistedName, withFlag(updateValue, NitriteInternalKeys.NEGATE));
-                        default -> throw new IllegalStateException("Unsupported binary expression type: " + binaryExpression.getType());
-                    }
+                    putArithmeticUpdate(queryState, property, persistedName, binaryExpression, operations);
                 } else {
-                    setObj.put(persistedName, updateExpressionValue(queryState, property, value));
+                    operations.get(NitriteQueryOperators.SET).put(persistedName, updateExpressionValue(queryState, property, value));
                 }
             }
         }
 
         String predicateString = predicateObj.isEmpty() ? "{}" : NitriteQuerySerializer.toJsonString(predicateObj);
         Map<String, Object> updateObj = new LinkedHashMap<>();
-        if (!setObj.isEmpty()) {
-            updateObj.put(NitriteQueryOperators.SET, setObj);
-        }
-        if (!incObj.isEmpty()) {
-            updateObj.put(NitriteQueryOperators.INC, incObj);
-        }
-        if (!mulObj.isEmpty()) {
-            updateObj.put(NitriteQueryOperators.MUL, mulObj);
-        }
-        if (!concatObj.isEmpty()) {
-            updateObj.put(NitriteQueryOperators.CONCAT, concatObj);
-        }
+        operations.forEach((operator, fields) -> {
+            if (!fields.isEmpty()) {
+                updateObj.put(operator, fields);
+            }
+        });
         String updateString = updateObj.isEmpty() ? null : NitriteQuerySerializer.toJsonString(updateObj);
         List<QueryParameterBinding> parameterBindings = queryState.getParameterBindings();
         return new QueryResult() {
@@ -302,6 +274,35 @@ public final class NitriteQueryBuilder implements QueryBuilder {
                 return parameterBindings;
             }
         };
+    }
+
+    /**
+     * Files one arithmetic or concatenation update under its operator. Subtraction and division
+     * reuse {@code $inc} and {@code $mul} with a flag the runtime applies to the operand.
+     *
+     * @param queryState the query state collecting parameter bindings
+     * @param property the property being updated, {@code null} when it is not mapped
+     * @param persistedName the document field being updated
+     * @param binaryExpression the update expression
+     * @param operations the update documents keyed by operator
+     */
+    private void putArithmeticUpdate(NitriteQueryState queryState, @Nullable PersistentProperty property, String persistedName,
+                                     BinaryExpression<?> binaryExpression, Map<String, Map<String, Object>> operations) {
+        PersistentPropertyPath<?> leftProperty = CriteriaUtils.requireProperty(binaryExpression.getLeft());
+        if (property != null && !leftProperty.getProperty().getName().equals(property.getName())) {
+            throw new IllegalStateException("Left property path does not match property path");
+        }
+        Object updateValue = Objects.requireNonNull(
+            updateExpressionValue(queryState, property, binaryExpression.getRight()),
+            () -> "Null operand in arithmetic update of property: " + persistedName);
+        switch (binaryExpression.getType()) {
+            case CONCAT -> operations.get(NitriteQueryOperators.CONCAT).put(persistedName, updateValue);
+            case SUM -> operations.get(NitriteQueryOperators.INC).put(persistedName, updateValue);
+            case PROD -> operations.get(NitriteQueryOperators.MUL).put(persistedName, updateValue);
+            case QUOT -> operations.get(NitriteQueryOperators.MUL).put(persistedName, withFlag(updateValue, NitriteInternalKeys.RECIPROCATE));
+            case DIFF -> operations.get(NitriteQueryOperators.INC).put(persistedName, withFlag(updateValue, NitriteInternalKeys.NEGATE));
+            default -> throw new IllegalStateException("Unsupported binary expression type: " + binaryExpression.getType());
+        }
     }
 
     /**

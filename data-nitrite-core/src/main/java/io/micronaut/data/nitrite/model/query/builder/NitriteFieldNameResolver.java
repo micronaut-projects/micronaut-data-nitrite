@@ -18,7 +18,6 @@ package io.micronaut.data.nitrite.model.query.builder;
 import io.micronaut.data.annotation.MappedProperty;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.model.Association;
-import io.micronaut.data.model.PersistentEntity;
 import io.micronaut.data.model.PersistentProperty;
 import io.micronaut.data.model.PersistentPropertyPath;
 import org.slf4j.Logger;
@@ -58,87 +57,58 @@ final class NitriteFieldNameResolver {
 
     private static String resolve(PersistentPropertyPath propertyPath) {
         PersistentProperty property = propertyPath.getProperty();
-        PersistentEntity owner = property.getOwner();
-        PersistentProperty identity;
-        try {
-            identity = owner.getIdentity();
-        } catch (IllegalStateException _) {
-            identity = null;
-        }
-        if (identity != null && identity.equals(property) && propertyPath.getAssociations().isEmpty()) {
-            return ID_FIELD;
-        }
-
-        if (propertyPath.getAssociations().isEmpty()) {
-            return property.getPersistedName();
+        List<Association> associations = propertyPath.getAssociations();
+        if (associations.isEmpty()) {
+            return isIdentity(property) ? ID_FIELD : property.getPersistedName();
         }
 
         StringBuilder sb = new StringBuilder();
         boolean inIdentityPath = false;
-        for (Association association : propertyPath.getAssociations()) {
+        for (Association association : associations) {
             if (association.isEmbedded()) {
-                boolean isIdentityAssoc = false;
-                try {
-                    PersistentProperty ownerIdentity = association.getOwner().getIdentity();
-                    isIdentityAssoc = ownerIdentity.equals(association);
-                } catch (IllegalStateException _) {
-                    // Entity may not have an identity property
-                }
-                String segment = isIdentityAssoc ? "_id" : association.getPersistedName();
-                sb.append(segment).append(".");
-                if (isIdentityAssoc) {
-                    inIdentityPath = true;
-                }
+                boolean isIdentityAssoc = isIdentity(association);
+                sb.append(isIdentityAssoc ? "_id" : association.getPersistedName()).append(".");
+                inIdentityPath |= isIdentityAssoc;
+            } else if (inIdentityPath) {
+                sb.append(embeddedIdentitySegment(association)).append(".");
+            } else if (association.getKind() == Relation.Kind.ONE_TO_MANY || association.getKind() == Relation.Kind.MANY_TO_MANY) {
+                sb.append(association.getPersistedName()).append(".");
+            } else if (association.equals(associations.getLast()) && isAssociatedIdentity(association, property)) {
+                return association.getPersistedName();
             } else {
-                if (inIdentityPath) {
-                    boolean isAssocIdentity = false;
-                    try {
-                        PersistentProperty assocOwnerIdentity = association.getOwner().getIdentity();
-                        isAssocIdentity = assocOwnerIdentity.equals(association);
-                    } catch (IllegalStateException _) {
-                        // Entity may not have an identity property
-                    }
-                    String embeddedName;
-                    if (isAssocIdentity) {
-                        embeddedName = "_id";
-                    } else if (association.getAnnotationMetadata().stringValue(MappedProperty.class).isPresent()) {
-                        embeddedName = association.getPersistedName();
-                    } else {
-                        embeddedName = association.getName();
-                    }
-                    sb.append(embeddedName).append(".");
-                } else if (association.getKind() == Relation.Kind.ONE_TO_MANY || association.getKind() == Relation.Kind.MANY_TO_MANY) {
-                    sb.append(association.getPersistedName()).append(".");
-                } else {
-                    List<Association> assocs = propertyPath.getAssociations();
-                    boolean isLast = association.equals(assocs.getLast());
-                    boolean isIdentityAccess = false;
-                    if (isLast) {
-                        try {
-                            isIdentityAccess = association.getAssociatedEntity().getIdentity().equals(property);
-                        } catch (Exception _) {
-                            // Best-effort identity access check
-                        }
-                    }
-                    if (isLast && isIdentityAccess) {
-                        return association.getPersistedName();
-                    }
-                    sb.append(association.getName()).append(".");
-                }
+                sb.append(association.getName()).append(".");
             }
         }
-        if (inIdentityPath) {
-            boolean isPropertyIdentity = false;
-            try {
-                PersistentProperty ownerIdentity = property.getOwner().getIdentity();
-                isPropertyIdentity = ownerIdentity.equals(property);
-            } catch (IllegalStateException _) {
-                // Entity may not have an identity property
-            }
-            sb.append(isPropertyIdentity ? "_id" : property.getPersistedName());
-        } else {
-            sb.append(property.getPersistedName());
-        }
+        sb.append(inIdentityPath && isIdentity(property) ? "_id" : property.getPersistedName());
         return sb.toString();
+    }
+
+    private static String embeddedIdentitySegment(Association association) {
+        if (isIdentity(association)) {
+            return "_id";
+        }
+        if (association.getAnnotationMetadata().stringValue(MappedProperty.class).isPresent()) {
+            return association.getPersistedName();
+        }
+        return association.getName();
+    }
+
+    private static boolean isIdentity(PersistentProperty property) {
+        try {
+            PersistentProperty identity = property.getOwner().getIdentity();
+            return identity != null && identity.equals(property);
+        } catch (IllegalStateException _) {
+            // Entity may not have an identity property
+            return false;
+        }
+    }
+
+    private static boolean isAssociatedIdentity(Association association, PersistentProperty property) {
+        try {
+            return association.getAssociatedEntity().getIdentity().equals(property);
+        } catch (Exception _) {
+            // Best-effort identity access check
+            return false;
+        }
     }
 }

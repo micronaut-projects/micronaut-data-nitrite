@@ -28,25 +28,18 @@ class CompileExpressionHandlerUnitSpec extends Specification {
         def literal = new LiteralExpression("John")
 
         expect:
-        // isLike = true
-        handler.handleRegex("name", false, false, false, false, literal, true, null, queryState, null) == '(?s)^John$'
-        handler.handleRegex("name", false, false, false, false, new LiteralExpression('J_hn%'), true, null, queryState, null) == '(?s)^J.hn.*$'
-        handler.handleRegex("name", false, false, false, false, new LiteralExpression(new LiteralExpression('4_')), true, null, queryState, null) == '(?s)^4.$'
-        handler.handleRegex("name", false, false, false, false, new LiteralExpression('J\\_hn\\%'), true, new LiteralExpression('\\' as char), queryState, null) == '(?s)^J_hn%$'
-        handler.handleRegex("name", false, false, false, false, new LiteralExpression('J\\_hn\\%'), true, new LiteralExpression("\\"), queryState, null) == '(?s)^J_hn%$'
-
         // startsWith = true, plain: an indexed prefix range, not a regex.
-        handler.handleRegex("name", false, false, true, false, literal, false, null, queryState, null) ==
+        handler.handleRegex(false, true, false, literal, queryState, null) ==
             [(NitriteInternalKeys.RANGE_PREFIX): "John"]
 
         // endsWith = true
-        handler.handleRegex("name", false, false, false, true, literal, false, null, queryState, null) == '.*\\QJohn\\E$'
+        handler.handleRegex(false, false, true, literal, queryState, null) == '.*\\QJohn\\E$'
 
         // contains
-        handler.handleRegex("name", false, false, false, false, literal, false, null, queryState, null) == '.*\\QJohn\\E.*'
+        handler.handleRegex(false, false, false, literal, queryState, null) == '.*\\QJohn\\E.*'
 
         // ignoreCase = true
-        handler.handleRegex("name", true, false, false, false, literal, false, null, queryState, null) == '(?i).*\\QJohn\\E.*'
+        handler.handleRegex(true, false, false, literal, queryState, null) == '(?i).*\\QJohn\\E.*'
     }
 
     void "test resolveRegexValue"() {

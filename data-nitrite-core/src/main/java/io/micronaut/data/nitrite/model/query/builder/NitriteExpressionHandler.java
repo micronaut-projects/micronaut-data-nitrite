@@ -42,29 +42,21 @@ public interface NitriteExpressionHandler {
     @Nullable Object resolveValue(NitriteQueryState queryState, PersistentPropertyPath propertyPath, @Nullable Object expression);
 
     /**
-     * Handle a regex-based expression (Like, StartsWith, EndsWith, Contains).
+     * Handle a regex-based expression (StartsWith, EndsWith, Contains, case-insensitive equality).
      *
-     * @param fieldName       the field name
      * @param ignoreCase      whether to ignore case
-     * @param negated         whether the expression is negated
      * @param startsWith      whether it's a starts-with match
      * @param endsWith        whether it's an ends-with match
      * @param rightExpression the right-hand side expression
-     * @param isLike          whether it's a LIKE expression (handling wildcards)
-     * @param escapeExpression the LIKE escape character expression, if present
      * @param queryState      the current query state
      * @param propertyPath    the property path for the left-hand side
      * @return the generated regex value or filter map
      */
     @Nullable Object handleRegex(
-        String fieldName,
         boolean ignoreCase,
-        boolean negated,
         boolean startsWith,
         boolean endsWith,
         @Nullable Expression<?> rightExpression,
-        boolean isLike,
-        @Nullable Expression<Character> escapeExpression,
         NitriteQueryState queryState,
         PersistentPropertyPath propertyPath);
 
