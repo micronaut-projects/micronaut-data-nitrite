@@ -131,6 +131,7 @@ final class NitriteQueryBuilderHelper {
         }
         boolean hasMappedBy = association.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").isPresent();
         if (association.isForeignKey() || hasMappedBy) {
+            // ONE_TO_MANY: localField=_id, foreignField=FK persisted name in other entity
             String mappedBy = association.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
             if (mappedBy == null) {
                 return null;
@@ -142,6 +143,7 @@ final class NitriteQueryBuilderHelper {
             String foreignField = backPropPath.getProperty().getPersistedName();
             pipeline.add(lookup(joinedCollection, "_id", foreignField, stage.pipeline, segment));
         } else {
+            // MANY_TO_ONE / ONE_TO_ONE: localField=FK persisted name, foreignField=_id
             pipeline.add(lookup(joinedCollection, association.getPersistedName(), "_id", stage.pipeline, segment));
             if (association.getKind().isSingleEnded()) {
                 pipeline.add(unwind("$" + segment));
