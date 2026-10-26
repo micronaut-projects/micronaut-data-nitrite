@@ -642,58 +642,74 @@ public final class NitriteEntityMapper {
     }
 
     RuntimePersistentProperty<T> idProperty = safeGetIdentity(persistentEntity);
-    if (idProperty == null && persistentEntity.hasCompositeIdentity()) {
-      // A composite identity has no single id property, and identity properties are not part of
-      // getPersistentProperties(), so nothing else writes them. Without this the document holds only
-      // the generated _id and the identity cannot be read back, filtered or sorted on.
-      for (RuntimePersistentProperty<T> identityProperty : persistentEntity.getRuntimeIdentityProperties()) {
-        Object identityValue = identityProperty.getProperty().get(entity);
-        if (identityValue != null) {
-          doc.put(identityProperty.getPersistedName(), toFilterValue(identityValue));
-        }
+    if (idProperty == null) {
+      if (persistentEntity.hasCompositeIdentity()) {
+        putCompositeIdentity(doc, persistentEntity, entity);
+      }
+      return doc;
+    }
+    Object idValue = idProperty.getProperty().get(entity);
+    if (idValue == null) {
+      return doc;
+    }
+    if (idProperty.isAnnotationPresent(EmbeddedId.class)) {
+      putEmbeddedId(doc, idProperty, idValue);
+    } else {
+      putIdentity(doc, idProperty, idValue);
+    }
+    return doc;
+  }
+
+  private <T> void putCompositeIdentity(Document doc, RuntimePersistentEntity<T> persistentEntity, T entity) {
+    // A composite identity has no single id property, and identity properties are not part of
+    // getPersistentProperties(), so nothing else writes them. Without this the document holds only
+    // the generated _id and the identity cannot be read back, filtered or sorted on.
+    for (RuntimePersistentProperty<T> identityProperty : persistentEntity.getRuntimeIdentityProperties()) {
+      Object identityValue = identityProperty.getProperty().get(entity);
+      if (identityValue != null) {
+        doc.put(identityProperty.getPersistedName(), toFilterValue(identityValue));
       }
     }
-    Object normalizedId = null;
-    Object idValue = idProperty != null ? idProperty.getProperty().get(entity) : null;
-    boolean embeddedIdProperty = idProperty != null && idProperty.isAnnotationPresent(EmbeddedId.class);
-    if (idProperty != null && idValue != null && !embeddedIdProperty) {
-      normalizedId = normalizeIdentityValue(idProperty, idValue);
-      doc.put(ID_FIELD, normalizedId);
-      Long documentKey = documentKeyOf(idProperty, normalizedId);
-      if (documentKey != null) {
-        // Nitrite honours a "_id" already present on the document, and a Long identity is a valid
-        // NitriteId value - a generated one comes from NitriteId.newId() to begin with. Storing the
-        // identity as the document key lets idEqualsFilter plan a lookup as a single map get
-        // instead of a collection scan, without a secondary index to maintain on every write.
-        doc.put(DOC_ID_FIELD, documentKey);
-      }
+  }
+
+  private void putIdentity(Document doc, RuntimePersistentProperty<?> idProperty, Object idValue) {
+    Object normalizedId = normalizeIdentityValue(idProperty, idValue);
+    doc.put(ID_FIELD, normalizedId);
+    Long documentKey = documentKeyOf(idProperty, normalizedId);
+    if (documentKey != null) {
+      // Nitrite honours a "_id" already present on the document, and a Long identity is a valid
+      // NitriteId value - a generated one comes from NitriteId.newId() to begin with. Storing the
+      // identity as the document key lets idEqualsFilter plan a lookup as a single map get
+      // instead of a collection scan, without a secondary index to maintain on every write.
+      doc.put(DOC_ID_FIELD, documentKey);
     }
-    if (idProperty != null && embeddedIdProperty && idValue != null) {
-      try {
-        Document idDoc = toDocumentValue(idValue);
-        if (idDoc != null) {
-          Document persistedIdDoc = toPersistedDocument(idDoc);
-          doc.put(ID_FIELD, idDoc);
-          doc.put(idProperty.getName(), idDoc);
-          doc.put(idProperty.getPersistedName(), persistedIdDoc);
-          for (String field : idDoc.getFields()) {
-            if (field.equals(idProperty.getName())) {
-              continue;
-            }
-            Object fieldValue = toFilterValue(idDoc.get(field));
-            doc.put(field, fieldValue);
-            doc.put(NameUtils.camelToSnake(field), fieldValue);
-          }
-        }
-      } catch (Exception _) {
-        // If embedded ID processing fails, fall through to default normalization
-      }
-    } else if (normalizedId instanceof Document idDoc) {
+    if (normalizedId instanceof Document idDoc) {
       for (String field : idDoc.getFields()) {
         doc.put(field, toFilterValue(idDoc.get(field)));
       }
     }
-    return doc;
+  }
+
+  private void putEmbeddedId(Document doc, RuntimePersistentProperty<?> idProperty, Object idValue) {
+    try {
+      Document idDoc = toDocumentValue(idValue);
+      if (idDoc != null) {
+        Document persistedIdDoc = toPersistedDocument(idDoc);
+        doc.put(ID_FIELD, idDoc);
+        doc.put(idProperty.getName(), idDoc);
+        doc.put(idProperty.getPersistedName(), persistedIdDoc);
+        for (String field : idDoc.getFields()) {
+          if (field.equals(idProperty.getName())) {
+            continue;
+          }
+          Object fieldValue = toFilterValue(idDoc.get(field));
+          doc.put(field, fieldValue);
+          doc.put(NameUtils.camelToSnake(field), fieldValue);
+        }
+      }
+    } catch (Exception _) {
+      // If embedded ID processing fails, fall through to default normalization
+    }
   }
 
     /**
@@ -896,65 +912,14 @@ public final class NitriteEntityMapper {
 
     for (WritablePropertyMeta<T> wpm : meta.writableProps()) {
       Object value = wpm.prop().getProperty().get(entity);
-      if (value == null) {
-        continue;
-      }
-      String fieldName = wpm.fieldName();
       PropertyStrategy strategy = wpm.strategy();
-      if (strategy == null) {
-        continue;
-      }
-      Object stored = switch (strategy) {
-        case JAVA_PASSTHROUGH, GEOMETRY          -> value;
-        case INSTANT, LOCAL_DATE, LOCAL_DATETIME,
-             LOCAL_TIME, ZONED_DATE_TIME,
-             OFFSET_DATE_TIME, UUID, URL,
-             URI, CHARSET                        -> NitriteTypeRegistry.write(value);
-        case ENUM                                -> ((Enum<?>) value).name();
-        case OPTIONAL                            -> ((Optional<?>) value).map(this::toFilterValue).orElse(null);
-        case ENTITY_ID_REF, ASSOCIATION_ID_REF   -> wpm.associatedIdProp() != null ? toFilterValue(wpm.associatedIdProp().get(value)) : null;
-        case MAP, INTROSPECTED_POJO              -> toDocumentValue(value);
-        case SERDE                               -> {
-          if (serdeObjectMapper == null) {
-            yield value;
-          }
-          try {
-            String json = serdeObjectMapper.writeValueAsString(value);
-            yield serdeObjectMapper.readValue(json, Object.class);
-          } catch (Exception _) {
-            yield value;
-          }
+      if (value != null && strategy != null) {
+        Object stored = storedValue(wpm, strategy, value, visited);
+        if (stored != null) {
+          doc.put(wpm.fieldName(), stored);
         }
-        case ASSOCIATION_EMBEDDED                -> convertAssociation(value, (RuntimeAssociation<T>) wpm.prop(), visited);
-        case ASSOCIATION_IDS_REF                 -> {
-          List<Object> ids = new ArrayList<>();
-          for (Object item : (Iterable<?>) value) {
-            if (item != null && wpm.associatedIdProp() != null) {
-              Object idValue = wpm.associatedIdProp().get(item);
-              if (idValue != null) {
-                ids.add(toFilterValue(idValue));
-              }
-            }
-          }
-          yield ids.isEmpty() ? null : ids;
-        }
-        case ASSOCIATION_MAPPED_BY               -> null;
-      };
-      if (stored != null) {
-        doc.put(fieldName, stored);
-      }
-      if (!wpm.compositeJoinColumns().isEmpty() && value != null) {
-        RuntimePersistentEntity<?> associatedEntity = ((RuntimeAssociation<?>) wpm.prop()).getAssociatedEntity();
-        for (CompositeJoinColumn joinColumn : wpm.compositeJoinColumns()) {
-          RuntimePersistentProperty<?> referencedProperty = findPropertyByNameOrPersistedName(
-              associatedEntity, joinColumn.referencedProperty());
-          if (referencedProperty != null) {
-            @SuppressWarnings({"rawtypes", "unchecked"})
-            Object referencedValue = ((BeanProperty) referencedProperty.getProperty()).get(value);
-            if (referencedValue != null) {
-              doc.put(joinColumn.localName(), toFilterValue(referencedValue));
-            }
-          }
+        if (!wpm.compositeJoinColumns().isEmpty()) {
+          putCompositeJoinColumns(doc, wpm, value);
         }
       }
     }
@@ -978,6 +943,64 @@ public final class NitriteEntityMapper {
     }
 
     return doc;
+  }
+
+  private <T> @Nullable Object storedValue(WritablePropertyMeta<T> wpm, PropertyStrategy strategy, Object value, Set<Object> visited) {
+    return switch (strategy) {
+      case JAVA_PASSTHROUGH, GEOMETRY          -> value;
+      case INSTANT, LOCAL_DATE, LOCAL_DATETIME,
+           LOCAL_TIME, ZONED_DATE_TIME,
+           OFFSET_DATE_TIME, UUID, URL,
+           URI, CHARSET                        -> NitriteTypeRegistry.write(value);
+      case ENUM                                -> ((Enum<?>) value).name();
+      case OPTIONAL                            -> ((Optional<?>) value).map(this::toFilterValue).orElse(null);
+      case ENTITY_ID_REF, ASSOCIATION_ID_REF   -> wpm.associatedIdProp() != null ? toFilterValue(wpm.associatedIdProp().get(value)) : null;
+      case MAP, INTROSPECTED_POJO              -> toDocumentValue(value);
+      case SERDE                               -> serdeRoundTrip(value);
+      case ASSOCIATION_EMBEDDED                -> convertAssociation(value, (RuntimeAssociation<?>) wpm.prop(), visited);
+      case ASSOCIATION_IDS_REF                 -> associationIds(wpm.associatedIdProp(), (Iterable<?>) value);
+      case ASSOCIATION_MAPPED_BY               -> null;
+    };
+  }
+
+  private Object serdeRoundTrip(Object value) {
+    if (serdeObjectMapper == null) {
+      return value;
+    }
+    try {
+      String json = serdeObjectMapper.writeValueAsString(value);
+      return serdeObjectMapper.readValue(json, Object.class);
+    } catch (Exception _) {
+      return value;
+    }
+  }
+
+  private @Nullable List<Object> associationIds(@Nullable BeanProperty<Object, Object> associatedIdProp, Iterable<?> items) {
+    List<Object> ids = new ArrayList<>();
+    for (Object item : items) {
+      if (item != null && associatedIdProp != null) {
+        Object idValue = associatedIdProp.get(item);
+        if (idValue != null) {
+          ids.add(toFilterValue(idValue));
+        }
+      }
+    }
+    return ids.isEmpty() ? null : ids;
+  }
+
+  private <T> void putCompositeJoinColumns(Document doc, WritablePropertyMeta<T> wpm, Object value) {
+    RuntimePersistentEntity<?> associatedEntity = ((RuntimeAssociation<?>) wpm.prop()).getAssociatedEntity();
+    for (CompositeJoinColumn joinColumn : wpm.compositeJoinColumns()) {
+      RuntimePersistentProperty<?> referencedProperty = findPropertyByNameOrPersistedName(
+          associatedEntity, joinColumn.referencedProperty());
+      if (referencedProperty != null) {
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        Object referencedValue = ((BeanProperty) referencedProperty.getProperty()).get(value);
+        if (referencedValue != null) {
+          doc.put(joinColumn.localName(), toFilterValue(referencedValue));
+        }
+      }
+    }
   }
 
   private <A> @Nullable Object convertAssociation(@Nullable Object value, RuntimeAssociation<A> association, Set<Object> visited) {
