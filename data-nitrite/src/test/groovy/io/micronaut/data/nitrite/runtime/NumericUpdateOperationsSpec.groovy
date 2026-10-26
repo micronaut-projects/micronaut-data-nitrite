@@ -111,6 +111,58 @@ class NumericUpdateOperationsSpec extends Specification {
         2.5d          | new BigDecimal("3.5")
     }
 
+    void "decimal multiplication truncates negative integral results toward zero and preserves floating values"() {
+        expect:
+        def cases = [
+            [current: -5 as Integer, expected: -2 as Integer],
+            [current: -5L, expected: -2L],
+            [current: (short) -5, expected: (short) -2],
+            [current: (byte) -5, expected: (byte) -2],
+            [current: -5.5f, expected: -2.75f],
+            [current: -5.5d, expected: -2.75d]
+        ]
+        cases.each { testCase ->
+            def result = NumericUpdateOperations.apply(testCase.current, new BigDecimal("0.5"), true, "amount")
+            assert result == testCase.expected
+            assert result.class == testCase.current.class
+        }
+    }
+
+    void "floating point increments preserve values and types at every stored numeric width"() {
+        expect:
+        def cases = [
+            [current: 10 as Integer, expected: 12 as Integer],
+            [current: 10L, expected: 12L],
+            [current: (short) 10, expected: (short) 12],
+            [current: (byte) 10, expected: (byte) 12],
+            [current: 10.5f, expected: 13.0f],
+            [current: 10.5d, expected: 13.0d]
+        ]
+        cases.each { testCase ->
+            def result = NumericUpdateOperations.apply(testCase.current, 2.5d, false, "amount")
+            assert result == testCase.expected
+            assert result.class == testCase.current.class
+        }
+    }
+
+    void "negation preserves decimal precision and integers beyond the long range"() {
+        given:
+        def decimal = new BigDecimal("123456789012345678901234567890.123456789")
+        def integer = new BigInteger("123456789012345678901234567890")
+
+        expect:
+        NumericUpdateOperations.negate(decimal) == new BigDecimal("-123456789012345678901234567890.123456789")
+        NumericUpdateOperations.negate(decimal) instanceof BigDecimal
+        NumericUpdateOperations.negate(integer) == new BigInteger("-123456789012345678901234567890")
+        NumericUpdateOperations.negate(integer) instanceof BigInteger
+    }
+
+    void "reciprocal preserves an exact power of ten beyond the long range"() {
+        expect:
+        NumericUpdateOperations.reciprocal(new BigInteger("10000000000000000000000000")) ==
+            new BigDecimal("0.0000000000000000000000001")
+    }
+
     void "negate preserves the operand's numeric type"() {
         expect:
         def result = NumericUpdateOperations.negate(number)

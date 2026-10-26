@@ -569,7 +569,7 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
                 String s = v.toString();
                 int codePoints = s.codePointCount(0, s.length());
                 int from = Math.clamp(startValue, 0, codePoints);
-                int to = Math.clamp(from + Math.max(0, lengthValue), from, codePoints);
+                int to = Math.clamp((long) from + Math.max(0, lengthValue), from, codePoints);
                 return s.substring(s.offsetByCodePoints(0, from), s.offsetByCodePoints(0, to));
             }
         }
