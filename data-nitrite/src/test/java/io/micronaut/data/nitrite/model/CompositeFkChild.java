@@ -6,7 +6,6 @@ import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.sql.JoinColumn;
-import io.micronaut.data.annotation.sql.JoinColumns;
 
 @MappedEntity
 public class CompositeFkChild {
@@ -18,10 +17,8 @@ public class CompositeFkChild {
     private String name;
 
     @Relation(Relation.Kind.MANY_TO_ONE)
-    @JoinColumns({
-        @JoinColumn(name = "fk_tenant_id", referencedColumnName = "tenantId"),
-        @JoinColumn(name = "fk_ref_id", referencedColumnName = "refId")
-    })
+    @JoinColumn(name = "fk_tenant_id", referencedColumnName = "tenantId")
+    @JoinColumn(name = "fk_ref_id", referencedColumnName = "refId")
     private CompositeFkParent parent;
 
     public CompositeFkChild() {

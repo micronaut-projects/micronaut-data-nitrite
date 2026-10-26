@@ -15,9 +15,6 @@ public class NitriteOtoChild {
     @Relation(value = Relation.Kind.MANY_TO_ONE)
     private NitriteOtoParent parent;
 
-    public NitriteOtoChild() {
-    }
-
     public String getId() {
         return id;
     }

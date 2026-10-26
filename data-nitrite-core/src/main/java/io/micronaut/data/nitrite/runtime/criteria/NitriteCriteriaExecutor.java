@@ -559,8 +559,11 @@ public final class NitriteCriteriaExecutor {
     private Window pipelineWindow(@Nullable Object parsedQuery, int offset, int limit) {
         int windowOffset = offset;
         int windowLimit = limit;
-        List<?> stages = parsedQuery instanceof List<?> pipeline ? pipeline
-            : parsedQuery instanceof Map<?, ?> map ? List.of(map) : List.of();
+        List<?> stages = switch (parsedQuery) {
+            case List<?> pipeline -> pipeline;
+            case Map<?, ?> map -> List.of(map);
+            case null, default -> List.of();
+        };
         for (Object stage : stages) {
             if (!(stage instanceof Map<?, ?> stageMap)) {
                 continue;
@@ -613,7 +616,7 @@ public final class NitriteCriteriaExecutor {
     }
 
     private static List<Document> applyWindow(List<Document> documents, int offset, int limit) {
-        int from = Math.min(Math.max(offset, 0), documents.size());
+        int from = Math.clamp(offset, 0, documents.size());
         int to = limit < 0 ? documents.size() : Math.min(from + limit, documents.size());
         return documents.subList(from, to);
     }
@@ -721,13 +724,11 @@ public final class NitriteCriteriaExecutor {
     }
 
     private Class<?> getEntityType(Object query) {
-        if (query instanceof CriteriaUpdate<?> update) {
-            return ((RuntimePersistentEntity<?>) ((PersistentEntityCriteriaUpdate<?>) update).getPersistentEntity()).getIntrospection().getBeanType();
-        } else if (query instanceof CriteriaDelete<?> delete) {
-            return ((RuntimePersistentEntity<?>) ((PersistentEntityCriteriaDelete<?>) delete).getPersistentEntity()).getIntrospection().getBeanType();
-        } else {
-            return ((RuntimePersistentEntity<?>) ((PersistentEntityQuery<?>) query).getPersistentEntity()).getIntrospection().getBeanType();
-        }
+        return switch (query) {
+            case CriteriaUpdate<?> update -> ((RuntimePersistentEntity<?>) ((PersistentEntityCriteriaUpdate<?>) update).getPersistentEntity()).getIntrospection().getBeanType();
+            case CriteriaDelete<?> delete -> ((RuntimePersistentEntity<?>) ((PersistentEntityCriteriaDelete<?>) delete).getPersistentEntity()).getIntrospection().getBeanType();
+            case null, default -> ((RuntimePersistentEntity<?>) ((PersistentEntityQuery<?>) query).getPersistentEntity()).getIntrospection().getBeanType();
+        };
     }
 
     /**

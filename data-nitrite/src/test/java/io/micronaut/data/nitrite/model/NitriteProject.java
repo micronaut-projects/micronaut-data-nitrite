@@ -11,9 +11,6 @@ public class NitriteProject {
     private NitriteProjectId id;
     private String name;
 
-    public NitriteProject() {
-    }
-
     public NitriteProjectId getId() {
         return id;
     }

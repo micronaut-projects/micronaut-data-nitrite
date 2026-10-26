@@ -44,6 +44,7 @@ public class NitriteTransactionHolder {
    * Default constructor.
    */
   public NitriteTransactionHolder() {
+    // Each holder identifies a datasource; thread contexts are allocated on first bind.
   }
 
   /**
@@ -58,7 +59,7 @@ public class NitriteTransactionHolder {
     }
     Map<NitriteTransactionHolder, NitriteTransactionContext> contexts = CONTEXTS.get();
     if (contexts == null) {
-      contexts = new HashMap<>(2);
+      contexts = HashMap.newHashMap(2);
       CONTEXTS.set(contexts);
     }
     contexts.put(this, context);

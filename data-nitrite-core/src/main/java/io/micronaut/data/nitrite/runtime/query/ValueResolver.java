@@ -102,10 +102,9 @@ final class ValueResolver {
             }
         }
         if (value instanceof Map<?, ?> vm && vm.size() == 1
-            && vm.get(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER) instanceof Integer idx) {
-            if (params != null && idx >= 0 && idx < params.length) {
-                return params[idx];
-            }
+            && vm.get(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER) instanceof Integer idx
+            && params != null && idx >= 0 && idx < params.length) {
+            return params[idx];
         }
         return value;
     }

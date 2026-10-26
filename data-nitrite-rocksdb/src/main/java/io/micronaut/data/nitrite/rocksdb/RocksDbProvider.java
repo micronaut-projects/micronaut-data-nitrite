@@ -34,6 +34,7 @@ import java.util.Comparator;
 public final class RocksDbProvider implements NitriteStoreProvider {
     /** Creates a provider. */
     public RocksDbProvider() {
+        // ServiceLoader creates this stateless provider through its public no-argument constructor.
     }
 
     @Override

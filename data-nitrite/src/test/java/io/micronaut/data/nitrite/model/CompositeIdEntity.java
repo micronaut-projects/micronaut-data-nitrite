@@ -19,9 +19,6 @@ public class CompositeIdEntity {
 
     private String name;
 
-    public CompositeIdEntity() {
-    }
-
     public String getTenantId() {
         return tenantId;
     }

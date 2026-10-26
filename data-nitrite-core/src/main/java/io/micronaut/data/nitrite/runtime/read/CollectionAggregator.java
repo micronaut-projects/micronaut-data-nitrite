@@ -48,6 +48,7 @@ public final class CollectionAggregator {
      * Create a new aggregator.
      */
     public CollectionAggregator() {
+        // Aggregation uses only method arguments and static patterns.
     }
 
     /**
@@ -251,7 +252,7 @@ public final class CollectionAggregator {
      * @param methodName the method name
      * @return true if it's an aggregation method
      */
-    public boolean isAggregationMethod(String methodName) {
+    public boolean isAggregationMethod(@Nullable String methodName) {
         if (methodName == null || methodName.length() < 10) {
             return false;
         }

@@ -91,6 +91,7 @@ public final class NitriteEntityMapper {
 
   /** Nitrite's own document key field. */
   private static final String DOC_ID_FIELD = "_id";
+  private static final String JAVA_PACKAGE_PREFIX = "java.";
 
   private static final Logger LOG = LoggerFactory.getLogger(NitriteEntityMapper.class);
   private static final String GEOMETRY_CLASS = "org.locationtech.jts.geom.Geometry";
@@ -154,7 +155,7 @@ public final class NitriteEntityMapper {
 
     Class<?> clazz = value.getClass();
     // Skip expensive entity registry lookups for JDK classes
-    if (clazz.getName().startsWith("java.")) {
+    if (clazz.getName().startsWith(JAVA_PACKAGE_PREFIX)) {
         return value;
     }
 
@@ -207,7 +208,7 @@ public final class NitriteEntityMapper {
       return val;
     }
     Class<?> clazz = val.getClass();
-    if (!clazz.getName().startsWith("java.")) {
+    if (!clazz.getName().startsWith(JAVA_PACKAGE_PREFIX)) {
       Optional<BeanIntrospection<Object>> intro = BeanIntrospector.SHARED.findIntrospection(castClass(clazz));
       if (intro.isPresent()) {
         if (intro.get().hasAnnotation(MappedEntity.class)) {
@@ -1238,7 +1239,7 @@ public final class NitriteEntityMapper {
     // toFilterValue returned the original: either a java.* type (collection, array — store as-is)
     // or a custom POJO it doesn't know about. For custom non-java types, use Serde so that
     // Jackson/Serde annotations (@JsonSerialize etc.) on the type are respected.
-    if (serdeObjectMapper != null && !value.getClass().getName().startsWith("java.") && !value.getClass().isArray()) {
+    if (serdeObjectMapper != null && !value.getClass().getName().startsWith(JAVA_PACKAGE_PREFIX) && !value.getClass().isArray()) {
       try {
         String json = serdeObjectMapper.writeValueAsString(value);
         return serdeObjectMapper.readValue(json, Object.class);
@@ -1257,7 +1258,7 @@ public final class NitriteEntityMapper {
       return toDocumentValue(idValue);
     }
     Class<?> idType = idProperty.getType();
-    if (isSimpleType(idType) || idType.isEnum() || idType.isArray() || idType.getName().startsWith("java.")) {
+    if (isSimpleType(idType) || idType.isEnum() || idType.isArray() || idType.getName().startsWith(JAVA_PACKAGE_PREFIX)) {
       return toFilterValue(idValue);
     }
     return toDocumentValue(idValue);

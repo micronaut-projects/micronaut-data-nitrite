@@ -43,6 +43,7 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
      * Creates a new instance of RuntimeExpressionHandler for runtime parameter binding.
      */
     public RuntimeExpressionHandler() {
+        // Expression translation is stateless; no instance setup is needed.
     }
 
     @Override

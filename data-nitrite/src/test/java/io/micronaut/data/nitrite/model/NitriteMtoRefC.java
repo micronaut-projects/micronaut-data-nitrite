@@ -11,9 +11,6 @@ public class NitriteMtoRefC {
     private String id;
     private String name;
 
-    public NitriteMtoRefC() {
-    }
-
     public String getId() {
         return id;
     }

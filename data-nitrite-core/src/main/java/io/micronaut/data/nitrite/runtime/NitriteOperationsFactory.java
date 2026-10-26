@@ -125,7 +125,7 @@ final class NitriteOperationsFactory {
     File file = Path.of(dbPath).toFile();
     File parent = file.getParentFile();
     if (parent != null && !parent.exists() && !parent.mkdirs()) {
-      throw new RuntimeException("Could not create directory " + parent);
+      throw new IllegalStateException("Could not create directory " + parent);
     }
     return file;
   }

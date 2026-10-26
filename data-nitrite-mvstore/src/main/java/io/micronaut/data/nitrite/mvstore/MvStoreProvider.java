@@ -39,6 +39,7 @@ import java.util.function.Consumer;
 public final class MvStoreProvider implements NitriteStoreProvider {
   /** Creates a provider. */
   public MvStoreProvider() {
+    // ServiceLoader creates this stateless provider through its public no-argument constructor.
   }
 
   @Override

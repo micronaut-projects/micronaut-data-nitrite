@@ -75,7 +75,10 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
                     results.add(f);
                 }
             }
-            return results.isEmpty() ? Filter.ALL : results.size() == 1 ? results.getFirst() : Filter.and(results.toArray(new Filter[0]));
+            if (results.isEmpty()) {
+                return Filter.ALL;
+            }
+            return results.size() == 1 ? results.getFirst() : Filter.and(results.toArray(new Filter[0]));
         }
     }
 
@@ -96,7 +99,10 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
                     results.add(f);
                 }
             }
-            return results.isEmpty() ? Filter.ALL : results.size() == 1 ? results.getFirst() : Filter.or(results.toArray(new Filter[0]));
+            if (results.isEmpty()) {
+                return Filter.ALL;
+            }
+            return results.size() == 1 ? results.getFirst() : Filter.or(results.toArray(new Filter[0]));
         }
     }
 
@@ -167,16 +173,19 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
         @Override
         public Filter toFilter(Object[] params, Map<String, Object> namedParameters) {
             if (operators.size() == 1) {
-                return operators.getFirst().toFilter(preparer, evaluator, entity, persistedName, rawField, params, namedParameters);
+                return operators.getFirst().toFilter(preparer, evaluator, entity, persistedName, params, namedParameters);
             }
             List<Filter> results = new ArrayList<>(operators.size());
             for (OperatorBinding op : operators) {
-                Filter f = op.toFilter(preparer, evaluator, entity, persistedName, rawField, params, namedParameters);
+                Filter f = op.toFilter(preparer, evaluator, entity, persistedName, params, namedParameters);
                 if (f != null && !f.equals(Filter.ALL)) {
                     results.add(f);
                 }
             }
-            return results.isEmpty() ? Filter.ALL : results.size() == 1 ? results.getFirst() : Filter.and(results.toArray(new Filter[0]));
+            if (results.isEmpty()) {
+                return Filter.ALL;
+            }
+            return results.size() == 1 ? results.getFirst() : Filter.and(results.toArray(new Filter[0]));
         }
     }
 
@@ -195,12 +204,11 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
          * @param evaluator the evaluator to build the final operator filter
          * @param entity the runtime persistent entity being queried
          * @param persistedName the persisted name of the field
-         * @param rawField the raw property path of the field
          * @param params the positional parameters array
          * @param namedParameters the named parameters map
          * @return the constructed Nitrite Filter representing this binding
          */
-        public Filter toFilter(FieldValuePreparer preparer, OperatorFilterEvaluator evaluator, RuntimePersistentEntity<?> entity, String persistedName, String rawField, Object[] params, Map<String, Object> namedParameters) {
+        public Filter toFilter(FieldValuePreparer preparer, OperatorFilterEvaluator evaluator, RuntimePersistentEntity<?> entity, String persistedName, Object[] params, Map<String, Object> namedParameters) {
             Object resolvedValue = valueExpression.resolve(params, namedParameters);
             Object finalValue = preparer.prepare(persistedName, resolvedValue);
             Filter f = evaluator.evaluate(entity, persistedName, op, finalValue, params, namedParameters);

@@ -21,9 +21,6 @@ public class NitriteComplexEntity {
     @Relation(value = Relation.Kind.ONE_TO_MANY, cascade = Relation.Cascade.ALL)
     private List<NitriteComplexValue> values = new ArrayList<>();
 
-    public NitriteComplexEntity() {
-    }
-
     public String getId() {
         return id;
     }

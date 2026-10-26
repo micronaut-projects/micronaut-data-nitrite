@@ -812,7 +812,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
             io.micronaut.data.model.jpa.criteria.PersistentPropertyPath<?> propertyPathExpr) {
             PersistentPropertyPath propertyPath = propertyPathExpr.getPropertyPath();
             String fieldName = getFieldName(propertyPath);
-            Map<String, Object> pattern = new LinkedHashMap<>(3);
+            Map<String, Object> pattern = LinkedHashMap.newLinkedHashMap(3);
             pattern.put(NitriteInternalKeys.LIKE_PATTERN, valueRepresentation(queryState, propertyPath, likePredicate.getPattern()));
             Object escape = likePredicate.getEscapeChar() == null
                 ? null

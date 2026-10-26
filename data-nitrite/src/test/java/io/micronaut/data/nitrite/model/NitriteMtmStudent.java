@@ -18,9 +18,6 @@ public class NitriteMtmStudent {
     @Relation(value = Relation.Kind.MANY_TO_MANY, cascade = Relation.Cascade.ALL)
     private List<NitriteMtmCourse> courses = new ArrayList<>();
 
-    public NitriteMtmStudent() {
-    }
-
     public String getId() {
         return id;
     }

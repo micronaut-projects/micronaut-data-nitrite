@@ -36,6 +36,7 @@ import org.locationtech.jts.geom.Point;
 public final class SpatialSupport implements NitriteSpatialSupport {
     /** Creates a provider. */
     public SpatialSupport() {
+        // ServiceLoader creates this stateless provider through its public no-argument constructor.
     }
 
     @Override

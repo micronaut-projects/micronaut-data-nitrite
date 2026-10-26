@@ -5,7 +5,6 @@ import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.sql.JoinColumn;
-import io.micronaut.data.annotation.sql.JoinColumns;
 
 @MappedEntity
 public class MappedCompositeJoinChild {
@@ -17,11 +16,9 @@ public class MappedCompositeJoinChild {
     private String name;
 
     @Relation(Relation.Kind.MANY_TO_ONE)
-    @JoinColumns({
-        @JoinColumn(name = "parent_tenant_key", referencedColumnName = "tenant_key"),
-        @JoinColumn(name = "parent_reference_key", referencedColumnName = "reference_key"),
-        @JoinColumn(name = "parent_name_key", referencedColumnName = "name_key")
-    })
+    @JoinColumn(name = "parent_tenant_key", referencedColumnName = "tenant_key")
+    @JoinColumn(name = "parent_reference_key", referencedColumnName = "reference_key")
+    @JoinColumn(name = "parent_name_key", referencedColumnName = "name_key")
     private MappedCompositeJoinParent parent;
 
     public MappedCompositeJoinChild() {

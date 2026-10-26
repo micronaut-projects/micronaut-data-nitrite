@@ -49,9 +49,8 @@ final class NitriteTuple implements Tuple {
         for (int i = 0; i < values.length; i++) {
             String alias = i < elementAliases.size() ? elementAliases.get(i) : null;
             Object value = values[i];
-            Class<?> javaType = i < elementJavaTypes.size()
-                ? elementJavaTypes.get(i)
-                : value == null ? Object.class : value.getClass();
+            Class<?> fallbackType = value == null ? Object.class : value.getClass();
+            Class<?> javaType = i < elementJavaTypes.size() ? elementJavaTypes.get(i) : fallbackType;
             tupleElements.add(new NitriteTupleElement(alias, javaType));
         }
         this.elements = List.copyOf(tupleElements);

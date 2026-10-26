@@ -48,14 +48,15 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
      * Creates a new instance of CompileExpressionHandler for compile-time query expression translation.
      */
     public CompileExpressionHandler() {
+        // The fallback is initialized with the instance; no further setup is needed.
     }
 
     @Override
     public @Nullable Object resolveValue(NitriteQueryState queryState, PersistentPropertyPath propertyPath, @Nullable Object value) {
         if (value instanceof LiteralExpression<?> literal) {
             Object val = unwrapLiteral(literal);
-            if (val instanceof RegexPattern regex) {
-                return regex.value();
+            if (val instanceof RegexPattern(var pattern)) {
+                return pattern;
             }
             return ValueConverter.toFilterValueStatic(val);
         }
@@ -80,7 +81,7 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
             if (startsWith && !endsWith && !ignoreCase && !isLike) {
                 // A pure prefix match is a lexicographic range, not a pattern: NitriteFilterBuilder
                 // turns this into an indexed GTE/LT pair instead of RegexFilter's per-document scan.
-                Map<String, Object> range = new LinkedHashMap<>(1);
+                Map<String, Object> range = LinkedHashMap.newLinkedHashMap(1);
                 range.put(NitriteInternalKeys.RANGE_PREFIX, ValueConverter.toFilterValueStatic(val));
                 return range;
             }
