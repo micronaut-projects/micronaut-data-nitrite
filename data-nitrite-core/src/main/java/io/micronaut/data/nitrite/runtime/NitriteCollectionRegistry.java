@@ -32,6 +32,7 @@ import io.micronaut.data.nitrite.transaction.NitriteTransactionContext;
 import io.micronaut.data.nitrite.transaction.NitriteTransactionHolder;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteSecurityException;
 import org.dizitart.no2.index.IndexOptions;
 import org.dizitart.no2.index.IndexType;
 import org.slf4j.Logger;
@@ -54,6 +55,7 @@ import static org.dizitart.no2.index.IndexOptions.indexOptions;
 final class NitriteCollectionRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(NitriteCollectionRegistry.class);
+    private static final String DESERIALIZATION_REJECTED = "is not allowed to be deserialized";
 
     private final Nitrite database;
     private final NitriteTransactionHolder transactionHolder;
@@ -88,18 +90,48 @@ final class NitriteCollectionRegistry {
             // Nitrite transactions require the collection to pre-exist before the transaction started.
             // Touch the collection on the database first (idempotent: creates if absent), reusing
             // collectionCache so the touch only happens once per name instead of on every call.
-            collectionCache.computeIfAbsent(name, database::getCollection);
+            collectionCache.computeIfAbsent(name, this::openCollection);
             NitriteTransactionContext tx = transactionHolder.get();
             if (tx != null) {
                 collection = tx.getCollection(name);
             } else {
-                collection = collectionCache.computeIfAbsent(name, database::getCollection);
+                collection = collectionCache.computeIfAbsent(name, this::openCollection);
             }
         } else {
-            collection = collectionCache.computeIfAbsent(name, database::getCollection);
+            collection = collectionCache.computeIfAbsent(name, this::openCollection);
         }
         ensureIndexes(type, collection, name);
         return collection;
+    }
+
+    private NitriteCollection openCollection(String name) {
+        try {
+            return database.getCollection(name);
+        } catch (NitriteSecurityException e) {
+            throw openFailure(e, name, configuration.getName());
+        }
+    }
+
+    /**
+     * MVStore rejects a stored class that is not allowlisted when it opens the collection's map,
+     * before any read or write runs. That rejection becomes a {@link DataAccessException} naming
+     * the datasource property that allowlists the class; other security failures are unchanged.
+     *
+     * @param failure the failure raised while opening the collection
+     * @param collection the collection name
+     * @param dataSourceName the datasource name
+     * @return the exception to throw
+     */
+    static RuntimeException openFailure(NitriteSecurityException failure, String collection, String dataSourceName) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message != null && message.contains(DESERIALIZATION_REJECTED)) {
+                return new DataAccessException("Unable to open Nitrite collection " + collection + ": "
+                    + failure.getMessage() + ". For Micronaut Data, configure `micronaut.nitrite." + dataSourceName
+                    + ".mvstore-allowed-classes` with a JEP 290 pattern for the trusted application class.", failure);
+            }
+        }
+        return failure;
     }
 
     /**

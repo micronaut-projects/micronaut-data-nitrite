@@ -2,13 +2,16 @@ package io.micronaut.data.nitrite.conf
 
 import io.micronaut.context.ApplicationContext
 import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
+import io.micronaut.data.exceptions.DataAccessException
 import io.micronaut.data.nitrite.runtime.DefaultNitriteRepositoryOperations
-import io.micronaut.data.nitrite.runtime.write.NitriteOperationFailure
+import io.micronaut.data.nitrite.runtime.OperationsEntity
+import io.micronaut.data.nitrite.runtime.OperationsRepository
 import io.micronaut.inject.qualifiers.Qualifiers
 import org.dizitart.no2.mvstore.MVStoreModuleBuilder
 import org.dizitart.no2.exceptions.NitriteSecurityException
 import org.dizitart.no2.Nitrite
 import org.dizitart.no2.collection.Document
+import org.dizitart.no2.filters.Filter
 import spock.lang.AutoCleanup
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -391,31 +394,38 @@ class NitriteConfigurationSpec extends Specification {
         Files.deleteIfExists(directory)
     }
 
-    void "a rejected MVStore read names the datasource's allowlist setting"() {
+    @Unroll
+    void "a repository #operation over a rejected MVStore value names the datasource's allowlist setting"() {
         given:
-        def directory = Files.createTempDirectory("nitrite-allowlist-hint")
-        def dbPath = directory.resolve("archive.db")
-        def props = ["micronaut.nitrite.archive.db-path": dbPath.toString()]
-        def allowed = props + ["micronaut.nitrite.archive.mvstore-allowed-classes": StoredValue.name]
+        def directory = Files.createTempDirectory("nitrite-write-hint")
+        def dbPath = directory.resolve("operations.db")
+        def props = ["micronaut.nitrite.default.db-path": dbPath.toString()]
+        def allowed = props + ["micronaut.nitrite.default.mvstore-allowed-classes": StoredValue.name]
         ctx = ApplicationContext.run(allowed)
-        ctx.getBean(Nitrite, Qualifiers.byName("archive")).getCollection("values")
-                .insert(Document.createDocument("value", new StoredValue("persisted")))
+        def stored = new OperationsEntity(id: 1L, name: "stored")
+        ctx.getBean(OperationsRepository).save(stored)
+        ctx.getBean(DefaultNitriteRepositoryOperations).getCollection(OperationsEntity)
+                .update(Filter.ALL, Document.createDocument("tray", [new StoredValue("persisted")]))
         ctx.close()
         ctx = ApplicationContext.run(props)
-        def operations = ctx.getBean(DefaultNitriteRepositoryOperations, Qualifiers.byName("archive"))
 
         when:
-        ctx.getBean(Nitrite, Qualifiers.byName("archive")).getCollection("values").find().firstOrNull()
+        write(ctx.getBean(OperationsRepository), new OperationsEntity(id: 1L, name: "updated"))
 
         then:
-        def rejection = thrown(NitriteSecurityException)
-        NitriteOperationFailure.from(rejection, "PERSIST", operations.dataSourceName).message
-                .contains("`micronaut.nitrite.archive.mvstore-allowed-classes`")
+        def failure = thrown(DataAccessException)
+        failure.message.contains("`micronaut.nitrite.default.mvstore-allowed-classes`")
 
         cleanup:
         ctx.close()
         Files.deleteIfExists(dbPath)
         Files.deleteIfExists(directory)
+
+        where:
+        operation  | write
+        "save"     | { OperationsRepository repository, OperationsEntity entity -> repository.save(entity) }
+        "saveAll"  | { OperationsRepository repository, OperationsEntity entity -> repository.saveAll([entity]) }
+        "findAll"  | { OperationsRepository repository, OperationsEntity entity -> repository.findAll() }
     }
 
     static class StoredValue implements Serializable {
