@@ -597,47 +597,13 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         if (!cursored && pageable.getOffset() > 0) {
             options.skip(pageable.getOffset());
         }
-        // A key is merged under the field it orders by, so a runtime sort replaces the query's own
-        // key for that field rather than ordering by it twice. A computed key orders by no field
-        // and so is merged under itself, which nothing else can replace.
-        Map<Object, NitriteSortKey> mergedKeys = new LinkedHashMap<>();
-        for (NitriteSortKey key : additionalSortKeys) {
-            mergedKeys.put(key.isExpression() ? key : key.field(), key);
-        }
-        for (NitriteSortKey key : NitriteSortKeys.fromSort(pageable.getSort())) {
-            mergedKeys.put(key.field(), key);
-        }
-        if (cursored && entity != null) {
-            // Cursor ordering appends the entity identity so that records sharing a primary sort
-            // value cannot be skipped between pages.
-            Map<String, Sort.Order> identityOrders = new LinkedHashMap<>();
-            for (Sort.Order order : NitriteSortKeys.toOrders(List.copyOf(mergedKeys.values()))) {
-                identityOrders.put(order.getProperty(), order);
-            }
-            appendIdentitySort(identityOrders, entity);
-            mergedKeys.clear();
-            for (NitriteSortKey key : NitriteSortKeys.fromSort(Sort.of(new ArrayList<>(identityOrders.values())))) {
-                mergedKeys.put(key.field(), key);
-            }
-        }
-        List<NitriteSortKey> sortKeys = mergedKeys.values().stream()
-            .map(key -> key.isExpression()
-                ? key
-                : NitriteSortKey.ofField(normalizeSortProperty(
-                    Objects.requireNonNull(key.field(), "A stored sort key must have a field"), entity),
-                    key.ascending(), key.nullOrdering()))
-            .toList();
+        List<NitriteSortKey> sortKeys = resolveSortKeys(pageable, additionalSortKeys, cursored, entity);
         // Apply limit from pageable first, then from explicit Limit (for methods like listTop10).
         // For MVSTORE and in-memory, a sorted read has this bound taken off again by
         // CursorWindow.withholdSortedLimit and applied to its cursor instead, so that the find
         // does not take Nitrite's index-ordered path. RocksDB retains the bound because its
         // bounded indexed path is faster than the unbounded alternative.
-        int effectiveLimit = -1;
-        if (!cursored && pageable.getSize() > 0) {
-            effectiveLimit = pageable.getSize();
-        } else if (!cursored && limit != null && limit.maxResults() > 0) {
-            effectiveLimit = limit.maxResults();
-        }
+        int effectiveLimit = effectiveLimit(pageable, limit, cursored);
         if (effectiveLimit > 0) {
             options.limit(effectiveLimit);
         }
@@ -649,6 +615,61 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         }
         sortPlan.withholdWindow(options);
         return new NitriteFind(options, sortPlan);
+    }
+
+    /**
+     * A key is merged under the field it orders by, so a runtime sort replaces the query's own key
+     * for that field rather than ordering by it twice. A computed key orders by no field and so is
+     * merged under itself, which nothing else can replace.
+     */
+    private List<NitriteSortKey> resolveSortKeys(Pageable pageable,
+                                                 List<NitriteSortKey> additionalSortKeys,
+                                                 boolean cursored,
+                                                 @Nullable RuntimePersistentEntity<?> entity) {
+        Map<Object, NitriteSortKey> mergedKeys = new LinkedHashMap<>();
+        for (NitriteSortKey key : additionalSortKeys) {
+            mergedKeys.put(key.isExpression() ? key : key.field(), key);
+        }
+        for (NitriteSortKey key : NitriteSortKeys.fromSort(pageable.getSort())) {
+            mergedKeys.put(key.field(), key);
+        }
+        if (cursored && entity != null) {
+            appendCursorIdentityKeys(mergedKeys, entity);
+        }
+        return mergedKeys.values().stream()
+            .map(key -> key.isExpression()
+                ? key
+                : NitriteSortKey.ofField(normalizeSortProperty(
+                    Objects.requireNonNull(key.field(), "A stored sort key must have a field"), entity),
+                    key.ascending(), key.nullOrdering()))
+            .toList();
+    }
+
+    // Cursor ordering appends the entity identity so that records sharing a primary sort
+    // value cannot be skipped between pages.
+    private void appendCursorIdentityKeys(Map<Object, NitriteSortKey> mergedKeys, RuntimePersistentEntity<?> entity) {
+        Map<String, Sort.Order> identityOrders = new LinkedHashMap<>();
+        for (Sort.Order order : NitriteSortKeys.toOrders(List.copyOf(mergedKeys.values()))) {
+            identityOrders.put(order.getProperty(), order);
+        }
+        appendIdentitySort(identityOrders, entity);
+        mergedKeys.clear();
+        for (NitriteSortKey key : NitriteSortKeys.fromSort(Sort.of(new ArrayList<>(identityOrders.values())))) {
+            mergedKeys.put(key.field(), key);
+        }
+    }
+
+    private static int effectiveLimit(Pageable pageable, @Nullable Limit limit, boolean cursored) {
+        if (cursored) {
+            return -1;
+        }
+        if (pageable.getSize() > 0) {
+            return pageable.getSize();
+        }
+        if (limit != null && limit.maxResults() > 0) {
+            return limit.maxResults();
+        }
+        return -1;
     }
 
     private void appendIdentitySort(Map<String, Sort.Order> orders, RuntimePersistentEntity<?> entity) {
@@ -1012,22 +1033,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     }
 
     private Sort resolveCursoredSort(PagedQuery<?> query, RuntimePersistentEntity<?> entity) {
-        Sort sort = query.getPageable().getSort();
-        if (query instanceof NitritePreparedQuery<?, ?> nitriteQuery) {
-            Sort parsedSort = parseSortFromQuery(nitriteQuery.getQuery());
-            if ((parsedSort == null || !parsedSort.isSorted()) && nitriteQuery.getQueryHints() != null) {
-                parsedSort = parseSortFromHints(nitriteQuery.getQueryHints());
-            }
-            if (parsedSort != null && parsedSort.isSorted()) {
-                if (sort == null || !sort.isSorted()) {
-                    sort = parsedSort;
-                } else {
-                    List<Sort.Order> merged = new ArrayList<>(parsedSort.getOrderBy());
-                    merged.addAll(sort.getOrderBy());
-                    sort = Sort.of(merged);
-                }
-            }
-        }
+        Sort sort = withQuerySort(query, query.getPageable().getSort());
         if (sort == null || !sort.isSorted()) {
             Map<String, Sort.Order> identityOrders = new LinkedHashMap<>();
             appendIdentitySort(identityOrders, entity);
@@ -1042,6 +1048,30 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         }
         appendIdentitySort(orders, entity);
         return Sort.of(new ArrayList<>(orders.values()));
+    }
+
+    /**
+     * Puts the sort parsed from a Nitrite query, or failing that from its hints, ahead of the
+     * pageable's own sort.
+     */
+    @Nullable
+    private Sort withQuerySort(PagedQuery<?> query, @Nullable Sort sort) {
+        if (!(query instanceof NitritePreparedQuery<?, ?> nitriteQuery)) {
+            return sort;
+        }
+        Sort parsedSort = parseSortFromQuery(nitriteQuery.getQuery());
+        if ((parsedSort == null || !parsedSort.isSorted()) && nitriteQuery.getQueryHints() != null) {
+            parsedSort = parseSortFromHints(nitriteQuery.getQueryHints());
+        }
+        if (parsedSort == null || !parsedSort.isSorted()) {
+            return sort;
+        }
+        if (sort == null || !sort.isSorted()) {
+            return parsedSort;
+        }
+        List<Sort.Order> merged = new ArrayList<>(parsedSort.getOrderBy());
+        merged.addAll(sort.getOrderBy());
+        return Sort.of(merged);
     }
 
     private <R> List<R> applyCursorWindow(List<R> results,
