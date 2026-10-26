@@ -105,21 +105,16 @@ public final class NitriteCriteriaExecutor {
     /**
      * Creates a new NitriteCriteriaExecutor.
      *
-     * @param queryBuilder the query builder
      * @param readSupport the collaborators shared with the query executor
      */
-    public NitriteCriteriaExecutor(QueryBuilder queryBuilder, NitriteReadSupport readSupport) {
-        NitriteEntityMapper entityMapper = readSupport.entityMapper();
-        ConversionService conversionService = readSupport.conversionService();
-        Function<Class<?>, NitriteCollection> collectionFactory = readSupport.collectionFactory();
-        Function<Class<?>, RuntimePersistentEntity<?>> entityFactory = readSupport.entityFactory();
-        this.queryBuilder = queryBuilder;
-        this.entityMapper = entityMapper;
+    public NitriteCriteriaExecutor(NitriteReadSupport readSupport) {
+        this.queryBuilder = new NitriteQueryBuilder();
+        this.entityMapper = readSupport.entityMapper();
         this.queryParser = readSupport.queryParser();
         this.filterBuilder = readSupport.filterBuilder();
-        this.collectionFactory = collectionFactory;
-        this.entityFactory = entityFactory;
-        this.conversionService = conversionService;
+        this.collectionFactory = readSupport.collectionFactory();
+        this.entityFactory = readSupport.entityFactory();
+        this.conversionService = readSupport.conversionService();
         this.useCursorLimitForSortedReads = readSupport.useCursorLimitForSortedReads();
         this.projectionMapper = new CollectionProjectionMapper(new ValueConverter(conversionService), entityMapper);
         this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService);

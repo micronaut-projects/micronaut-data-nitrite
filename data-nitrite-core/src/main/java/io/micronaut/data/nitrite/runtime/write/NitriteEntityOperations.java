@@ -114,10 +114,9 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             OperationType operationType) {
         super(ctx, writeSupport.cascadeOperations(), writeSupport.entityEventListener(), persistentEntity,
             writeSupport.conversionService(), entity, operationType == OperationType.INSERT);
-        NitriteOperationsHelper helper = writeSupport.helper();
         this.entityMapper = writeSupport.entityMapper();
         this.repositoryWriter = new ObjectRepositoryWriter<>(entityMapper, persistentEntity);
-        this.helper = helper;
+        this.helper = writeSupport.helper();
         this.cascadeHelper = writeSupport.cascadeHelper();
         this.collection = helper.getCollection(persistentEntity.getIntrospection().getBeanType());
         this.operationType = operationType;
