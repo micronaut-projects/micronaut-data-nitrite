@@ -208,24 +208,24 @@ public final class NitriteEntityMapper {
       return val;
     }
     Class<?> clazz = val.getClass();
-    if (!clazz.getName().startsWith(JAVA_PACKAGE_PREFIX)) {
-      Optional<BeanIntrospection<Object>> intro = BeanIntrospector.SHARED.findIntrospection(castClass(clazz));
-      if (intro.isPresent()) {
-        if (intro.get().hasAnnotation(MappedEntity.class)) {
-          RuntimePersistentEntity<Object> entity = runtimeEntityRegistry.getEntity(castClass(clazz));
-          RuntimePersistentProperty<Object> idProp = safeGetIdentity(entity);
-          if (idProp != null) {
-            Object idValue = idProp.getProperty().get(val);
-            if (idValue != null) {
-              return normalizeIdentityValue(idProp, idValue);
-            }
-          }
-        } else {
-          return toDocumentValue(val);
-        }
-      }
+    if (clazz.getName().startsWith(JAVA_PACKAGE_PREFIX)) {
+      return toFilterValue(val);
     }
-    return toFilterValue(val);
+    Optional<BeanIntrospection<Object>> intro = BeanIntrospector.SHARED.findIntrospection(castClass(clazz));
+    if (intro.isEmpty()) {
+      return toFilterValue(val);
+    }
+    if (!intro.get().hasAnnotation(MappedEntity.class)) {
+      return toDocumentValue(val);
+    }
+    return mappedEntityFilterValue(clazz, val);
+  }
+
+  private @Nullable Object mappedEntityFilterValue(Class<?> clazz, Object val) {
+    RuntimePersistentEntity<Object> entity = runtimeEntityRegistry.getEntity(castClass(clazz));
+    RuntimePersistentProperty<Object> idProp = safeGetIdentity(entity);
+    Object idValue = idProp != null ? idProp.getProperty().get(val) : null;
+    return idValue != null ? normalizeIdentityValue(idProp, idValue) : toFilterValue(val);
   }
 
   /**
@@ -285,21 +285,25 @@ public final class NitriteEntityMapper {
     if (entity == null) {
       return "_id".equals(field) ? ID_FIELD : field;
     }
-    if (field.indexOf('.') < 0) {
-      RuntimePersistentProperty<?> idProperty = safeGetIdentity(entity);
-      if (idProperty != null && (idProperty.getName().equals(field)
-          || idProperty.getPersistedName().equals(field)
-          || "_id".equals(field)
-          || ID_FIELD.equals(field))) {
-        return ID_FIELD;
-      }
-      RuntimePersistentProperty<?> prop = entity.getPropertyByName(field);
-      if (prop != null) {
-        return prop.getPersistedName();
-      }
-      return "_id".equals(field) ? ID_FIELD : field;
-    }
+    return field.indexOf('.') < 0 ? persistedFieldName(field, entity) : persistedDottedPath(field, entity);
+  }
 
+  private static String persistedFieldName(String field, RuntimePersistentEntity<?> entity) {
+    RuntimePersistentProperty<?> idProperty = safeGetIdentity(entity);
+    if (idProperty != null && (idProperty.getName().equals(field)
+        || idProperty.getPersistedName().equals(field)
+        || "_id".equals(field)
+        || ID_FIELD.equals(field))) {
+      return ID_FIELD;
+    }
+    RuntimePersistentProperty<?> prop = entity.getPropertyByName(field);
+    if (prop != null) {
+      return prop.getPersistedName();
+    }
+    return "_id".equals(field) ? ID_FIELD : field;
+  }
+
+  private static String persistedDottedPath(String field, RuntimePersistentEntity<?> entity) {
     StringBuilder path = new StringBuilder();
     RuntimePersistentEntity<?> current = entity;
     for (String segment : field.split("\\.", -1)) {
@@ -340,50 +344,19 @@ public final class NitriteEntityMapper {
    * @param <T> the entity type
    */
   public <T> Filter idEqualsFilter(final NitriteEntityMeta<T> meta, final @Nullable Object id) {
-    RuntimePersistentProperty<T> idProperty = meta.idProp();
-
     if (meta.persistentEntity().hasCompositeIdentity()) {
-      // A composite identity is stored as its individual fields, never as the "id" field the
-      // single-identity path below filters on, so that path would match every document here.
-      if (id == null) {
-        return matchNone();
-      }
-      List<Filter> filters = new ArrayList<>();
-      for (RuntimePersistentProperty<T> identityProperty : meta.persistentEntity().getRuntimeIdentityProperties()) {
-        Object identityValue = readCompositeIdentityValue(meta, identityProperty, id);
-        if (identityValue == null) {
-          // Half a composite identity identifies nothing; filtering on the fields that are set
-          // would match unrelated documents that happen to share them.
-          return matchNone();
-        }
-        String persistedName = identityProperty.getPersistedName();
-        filters.add(eqWithNumericCoercion(
-            meta.persistentEntity(),
-            persistedName,
-            toFilterValue(identityValue),
-            persistedName));
-      }
-      return filters.size() == 1 ? filters.getFirst() : Filter.and(filters.toArray(new Filter[0]));
+      return compositeIdEqualsFilter(meta, id);
     }
 
     // In Nitrite, we consistently use ID_FIELD ("id") for the identity property.
     String idField = ID_FIELD;
 
+    RuntimePersistentProperty<T> idProperty = meta.idProp();
     if (idProperty != null && id != null) {
       Object normalizedId = normalizeIdentityValue(idProperty, id);
       if (normalizedId instanceof Document idDoc) {
-        return pair -> {
-          Document doc = pair.getSecond();
-          for (String field : idDoc.getFields()) {
-            if (!Objects.equals(doc.get(field), idDoc.get(field))) {
-              return false;
-            }
-          }
-          return true;
-        };
+        return embeddedIdEqualsFilter(idDoc);
       }
-    }
-    if (idProperty != null && id != null) {
       Long documentKey = documentKeyOf(idProperty, toFilterValue(id));
       if (documentKey != null) {
         // Documents written with a Long identity carry it as their "_id", so this equality is
@@ -392,6 +365,42 @@ public final class NitriteEntityMapper {
       }
     }
     return eqWithNumericCoercion(meta.persistentEntity(), idField, toFilterValue(id), idField);
+  }
+
+  private <T> Filter compositeIdEqualsFilter(NitriteEntityMeta<T> meta, @Nullable Object id) {
+    // A composite identity is stored as its individual fields, never as the "id" field the
+    // single-identity path filters on, so that path would match every document here.
+    if (id == null) {
+      return matchNone();
+    }
+    List<Filter> filters = new ArrayList<>();
+    for (RuntimePersistentProperty<T> identityProperty : meta.persistentEntity().getRuntimeIdentityProperties()) {
+      Object identityValue = readCompositeIdentityValue(meta, identityProperty, id);
+      if (identityValue == null) {
+        // Half a composite identity identifies nothing; filtering on the fields that are set
+        // would match unrelated documents that happen to share them.
+        return matchNone();
+      }
+      String persistedName = identityProperty.getPersistedName();
+      filters.add(eqWithNumericCoercion(
+          meta.persistentEntity(),
+          persistedName,
+          toFilterValue(identityValue),
+          persistedName));
+    }
+    return filters.size() == 1 ? filters.getFirst() : Filter.and(filters.toArray(new Filter[0]));
+  }
+
+  private static Filter embeddedIdEqualsFilter(Document idDoc) {
+    return pair -> {
+      Document doc = pair.getSecond();
+      for (String field : idDoc.getFields()) {
+        if (!Objects.equals(doc.get(field), idDoc.get(field))) {
+          return false;
+        }
+      }
+      return true;
+    };
   }
 
   /**
@@ -545,37 +554,11 @@ public final class NitriteEntityMapper {
       return base;
     }
 
-    if (entity != null) {
-      RuntimePersistentProperty<E> property = entity.getPropertyByName(field);
-      if (property == null) {
-        for (RuntimePersistentProperty<E> p : entity.getPersistentProperties()) {
-          if (p.getPersistedName().equals(field)) {
-            property = p;
-            break;
-          }
-        }
-      }
-
-      if (property != null) {
-        Class<?> targetType = property.getType();
-        if (Number.class.isAssignableFrom(targetType) || targetType.isPrimitive()) {
-          Optional<?> converted = conversionService.convert(n, targetType);
-          if (converted.isPresent()) {
-            return NitriteFilterUtils.eq(dottedPath, converted.get());
-          }
-        }
-        Filter precise = switch (targetType) {
-          case Class<?> t when t == int.class   || t == Integer.class -> NitriteFilterUtils.eq(dottedPath, n.intValue());
-          case Class<?> t when t == long.class  || t == Long.class    -> NitriteFilterUtils.eq(dottedPath, n.longValue());
-          case Class<?> t when t == double.class || t == Double.class -> NitriteFilterUtils.eq(dottedPath, n.doubleValue());
-          case Class<?> t when t == float.class || t == Float.class   -> NitriteFilterUtils.eq(dottedPath, n.floatValue());
-          case Class<?> t when t == short.class || t == Short.class   -> NitriteFilterUtils.eq(dottedPath, n.shortValue());
-          case Class<?> t when t == byte.class  || t == Byte.class    -> NitriteFilterUtils.eq(dottedPath, n.byteValue());
-          default -> null;
-        };
-        if (precise != null) {
-          return precise;
-        }
+    RuntimePersistentProperty<E> property = entity != null ? persistentPropertyByName(entity, field) : null;
+    if (property != null) {
+      Filter precise = numericEquality(property.getType(), n, dottedPath);
+      if (precise != null) {
+        return precise;
       }
     }
 
@@ -587,6 +570,37 @@ public final class NitriteEntityMapper {
      * an `or` whose sub-plans are not all index-supported.
      */
     return base;
+  }
+
+  private static <E> @Nullable RuntimePersistentProperty<E> persistentPropertyByName(RuntimePersistentEntity<E> entity, String field) {
+    RuntimePersistentProperty<E> property = entity.getPropertyByName(field);
+    if (property != null) {
+      return property;
+    }
+    for (RuntimePersistentProperty<E> p : entity.getPersistentProperties()) {
+      if (p.getPersistedName().equals(field)) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  private @Nullable Filter numericEquality(Class<?> targetType, Number n, String dottedPath) {
+    if (Number.class.isAssignableFrom(targetType) || targetType.isPrimitive()) {
+      Optional<?> converted = conversionService.convert(n, targetType);
+      if (converted.isPresent()) {
+        return NitriteFilterUtils.eq(dottedPath, converted.get());
+      }
+    }
+    return switch (targetType) {
+      case Class<?> t when t == int.class   || t == Integer.class -> NitriteFilterUtils.eq(dottedPath, n.intValue());
+      case Class<?> t when t == long.class  || t == Long.class    -> NitriteFilterUtils.eq(dottedPath, n.longValue());
+      case Class<?> t when t == double.class || t == Double.class -> NitriteFilterUtils.eq(dottedPath, n.doubleValue());
+      case Class<?> t when t == float.class || t == Float.class   -> NitriteFilterUtils.eq(dottedPath, n.floatValue());
+      case Class<?> t when t == short.class || t == Short.class   -> NitriteFilterUtils.eq(dottedPath, n.shortValue());
+      case Class<?> t when t == byte.class  || t == Byte.class    -> NitriteFilterUtils.eq(dottedPath, n.byteValue());
+      default -> null;
+    };
   }
 
   /**
