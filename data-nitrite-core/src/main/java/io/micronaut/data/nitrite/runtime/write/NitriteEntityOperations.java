@@ -150,11 +150,6 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         entity = cascadeOperations.cascadeEntity(ctx, entity, persistentEntity, true, cascadeType);
     }
 
-    @Override
-    public void delete() {
-        super.delete();
-    }
-
     /**
      * Micronaut's common save interceptor selects the update operation for a non-null generated
      * identity. Jakarta Data save is conditional, though: the entity is inserted when that
@@ -202,46 +197,54 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             }
 
             if (isUpdate) {
-                // The common Micronaut save interceptor represents a save of an entity with a
-                // generated identity as an UPDATE operation. For assigned identities, however,
-                // it represents save as INSERT and the provider resolves existence here. Keep
-                // the lifecycle decision and the write decision aligned before executing.
-                operationType = OperationType.UPDATE;
-                // Entity has ID - use update lifecycle for proper version/@DateUpdated handling
-                boolean vetoed = triggerPreUpdate();
-                if (vetoed) {
-                    return;
-                }
-                boolean cascades = persistentEntity.cascadesUpdate();
-                if (cascades) {
-                    cascadePre(Relation.Cascade.UPDATE);
-                }
-                execute(meta);
-                triggerPostUpdate();
-                if (cascades) {
-                    cascadePost(Relation.Cascade.UPDATE);
-                }
+                persistAsUpdate(meta);
             } else {
-                operationType = OperationType.INSERT;
-                // No ID - use standard persist lifecycle
-                boolean vetoed = triggerPrePersist();
-                if (vetoed) {
-                    return;
-                }
-                boolean cascades = persistentEntity.cascadesPersist();
-                if (cascades) {
-                    cascadePre(Relation.Cascade.PERSIST);
-                }
-                execute(meta);
-                triggerPostPersist();
-                if (cascades) {
-                    cascadePost(Relation.Cascade.PERSIST);
-                }
+                persistAsInsert(meta);
             }
         } catch (EntityExistsException e) {
             throw e;
         } catch (Exception e) {
             failed(e, "PERSIST");
+        }
+    }
+
+    private void persistAsUpdate(NitriteEntityMeta<T> meta) {
+        // The common Micronaut save interceptor represents a save of an entity with a
+        // generated identity as an UPDATE operation. For assigned identities, however,
+        // it represents save as INSERT and the provider resolves existence here. Keep
+        // the lifecycle decision and the write decision aligned before executing.
+        operationType = OperationType.UPDATE;
+        // Entity has ID - use update lifecycle for proper version/@DateUpdated handling
+        boolean vetoed = triggerPreUpdate();
+        if (vetoed) {
+            return;
+        }
+        boolean cascades = persistentEntity.cascadesUpdate();
+        if (cascades) {
+            cascadePre(Relation.Cascade.UPDATE);
+        }
+        execute(meta);
+        triggerPostUpdate();
+        if (cascades) {
+            cascadePost(Relation.Cascade.UPDATE);
+        }
+    }
+
+    private void persistAsInsert(NitriteEntityMeta<T> meta) {
+        operationType = OperationType.INSERT;
+        // No ID - use standard persist lifecycle
+        boolean vetoed = triggerPrePersist();
+        if (vetoed) {
+            return;
+        }
+        boolean cascades = persistentEntity.cascadesPersist();
+        if (cascades) {
+            cascadePre(Relation.Cascade.PERSIST);
+        }
+        execute(meta);
+        triggerPostPersist();
+        if (cascades) {
+            cascadePost(Relation.Cascade.PERSIST);
         }
     }
 
@@ -257,7 +260,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
      * Execute with pre-computed metadata.
      * @param meta the pre-computed entity metadata
      */
-    private void execute(NitriteEntityMeta<T> meta) throws RuntimeException {
+    private void execute(NitriteEntityMeta<T> meta) {
         LOG.debug("execute: operationType={}, entity={}", operationType, entity);
         // Skip if already persisted in this context
         if (operationType == OperationType.INSERT && ctx.persisted.contains(entity)) {
@@ -266,85 +269,95 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         }
 
         Class<T> type = persistentEntity.getIntrospection().getBeanType();
-        if (operationType == OperationType.INSERT) {
-            // Both Jakarta Data save of a new entity and explicit insert use a strict collection
-            // insert. Save(existing) is routed through OperationType.UPDATE by persist() above.
-            if (entityMapper.getEntityIdValue(meta, entity) == null) {
-                helper.generateIdIfNecessary(entity, type);
+        switch (operationType) {
+            case INSERT -> executeInsert(meta, type);
+            case UPDATE -> executeUpdate(meta);
+            case null, default -> executeDelete(meta);
+        }
+    }
+
+    private void executeInsert(NitriteEntityMeta<T> meta, Class<T> type) {
+        // Both Jakarta Data save of a new entity and explicit insert use a strict collection
+        // insert. Save(existing) is routed through OperationType.UPDATE by persist() above.
+        if (entityMapper.getEntityIdValue(meta, entity) == null) {
+            helper.generateIdIfNecessary(entity, type);
+        }
+        RuntimePersistentProperty<T> versionProp = meta.versionProp();
+        if (versionProp != null && repositoryWriter.needsVersionInit(entity)) {
+            BeanProperty<T, Object> versionProperty = versionProp.getProperty();
+            entity = helper.updateEntityId(versionProperty, entity, 0L);
+        }
+        Document doc = repositoryWriter.toDocument(entity);
+        if (doc != null) {
+            helper.logInsert(collection.getName(), doc);
+            try {
+                collection.insert(doc);
+            } catch (UniqueConstraintException e) {
+                // Raised by Nitrite's own document key for a Long identity, and by the unique
+                // index NitriteCollectionRegistry puts on "id" for every other scalar identity.
+                throw new EntityExistsException(
+                    "Entity already exists with id: " + entityMapper.getEntityIdValue(meta, entity), e);
             }
-            RuntimePersistentProperty<T> versionProp = meta.versionProp();
-            if (versionProp != null && repositoryWriter.needsVersionInit(entity)) {
-                BeanProperty<T, Object> versionProperty = versionProp.getProperty();
-                entity = helper.updateEntityId(versionProperty, entity, 0L);
+            affectedCount = 1;
+            Object generatedId = doc.get("_id");
+            if (generatedId != null && meta.idAccessor() != null && meta.idAccessor().get(entity) == null) {
+                entity = helper.updateEntityId(meta.idAccessor(), entity, generatedId);
             }
-            Document doc = repositoryWriter.toDocument(entity);
-            if (doc != null) {
-                helper.logInsert(collection.getName(), doc);
-                try {
-                    collection.insert(doc);
-                } catch (UniqueConstraintException e) {
-                    // Raised by Nitrite's own document key for a Long identity, and by the unique
-                    // index NitriteCollectionRegistry puts on "id" for every other scalar identity.
-                    throw new EntityExistsException(
-                        "Entity already exists with id: " + entityMapper.getEntityIdValue(meta, entity), e);
-                }
-                affectedCount = 1;
-                Object generatedId = doc.get("_id");
-                if (generatedId != null && meta.idAccessor() != null && meta.idAccessor().get(entity) == null) {
-                    entity = helper.updateEntityId(meta.idAccessor(), entity, generatedId);
-                }
+        }
+        ctx.persisted.add(entity);
+    }
+
+    private void executeUpdate(NitriteEntityMeta<T> meta) {
+        // Update operation: replace existing document by ID
+        // Requires entity to have an ID; throws OptimisticLockException if version mismatch
+        // Note: VersionGeneratingEntityEventListener.preUpdate() already incremented the version
+        Object id = entityMapper.getEntityIdValue(meta, entity);
+        // A transient entity has nothing to update: an "id == null" filter would match every
+        // identity-less document in the collection. Report zero affected rows instead.
+        if (id == null) {
+            affectedCount = 0;
+            return;
+        }
+        persistNewCascadeChildren(meta);
+        Filter filter = entityMapper.idEqualsFilter(meta, id);
+        if (meta.versionProp() != null) {
+            Object versionValue = preVersionValue;
+            if (versionValue == null) {
+                versionValue = meta.versionProp().getProperty().get(entity);
             }
-            ctx.persisted.add(entity);
-        } else if (operationType == OperationType.UPDATE) {
-            // Update operation: replace existing document by ID
-            // Requires entity to have an ID; throws OptimisticLockException if version mismatch
-            // Note: VersionGeneratingEntityEventListener.preUpdate() already incremented the version
-            Object id = entityMapper.getEntityIdValue(meta, entity);
-            // A transient entity has nothing to update: an "id == null" filter would match every
-            // identity-less document in the collection. Report zero affected rows instead.
-            if (id == null) {
-                affectedCount = 0;
-                return;
-            }
-            persistNewCascadeChildren(meta);
-            Filter filter = entityMapper.idEqualsFilter(meta, id);
-            if (meta.versionProp() != null) {
-                Object versionValue = preVersionValue;
-                if (versionValue == null) {
-                    versionValue = meta.versionProp().getProperty().get(entity);
-                }
-                filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
-            }
-            Document update = repositoryWriter.toDocument(entity);
-            if (update != null) {
-                helper.logUpdate(collection.getName(), filter, update);
-                // Explicit update is strict for every entity, including unversioned entities.
-                long rows = NitriteCrudOperations.update(collection, filter, update);
-                affectedCount = rows;
-                checkOptimisticLocking(rows);
-            }
-        } else {
-            // Delete operation
-            Object id = entityMapper.getEntityIdValue(meta, entity);
-            if (id == null) {
-                // Without an identity there is no document to remove; an "id == null" filter would
-                // match every identity-less document in the collection.
-                affectedCount = 0;
-                return;
-            }
-            Filter filter = entityMapper.idEqualsFilter(meta, id);
-            if (meta.versionProp() != null) {
-                Object versionValue = preVersionValue;
-                if (versionValue == null) {
-                    versionValue = meta.versionProp().getProperty().get(entity);
-                }
-                filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
-            }
-            helper.logFind(collection.getName(), filter);
-            long rows = NitriteCrudOperations.remove(collection, filter);
+            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
+        }
+        Document update = repositoryWriter.toDocument(entity);
+        if (update != null) {
+            helper.logUpdate(collection.getName(), filter, update);
+            // Explicit update is strict for every entity, including unversioned entities.
+            long rows = NitriteCrudOperations.update(collection, filter, update);
             affectedCount = rows;
             checkOptimisticLocking(rows);
         }
+    }
+
+    private void executeDelete(NitriteEntityMeta<T> meta) {
+        // Delete operation
+        Object id = entityMapper.getEntityIdValue(meta, entity);
+        if (id == null) {
+            // Without an identity there is no document to remove; an "id == null" filter would
+            // match every identity-less document in the collection.
+            affectedCount = 0;
+            return;
+        }
+        Filter filter = entityMapper.idEqualsFilter(meta, id);
+        if (meta.versionProp() != null) {
+            Object versionValue = preVersionValue;
+            if (versionValue == null) {
+                versionValue = meta.versionProp().getProperty().get(entity);
+            }
+            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
+        }
+        helper.logFind(collection.getName(), filter);
+        long rows = NitriteCrudOperations.remove(collection, filter);
+        affectedCount = rows;
+        checkOptimisticLocking(rows);
     }
 
     private void persistNewCascadeChildren(NitriteEntityMeta<T> meta) {
