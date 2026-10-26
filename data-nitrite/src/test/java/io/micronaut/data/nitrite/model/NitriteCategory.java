@@ -17,9 +17,6 @@ public class NitriteCategory {
     @Relation(value = Relation.Kind.ONE_TO_MANY, mappedBy = "category", cascade = Relation.Cascade.ALL)
     private List<NitriteProduct> productList;
 
-    public NitriteCategory() {
-    }
-
     public String getId() {
         return id;
     }

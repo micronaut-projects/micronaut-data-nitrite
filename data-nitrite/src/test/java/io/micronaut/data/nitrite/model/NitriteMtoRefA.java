@@ -14,9 +14,6 @@ public class NitriteMtoRefA {
     @Relation(value = Relation.Kind.MANY_TO_ONE, cascade = Relation.Cascade.ALL)
     private NitriteMtoRefB refB;
 
-    public NitriteMtoRefA() {
-    }
-
     public String getId() {
         return id;
     }

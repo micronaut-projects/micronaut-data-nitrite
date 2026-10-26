@@ -389,7 +389,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
 
     @Override
     public <T> List<T> persistBatch(NitriteOperationContext ctx, Iterable<T> entityValues,
-                                    RuntimePersistentEntity<T> persistentEntity, Predicate<T> predicate) {
+                                    RuntimePersistentEntity<T> persistentEntity, @Nullable Predicate<T> predicate) {
         List<T> results = new ArrayList<>();
         for (T entity : entityValues) {
             if (predicate != null && predicate.test(entity)) {
@@ -439,7 +439,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     }
 
     @Override
-    public <T> T updateEntityId(BeanProperty<T, Object> property, T entity, Object id) {
+    public <T> T updateEntityId(BeanProperty<T, Object> property, T entity, @Nullable Object id) {
         if (id != null) {
             if (property.getType().isInstance(id)) {
                 property.set(entity, id);

@@ -9,9 +9,6 @@ import io.micronaut.core.annotation.Introspected;
 public class NameProjection {
     private String name;
 
-    public NameProjection() {
-    }
-
     public String getName() {
         return name;
     }

@@ -398,7 +398,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
                 priorVersions.put(entity, meta.versionProp().getProperty().get(entity));
             }
             DefaultEntityEventContext<T> event = new DefaultEntityEventContext<>(persistentEntity, entity);
-            if (!fn.apply((EntityEventContext<Object>) event)) {
+            if (!fn.apply((EntityEventContext<Object>) event).booleanValue()) {
                 priorVersions.remove(entity);
                 if (vetoedSet == null) {
                     vetoedSet = new IdentityHashMap<>();
@@ -454,5 +454,6 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
 
     @Override
     protected void collectAutoPopulatedPreviousValues() {
+        // Batch events capture each entity's previous version in triggerPre instead.
     }
 }

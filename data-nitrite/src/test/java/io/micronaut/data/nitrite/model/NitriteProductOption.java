@@ -21,9 +21,6 @@ public class NitriteProductOption {
     @Relation(value = Relation.Kind.ONE_TO_MANY, mappedBy = "productOption", cascade = Relation.Cascade.ALL)
     private List<NitriteOption> option = new ArrayList<>();
 
-    public NitriteProductOption() {
-    }
-
     public String getId() {
         return id;
     }

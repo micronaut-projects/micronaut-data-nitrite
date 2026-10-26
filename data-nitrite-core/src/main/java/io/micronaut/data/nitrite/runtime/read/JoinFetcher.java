@@ -16,6 +16,7 @@
 package io.micronaut.data.nitrite.runtime.read;
 
 import io.micronaut.core.annotation.Internal;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.beans.BeanProperty;
 import io.micronaut.core.convert.ConversionService;
 import io.micronaut.data.annotation.Relation;
@@ -78,7 +79,7 @@ public final class JoinFetcher {
      * @param entityType The root entity type
      * @param <R> The entity type
      */
-    public <R> void fetch(List<R> entities, Set<JoinPath> joinPaths, Class<?> entityType) {
+    public <R> void fetch(@Nullable List<R> entities, @Nullable Set<JoinPath> joinPaths, Class<?> entityType) {
         if (entities == null || entities.isEmpty() || joinPaths == null || joinPaths.isEmpty()) {
             return;
         }
@@ -88,7 +89,7 @@ public final class JoinFetcher {
         fetchForEntity(entities, entityFactory.apply(entityType), paths);
     }
 
-    private void fetchForEntity(List<?> entities, RuntimePersistentEntity<?> persistentEntity, List<String> paths) {
+    private void fetchForEntity(@Nullable List<?> entities, RuntimePersistentEntity<?> persistentEntity, @Nullable List<String> paths) {
         if (entities == null || entities.isEmpty() || paths == null || paths.isEmpty()) {
             return;
         }

@@ -39,6 +39,7 @@ public final class NitriteQueryParser {
 
     /** Default constructor. */
     public NitriteQueryParser() {
+        // Parsing uses only method arguments; no instance setup is needed.
     }
 
     /**
@@ -153,14 +154,13 @@ public final class NitriteQueryParser {
      * @return projected field names, or an empty list if no projection is present
      */
     public List<String> extractProjectionFields(@Nullable String jsonQuery) {
-        if (jsonQuery == null || !jsonQuery.trim().startsWith("{")) {
-            if (jsonQuery == null || !jsonQuery.trim().startsWith("[")) {
-                return List.of();
-            }
+        if (jsonQuery == null
+            || (!jsonQuery.trim().startsWith("{") && !jsonQuery.trim().startsWith("["))) {
+            return List.of();
         }
         try {
-            return extractProjectionFields((Object) parseJson(jsonQuery));
-        } catch (Exception ignored) {
+            return extractProjectionFields(parseJson(jsonQuery));
+        } catch (Exception _) {
             // Best-effort JSON parsing; if it fails, assume no projection
         }
         return List.of();

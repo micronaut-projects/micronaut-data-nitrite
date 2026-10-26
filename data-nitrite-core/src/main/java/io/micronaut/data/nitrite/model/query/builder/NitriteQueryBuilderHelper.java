@@ -56,6 +56,8 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.UNWIND
 @Internal
 final class NitriteQueryBuilderHelper {
 
+    private static final String COUNT_RESULT = "result";
+
     private NitriteQueryBuilderHelper() {
     }
 
@@ -167,9 +169,9 @@ final class NitriteQueryBuilderHelper {
         List<Map<String, Object>> matches = new ArrayList<>();
         int i = 1;
         for (int j = 0; j < localFields.size(); j++) {
-            String var = "v" + i++;
-            let.put(var, "$" + localFields.get(j));
-            matches.add(Map.of(EQ, List.of("$$" + var, "$" + foreignFields.get(j))));
+            String variableName = "v" + i++;
+            let.put(variableName, "$" + localFields.get(j));
+            matches.add(Map.of(EQ, List.of("$$" + variableName, "$" + foreignFields.get(j))));
         }
         // size() is always > 1 here: the single-field case returns above via the
         // localFields.size() == 1 guard, so matches always holds at least two predicates.
@@ -238,14 +240,14 @@ final class NitriteQueryBuilderHelper {
                         };
                         group.put(propertyPath.getProperty().getName(), Map.of(op, "$" + persistedPath(propertyPath)));
                     }
-                    case COUNT -> countObj.put(NitriteQueryOperators.COUNT, "result");
+                    case COUNT -> countObj.put(NitriteQueryOperators.COUNT, COUNT_RESULT);
                     case COUNT_DISTINCT -> {
                         if (unary.getExpression() instanceof PersistentEntityRoot) {
-                            countObj.put(NitriteQueryOperators.COUNT, "result");
+                            countObj.put(NitriteQueryOperators.COUNT, COUNT_RESULT);
                         } else {
                             PersistentPropertyPath propertyPath = CriteriaUtils.requireProperty(unary.getExpression()).getPropertyPath();
                             group.put("_id", "$" + persistedPath(propertyPath));
-                            countObj.put(NitriteQueryOperators.COUNT, "result");
+                            countObj.put(NitriteQueryOperators.COUNT, COUNT_RESULT);
                         }
                     }
                     default -> { /* ignore */ }
@@ -257,6 +259,7 @@ final class NitriteQueryBuilderHelper {
                 }
             }
             default -> {
+                // Other selection kinds do not contribute group, count or property projections.
             }
         }
     }

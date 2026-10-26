@@ -15,9 +15,6 @@ public class NitriteOption {
     @Relation(value = Relation.Kind.MANY_TO_ONE)
     private NitriteProductOption productOption;
 
-    public NitriteOption() {
-    }
-
     public String getId() {
         return id;
     }

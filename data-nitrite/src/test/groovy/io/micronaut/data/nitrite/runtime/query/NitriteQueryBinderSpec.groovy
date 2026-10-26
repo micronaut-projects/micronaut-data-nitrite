@@ -6,7 +6,7 @@ import jakarta.inject.Inject
 import org.dizitart.no2.collection.Document
 import spock.lang.Specification
 
-import java.util.function.Function
+import java.util.function.UnaryOperator
 
 @MicronautTest(transactional = false)
 class NitriteQueryBinderSpec extends Specification {
@@ -57,7 +57,7 @@ class NitriteQueryBinderSpec extends Specification {
 
     void "placeholders resolve against the parameters they name"() {
         given:
-        def identity = { it } as Function
+        def identity = { it } as UnaryOperator
 
         expect: "a named parameter resolves from the named map"
         NitriteQueryBinder.resolveParameterValue(":p1", null, ["p1": "val"], identity) == "val"

@@ -44,6 +44,7 @@ public final class NitriteNativeQueryVisitor implements TypeElementVisitor<Objec
      * Creates the visitor loaded by the annotation processor.
      */
     public NitriteNativeQueryVisitor() {
+        // The annotation processor requires a public no-argument constructor; all state is static.
     }
 
     @Override

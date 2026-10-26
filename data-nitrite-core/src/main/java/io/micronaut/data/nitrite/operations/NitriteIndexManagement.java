@@ -98,7 +98,7 @@ public final class NitriteIndexManagement {
                 collection.dropIndex(fieldName);
             }
         } catch (RuntimeException e) {
-            if (indexed && !collection.hasIndex(fieldName)) {
+            if (!collection.hasIndex(fieldName)) {
                 // The drop got far enough to remove the index before failing. Put it back rather
                 // than leaving the collection unindexed, and report the original failure.
                 try {

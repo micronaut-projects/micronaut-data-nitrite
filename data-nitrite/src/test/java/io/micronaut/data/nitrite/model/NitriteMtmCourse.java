@@ -18,9 +18,6 @@ public class NitriteMtmCourse {
     @Relation(value = Relation.Kind.MANY_TO_MANY, mappedBy = "courses")
     private List<NitriteMtmStudent> students = new ArrayList<>();
 
-    public NitriteMtmCourse() {
-    }
-
     public String getId() {
         return id;
     }

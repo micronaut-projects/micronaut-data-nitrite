@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.AND;
 import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.OR;
@@ -103,7 +103,7 @@ public final class NitriteQueryBinder {
     @SuppressWarnings({"rawtypes"})
     public static Object resolveParameterValue(Object value, Object[] jsonParams,
                                         Map<String, Object> namedParameters,
-                                        Function<Object, Object> toFilterValue) {
+                                        UnaryOperator<Object> toFilterValue) {
         if (value instanceof String s) {
             Object resolved = null;
             boolean isPlaceholder = false;
@@ -177,7 +177,6 @@ public final class NitriteQueryBinder {
                     if (idx != null) {
                         max = Math.max(max, idx);
                     } else if (opVal instanceof Map<?, ?> nestedMap) {
-                        // handles $near: {center: {$mn_qp:0}, distance: {$mn_qp:1}}
                         for (Object nestedVal : nestedMap.values()) {
                             idx = extractPlaceholderIndex(nestedVal);
                             if (idx != null) {
@@ -205,7 +204,7 @@ public final class NitriteQueryBinder {
      * @return the named parameter map
      */
     public static Map<String, Object> buildNamedParameterValues(PreparedQuery<?, ?> q,
-                                                          Function<Object, Object> toFilterValue) {
+                                                          UnaryOperator<Object> toFilterValue) {
         Object[] params = q.getParameterArray();
         if (params == null || params.length == 0) {
             return Map.of();
@@ -251,7 +250,7 @@ public final class NitriteQueryBinder {
      * @return the array of JSON parameter values
      */
     public static Object[] buildJsonParameterValues(@NonNull PreparedQuery<?, ?> q,
-                                              @NonNull Function<Object, Object> toFilterValue,
+                                              @NonNull UnaryOperator<Object> toFilterValue,
                                               @Nullable BiFunction<Object, String, Object> readSegmentValue) {
         Object[] methodParams = q.getParameterArray();
         List<QueryParameterBinding> bindings = q.getQueryBindings();
@@ -280,7 +279,7 @@ public final class NitriteQueryBinder {
 
     private static Object resolveJsonBindingValue(@NonNull QueryParameterBinding binding,
                                                   @Nullable Object[] methodParams,
-                                                  @NonNull Function<Object, Object> toFilterValue,
+                                                  @NonNull UnaryOperator<Object> toFilterValue,
                                                   @Nullable BiFunction<Object, String, Object> readSegmentValue) {
         Object bindingValue = binding.getValue();
         if (bindingValue != null && !(bindingValue instanceof BindingParameter)) {

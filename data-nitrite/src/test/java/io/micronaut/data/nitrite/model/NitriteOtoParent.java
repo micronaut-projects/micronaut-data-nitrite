@@ -18,9 +18,6 @@ public class NitriteOtoParent {
     @Relation(value = Relation.Kind.ONE_TO_MANY, cascade = Relation.Cascade.ALL)
     private List<NitriteOtoChild> children = new ArrayList<>();
 
-    public NitriteOtoParent() {
-    }
-
     public String getId() {
         return id;
     }
