@@ -25,7 +25,6 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.data.annotation.Projection;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.Version;
-import io.micronaut.data.event.EntityEventListener;
 import io.micronaut.data.exceptions.NonUniqueResultException;
 import io.micronaut.data.exceptions.OptimisticLockException;
 import io.micronaut.data.model.Limit;
@@ -121,7 +120,6 @@ public final class NitriteQueryExecutor {
      * @param entityFactory the entity factory function
      * @param findOptionsFactory the find options factory function
      * @param helper the operations helper
-     * @param entityEventListener the entity event listener
      * @param useCursorLimitForSortedReads whether sorted bounds should be moved to the cursor
      */
     public NitriteQueryExecutor(NitriteEntityMapper entityMapper,
@@ -132,7 +130,6 @@ public final class NitriteQueryExecutor {
                                 Function<Class<?>, RuntimePersistentEntity<?>> entityFactory,
                                 FindOptionsBuilder findOptionsFactory,
                                 NitriteOperationsHelper helper,
-                                EntityEventListener<Object> entityEventListener,
                                 boolean useCursorLimitForSortedReads) {
         this.entityMapper = entityMapper;
         this.queryParser = queryParser;
@@ -790,11 +787,10 @@ public final class NitriteQueryExecutor {
      * the query result directly from the Nitrite cursor. It natively supports {@code COUNT_DISTINCT}
      * by resolving a nested {@code $group} stage if present in the translated JSON string.
      *
-     * @param q the generic prepared query
      * @param nq the compiled Nitrite prepared query holding the exact filter
      * @return the total number of documents matching the query filter
      */
-    public long count(@NonNull PreparedQuery<?, ?> q, NitritePreparedQuery<?, ?> nq) {
+    public long count(NitritePreparedQuery<?, ?> nq) {
         return collectionFactory.apply(nq.getRootEntity()).find(nq.getNitriteFilter()).size();
     }
 

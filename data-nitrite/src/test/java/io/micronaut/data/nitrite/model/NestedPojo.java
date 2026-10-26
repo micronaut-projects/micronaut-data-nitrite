@@ -7,13 +7,13 @@ import io.micronaut.serde.annotation.Serdeable;
 @Serdeable
 public class NestedPojo {
     private String camelCaseField;
-    private String snake_case_field;
+    private String snakeCaseField;
 
     public NestedPojo() {}
 
-    public NestedPojo(String camelCaseField, String snake_case_field) {
+    public NestedPojo(String camelCaseField, String snakeCaseField) {
         this.camelCaseField = camelCaseField;
-        this.snake_case_field = snake_case_field;
+        this.snakeCaseField = snakeCaseField;
     }
 
     public String getCamelCaseField() {
@@ -25,10 +25,10 @@ public class NestedPojo {
     }
 
     public String getSnake_case_field() {
-        return snake_case_field;
+        return snakeCaseField;
     }
 
-    public void setSnake_case_field(String snake_case_field) {
-        this.snake_case_field = snake_case_field;
+    public void setSnake_case_field(String snakeCaseField) {
+        this.snakeCaseField = snakeCaseField;
     }
 }

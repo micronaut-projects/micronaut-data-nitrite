@@ -226,7 +226,6 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             this::getEntity,
             this::buildFind,
             this,
-            runtimeEntityRegistry.getEntityEventListener(),
             useCursorLimitForSortedReads);
         this.queryBinder = new NitriteQueryBinder(entityMapper);
     }
@@ -795,7 +794,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public <T> long count(@NonNull final PagedQuery<T> query) {
         if (query instanceof PreparedQuery<?, ?> pq) {
-            return queryExecutor.count(pq, getNitritePreparedQuery(pq));
+            return queryExecutor.count(getNitritePreparedQuery(pq));
         }
         return getCollection(query.getRootEntity()).size();
     }

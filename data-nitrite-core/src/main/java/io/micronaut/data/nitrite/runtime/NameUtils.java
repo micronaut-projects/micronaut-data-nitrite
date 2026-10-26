@@ -37,7 +37,7 @@ public final class NameUtils {
      * @return the snake_case value
      */
     public static String camelToSnake(String value) {
-        if (value == null || value.isEmpty()) {
+        if (value.isEmpty()) {
             return value;
         }
         StringBuilder result = new StringBuilder(value.length() + 4);
@@ -62,7 +62,7 @@ public final class NameUtils {
      * @return the camelCase value
      */
     public static String snakeToCamel(String value) {
-        if (value == null || value.indexOf('_') < 0) {
+        if (value.indexOf('_') < 0) {
             return value;
         }
         StringBuilder result = new StringBuilder(value.length());
@@ -88,7 +88,7 @@ public final class NameUtils {
      * @return the camelCase path
      */
     public static String snakeToCamelPath(String path) {
-        if (path == null || path.indexOf('_') < 0) {
+        if (path.indexOf('_') < 0) {
             return path;
         }
         String[] parts = path.split("\\.");
