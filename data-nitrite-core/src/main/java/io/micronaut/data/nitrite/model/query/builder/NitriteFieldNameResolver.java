@@ -62,7 +62,7 @@ final class NitriteFieldNameResolver {
         PersistentProperty identity;
         try {
             identity = owner.getIdentity();
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException _) {
             identity = null;
         }
         if (identity != null && identity.equals(property) && propertyPath.getAssociations().isEmpty()) {
@@ -81,7 +81,7 @@ final class NitriteFieldNameResolver {
                 try {
                     PersistentProperty ownerIdentity = association.getOwner().getIdentity();
                     isIdentityAssoc = ownerIdentity.equals(association);
-                } catch (IllegalStateException ignored) {
+                } catch (IllegalStateException _) {
                     // Entity may not have an identity property
                 }
                 String segment = isIdentityAssoc ? "_id" : association.getPersistedName();
@@ -95,7 +95,7 @@ final class NitriteFieldNameResolver {
                     try {
                         PersistentProperty assocOwnerIdentity = association.getOwner().getIdentity();
                         isAssocIdentity = assocOwnerIdentity.equals(association);
-                    } catch (IllegalStateException ignored) {
+                    } catch (IllegalStateException _) {
                         // Entity may not have an identity property
                     }
                     String embeddedName;
@@ -116,7 +116,7 @@ final class NitriteFieldNameResolver {
                     if (isLast) {
                         try {
                             isIdentityAccess = association.getAssociatedEntity().getIdentity().equals(property);
-                        } catch (Exception ignored) {
+                        } catch (Exception _) {
                             // Best-effort identity access check
                         }
                     }
@@ -132,7 +132,7 @@ final class NitriteFieldNameResolver {
             try {
                 PersistentProperty ownerIdentity = property.getOwner().getIdentity();
                 isPropertyIdentity = ownerIdentity.equals(property);
-            } catch (IllegalStateException ignored) {
+            } catch (IllegalStateException _) {
                 // Entity may not have an identity property
             }
             sb.append(isPropertyIdentity ? "_id" : property.getPersistedName());

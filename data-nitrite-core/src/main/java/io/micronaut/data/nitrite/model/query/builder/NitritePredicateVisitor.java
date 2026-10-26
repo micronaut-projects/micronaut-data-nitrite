@@ -715,7 +715,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
             for (Expression<?> nestedExpression : functionExpression.getExpressions()) {
                 try {
                     return requirePropertyOperand(nestedExpression);
-                } catch (IllegalStateException e) {
+                } catch (IllegalStateException _) {
                     // Try the next operand.
                 }
             }
@@ -726,7 +726,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         if (expression instanceof BinaryExpression<?> binaryExpression) {
             try {
                 return requirePropertyOperand(binaryExpression.getLeft());
-            } catch (IllegalStateException e) {
+            } catch (IllegalStateException _) {
                 return requirePropertyOperand(binaryExpression.getRight());
             }
         }

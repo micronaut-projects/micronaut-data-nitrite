@@ -64,7 +64,7 @@ final class PathResolver {
                     "_id".equals(rawField))) {
                 return plain(identity.getPersistedName());
             }
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException _) {
             // Identity might not exist on embedded or non-entity types
         }
 
@@ -141,7 +141,7 @@ final class PathResolver {
                     || "_id".equals(name))) {
                 return id;
             }
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException _) {
             // Identity might not exist on embedded or non-entity types
         }
         // Fallback 2: persisted-name match for plain (non-association) properties

@@ -670,7 +670,7 @@ public final class NitriteEntityMapper {
             doc.put(NameUtils.camelToSnake(field), fieldValue);
           }
         }
-      } catch (Exception ignored) {
+      } catch (Exception _) {
         // If embedded ID processing fails, fall through to default normalization
       }
     } else if (normalizedId instanceof Document idDoc) {
@@ -769,7 +769,7 @@ public final class NitriteEntityMapper {
                     associatedIdProp = refIdentity.getProperty();
                 }
             }
-          } catch (Exception ignored) {
+          } catch (Exception _) {
               // Best-effort identity lookup for ID-ref strategy
           }
         }
@@ -794,7 +794,7 @@ public final class NitriteEntityMapper {
     RuntimePersistentProperty<T> versionProp = null;
     try {
       versionProp = persistentEntity.getVersion();
-    } catch (IllegalStateException e) {
+    } catch (IllegalStateException _) {
       // entity has no version – leave null
     }
     return new NitriteEntityMeta<>(
@@ -887,7 +887,7 @@ public final class NitriteEntityMapper {
           try {
             String json = serdeObjectMapper.writeValueAsString(value);
             yield serdeObjectMapper.readValue(json, Object.class);
-          } catch (Exception e) {
+          } catch (Exception _) {
             yield value;
           }
         }
@@ -1163,7 +1163,7 @@ public final class NitriteEntityMapper {
           try {
             String json = serdeObjectMapper.writeValueAsString(value);
             return serdeObjectMapper.readValue(json, target);
-          } catch (Exception e) {
+          } catch (Exception _) {
             return conversionService.convert(value, target).orElse(null);
           }
         }
@@ -1242,7 +1242,7 @@ public final class NitriteEntityMapper {
       try {
         String json = serdeObjectMapper.writeValueAsString(value);
         return serdeObjectMapper.readValue(json, Object.class);
-      } catch (Exception e) {
+      } catch (Exception _) {
         return value;
       }
     }
