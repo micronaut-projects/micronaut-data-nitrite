@@ -28,7 +28,6 @@ import io.micronaut.data.model.Pageable;
 import io.micronaut.data.model.PersistentProperty;
 import io.micronaut.data.model.PersistentPropertyPath;
 import io.micronaut.data.model.Sort;
-import io.micronaut.data.model.query.builder.QueryBuilder;
 import io.micronaut.data.model.runtime.AttributeConverterRegistry;
 import io.micronaut.data.model.runtime.DeleteBatchOperation;
 import io.micronaut.data.model.runtime.DeleteOperation;
@@ -45,7 +44,6 @@ import io.micronaut.data.model.runtime.UpdateBatchOperation;
 import io.micronaut.data.model.runtime.UpdateOperation;
 import io.micronaut.data.nitrite.conf.NitriteConfiguration;
 import io.micronaut.data.nitrite.model.query.NitriteQueryOperators;
-import io.micronaut.data.nitrite.model.query.builder.NitriteQueryBuilder;
 import io.micronaut.data.nitrite.model.query.builder.NitriteSortKey;
 import io.micronaut.data.nitrite.model.query.builder.NitriteSortKeys;
 import io.micronaut.data.nitrite.operations.NitriteRepositoryOperations;
@@ -206,7 +204,6 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         this.filterBuilder = createFilterBuilderWithSubQueryExecutor();
         this.cascadeOperations = new SyncCascadeOperations<>(conversionService, this);
         this.valueConverter = new ValueConverter(conversionService);
-        QueryBuilder queryBuilder = new NitriteQueryBuilder();
         this.criteriaBuilder = new RuntimeCriteriaBuilder(runtimeEntityRegistry);
         NitriteReadSupport readSupport = new NitriteReadSupport(
             entityMapper,
@@ -216,7 +213,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             collectionRegistry::getCollection,
             this::getEntity,
             useCursorLimitForSortedReads);
-        this.criteriaExecutor = new NitriteCriteriaExecutor(queryBuilder, readSupport);
+        this.criteriaExecutor = new NitriteCriteriaExecutor(readSupport);
         this.queryExecutor = new NitriteQueryExecutor(readSupport, this::buildFind, this);
         this.writeSupport = new NitriteWriteSupport(
             cascadeOperations, runtimeEntityRegistry.getEntityEventListener(), conversionService, entityMapper, this, this);

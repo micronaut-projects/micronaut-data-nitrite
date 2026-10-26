@@ -99,12 +99,10 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
             Iterable<T> entities,
             boolean insert) {
         super(writeSupport.entityEventListener(), persistentEntity, writeSupport.conversionService());
-        NitriteEntityMapper entityMapper = writeSupport.entityMapper();
-        NitriteOperationsHelper helper = writeSupport.helper();
         this.ctx = ctx;
         this.cascadeOperations = writeSupport.cascadeOperations();
-        this.entityMapper = entityMapper;
-        this.helper = helper;
+        this.entityMapper = writeSupport.entityMapper();
+        this.helper = writeSupport.helper();
         this.collection = helper.getCollection(persistentEntity.getIntrospection().getBeanType());
         this.repositoryWriter = new ObjectRepositoryWriter<>(entityMapper, persistentEntity);
         if (entities instanceof List) {

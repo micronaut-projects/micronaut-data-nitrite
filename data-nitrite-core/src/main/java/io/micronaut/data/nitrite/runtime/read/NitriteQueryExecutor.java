@@ -119,21 +119,17 @@ public final class NitriteQueryExecutor {
     public NitriteQueryExecutor(NitriteReadSupport readSupport,
                                 FindOptionsBuilder findOptionsFactory,
                                 NitriteOperationsHelper helper) {
-        NitriteEntityMapper entityMapper = readSupport.entityMapper();
-        NitriteFilterBuilder filterBuilder = readSupport.filterBuilder();
         ConversionService conversionService = readSupport.conversionService();
-        Function<Class<?>, NitriteCollection> collectionFactory = readSupport.collectionFactory();
-        Function<Class<?>, RuntimePersistentEntity<?>> entityFactory = readSupport.entityFactory();
-        this.entityMapper = entityMapper;
+        this.entityMapper = readSupport.entityMapper();
         this.queryParser = readSupport.queryParser();
-        this.filterBuilder = filterBuilder;
+        this.filterBuilder = readSupport.filterBuilder();
         this.generatedQueryParser = new GeneratedQueryParser(
             (entity, propertyPath, operators) ->
                 filterBuilder.buildFieldFilter(entity, propertyPath, operators, EMPTY_PARAMS, Map.of()),
             (entity, predicate, params) ->
                 filterBuilder.buildFilterFromJson(entity, predicate, params, Map.of()));
-        this.collectionFactory = collectionFactory;
-        this.entityFactory = entityFactory;
+        this.collectionFactory = readSupport.collectionFactory();
+        this.entityFactory = readSupport.entityFactory();
         this.findOptionsFactory = findOptionsFactory;
         this.helper = helper;
         this.useCursorLimitForSortedReads = readSupport.useCursorLimitForSortedReads();
