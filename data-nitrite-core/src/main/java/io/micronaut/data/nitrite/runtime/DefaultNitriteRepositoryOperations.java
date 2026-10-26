@@ -248,32 +248,33 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
                 ? builderRef[0].buildFilterFromJson(associatedEntity, filterMap, params, namedParameters)
                 : Filter.ALL;
             return assocCollection.find(subFilter).toList().stream()
-                .flatMap(doc -> {
-                    if (retainDocuments) {
-                        return Stream.of(doc);
-                    }
-                    String fieldName = targetField;
-                    if (fieldName == null) {
-                        RuntimePersistentProperty<?> identity = associatedEntity.getIdentity();
-                        if (identity == null) {
-                            // A composite identity has no single field to project; callers needing a
-                            // composite match ask for the documents themselves via retainDocuments.
-                            return Stream.empty();
-                        }
-                        fieldName = identity.getPersistedName();
-                    }
-                    Object val = doc.get(fieldName);
-                    Object filterVal = entityMapper.toFilterValue(val);
-                    if (filterVal instanceof Collection<?> collection) {
-                        return collection.stream().map(entityMapper::toFilterValue);
-                    }
-                    return Stream.of(filterVal);
-                })
+                .flatMap(doc -> projectSubQueryDocument(doc, associatedEntity, targetField, retainDocuments))
                 .distinct()
                 .toList();
         };
         builderRef[0] = new NitriteFilterBuilder(entityMapper, subQueryExecutor);
         return builderRef[0];
+    }
+
+    private Stream<Object> projectSubQueryDocument(Document doc, RuntimePersistentEntity<?> entity,
+                                                     @Nullable String targetField, boolean retainDocuments) {
+        if (retainDocuments) {
+            return Stream.of(doc);
+        }
+        String fieldName = targetField;
+        if (fieldName == null) {
+            RuntimePersistentProperty<?> identity = entity.getIdentity();
+            if (identity == null) {
+                // Composite identities require retaining the documents instead of one scalar field.
+                return Stream.empty();
+            }
+            fieldName = identity.getPersistedName();
+        }
+        Object filterValue = entityMapper.toFilterValue(doc.get(fieldName));
+        if (filterValue instanceof Collection<?> values) {
+            return values.stream().map(entityMapper::toFilterValue);
+        }
+        return Stream.of(filterValue);
     }
 
     @Override
@@ -357,34 +358,38 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             LOG.debug("persistOne: entity={}, type={}", entityValue, persistentEntity.getName());
         }
 
-        // Set back-references using pre-computed mappedBy metadata — no annotation lookups on hot path.
         NitriteEntityMeta<T> meta = entityMapper.getOrBuildMeta((Class<T>) entityValue.getClass());
-        // Early exit if no back-references to set
-        if (meta.hasBackReferences()) {
-            for (WritablePropertyMeta<T> assocMeta : meta.mappedByAssocs()) {
-                Object value = assocMeta.prop().getProperty().get(entityValue);
-                if (value instanceof Iterable<?> iterable) {
-                    // Move null check outside inner loop - loop-invariant hoist
-                    if (assocMeta.backRefProperty() != null) {
-                        for (Object child : iterable) {
-                            if (child != null && assocMeta.backRefProperty().get(child) == null) {
-                                assocMeta.backRefProperty().set(child, entityValue);
-                            }
-                        }
-                    }
-                } else if (value != null && assocMeta.backRefProperty() != null) {
-                    if (assocMeta.backRefProperty().get(value) == null) {
-                        assocMeta.backRefProperty().set(value, entityValue);
-                    }
-                }
-            }
-        }
+        setBackReferences(meta, entityValue);
 
         NitriteEntityOperations<T> op = new NitriteEntityOperations<>(
             ctx, cascadeOperations, runtimeEntityRegistry.getEntityEventListener(),
             persistentEntity, conversionService, entityMapper, this, this, entityValue, NitriteEntityOperations.OperationType.INSERT);
         op.persist();
         return op.getEntity();
+    }
+
+    private <T> void setBackReferences(NitriteEntityMeta<T> meta, T entityValue) {
+        if (meta.hasBackReferences()) {
+            for (WritablePropertyMeta<T> association : meta.mappedByAssocs()) {
+                setBackReference(association, entityValue);
+            }
+        }
+    }
+
+    private <T> void setBackReference(WritablePropertyMeta<T> association, T entityValue) {
+        Object value = association.prop().getProperty().get(entityValue);
+        if (association.backRefProperty() == null) {
+            return;
+        }
+        if (value instanceof Iterable<?> children) {
+            for (Object child : children) {
+                if (child != null && association.backRefProperty().get(child) == null) {
+                    association.backRefProperty().set(child, entityValue);
+                }
+            }
+        } else if (value != null && association.backRefProperty().get(value) == null) {
+            association.backRefProperty().set(value, entityValue);
+        }
     }
 
     @Override

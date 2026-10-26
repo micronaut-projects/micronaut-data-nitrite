@@ -356,14 +356,11 @@ public sealed interface NitriteFilterAST extends CompiledNitriteFilter {
                 boolean eq = Objects.equals(lhs, rhs);
                 return NE.equals(op) ? !eq : EQ.equals(op) && eq;
             }
-            int cmp;
-            if (lhs instanceof Number ln && rhs instanceof Number rn) {
-                cmp = Double.compare(ln.doubleValue(), rn.doubleValue());
-            } else if (lhs instanceof Comparable lc && lhs.getClass().isInstance(rhs)) {
-                cmp = lc.compareTo(rhs);
-            } else {
-                cmp = lhs.equals(rhs) ? 0 : 1;
-            }
+            int cmp = switch (lhs) {
+                case Number ln when rhs instanceof Number rn -> Double.compare(ln.doubleValue(), rn.doubleValue());
+                case Comparable lc when lhs.getClass().isInstance(rhs) -> lc.compareTo(rhs);
+                default -> lhs.equals(rhs) ? 0 : 1;
+            };
             return switch (op) {
                 case EQ -> cmp == 0;
                 case NE -> cmp != 0;

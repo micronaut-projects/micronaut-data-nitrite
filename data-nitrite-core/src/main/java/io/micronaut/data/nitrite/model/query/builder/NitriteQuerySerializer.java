@@ -48,17 +48,7 @@ final class NitriteQuerySerializer {
                 return sb.toString();
             }
             case Collection<?> coll -> {
-                StringBuilder sb = new StringBuilder("[");
-                boolean first = true;
-                for (Object item : coll) {
-                    if (!first) {
-                        sb.append(",");
-                    }
-                    first = false;
-                    sb.append(toJsonString(item));
-                }
-                sb.append("]");
-                return sb.toString();
+                return collectionToJson(coll);
             }
             case String str -> {
                 // Backslashes must be escaped before quotes: the parser unescapes '\\' back to a
@@ -72,9 +62,23 @@ final class NitriteQuerySerializer {
                 return obj.toString();
             }
             default -> {
+                return "'" + obj.toString().replace("\\", "\\\\").replace("'", "\\'") + "'";
             }
         }
-        return "'" + obj.toString().replace("\\", "\\\\").replace("'", "\\'") + "'";
+    }
+
+    private static String collectionToJson(Collection<?> collection) {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (Object item : collection) {
+            if (!first) {
+                sb.append(",");
+            }
+            first = false;
+            sb.append(toJsonString(item));
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private static boolean needsQuoting(String key) {
