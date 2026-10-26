@@ -22,6 +22,7 @@ import io.micronaut.core.convert.ConversionService;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.event.EntityEventContext;
 import io.micronaut.data.event.EntityEventListener;
+import io.micronaut.data.exceptions.DataAccessException;
 import io.micronaut.data.exceptions.EntityExistsException;
 import io.micronaut.data.exceptions.OptimisticLockException;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
@@ -125,6 +126,11 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
         }
         this.insert = insert;
         this.executingInsert = insert;
+    }
+
+    @Override
+    protected void failed(Exception e, String operation) throws DataAccessException {
+        throw NitriteOperationFailure.from(e, operation, helper.getDataSourceName());
     }
 
     @Override

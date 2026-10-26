@@ -2,6 +2,8 @@ package io.micronaut.data.nitrite.conf
 
 import io.micronaut.context.ApplicationContext
 import io.micronaut.data.nitrite.mvstore.MvStoreModuleCustomizer
+import io.micronaut.data.nitrite.runtime.DefaultNitriteRepositoryOperations
+import io.micronaut.data.nitrite.runtime.write.NitriteOperationFailure
 import io.micronaut.inject.qualifiers.Qualifiers
 import org.dizitart.no2.mvstore.MVStoreModuleBuilder
 import org.dizitart.no2.exceptions.NitriteSecurityException
@@ -349,6 +351,66 @@ class NitriteConfigurationSpec extends Specification {
 
         then: "the rejected read has not changed the stored document"
         ctx.getBean(Nitrite).getCollection("values").find().firstOrNull().get("value").text == "persisted"
+
+        cleanup:
+        ctx.close()
+        Files.deleteIfExists(dbPath)
+        Files.deleteIfExists(directory)
+    }
+
+    void "MVStore requires an allowlist for application values nested in a tray-like list"() {
+        given:
+        def directory = Files.createTempDirectory("nitrite-tray-allowlist")
+        def dbPath = directory.resolve("tray.db")
+        def props = ["micronaut.nitrite.default.db-path": dbPath.toString()]
+        def allowed = props + ["micronaut.nitrite.default.mvstore-allowed-classes": StoredValue.name]
+        ctx = ApplicationContext.run(props)
+        ctx.getBean(Nitrite).getCollection("workbench").insert(
+                Document.createDocument("tray", [new StoredValue("quoted fragment")]))
+        ctx.close()
+
+        when: "the persisted tray is read without allowing its application value class"
+        ctx = ApplicationContext.run(props)
+        ctx.getBean(Nitrite).getCollection("workbench").find().firstOrNull()
+
+        then: "MVStore rejects the nested Serializable value"
+        def failure = thrown(NitriteSecurityException)
+        failure.message.contains(StoredValue.name)
+
+        when: "the application value class is allowlisted"
+        ctx.close()
+        ctx = ApplicationContext.run(allowed)
+        def tray = ctx.getBean(Nitrite).getCollection("workbench").find().firstOrNull().get("tray")
+
+        then: "the workbench-style tray can be restored"
+        tray.first().text == "quoted fragment"
+
+        cleanup:
+        ctx.close()
+        Files.deleteIfExists(dbPath)
+        Files.deleteIfExists(directory)
+    }
+
+    void "a rejected MVStore read names the datasource's allowlist setting"() {
+        given:
+        def directory = Files.createTempDirectory("nitrite-allowlist-hint")
+        def dbPath = directory.resolve("archive.db")
+        def props = ["micronaut.nitrite.archive.db-path": dbPath.toString()]
+        def allowed = props + ["micronaut.nitrite.archive.mvstore-allowed-classes": StoredValue.name]
+        ctx = ApplicationContext.run(allowed)
+        ctx.getBean(Nitrite, Qualifiers.byName("archive")).getCollection("values")
+                .insert(Document.createDocument("value", new StoredValue("persisted")))
+        ctx.close()
+        ctx = ApplicationContext.run(props)
+        def operations = ctx.getBean(DefaultNitriteRepositoryOperations, Qualifiers.byName("archive"))
+
+        when:
+        ctx.getBean(Nitrite, Qualifiers.byName("archive")).getCollection("values").find().firstOrNull()
+
+        then:
+        def rejection = thrown(NitriteSecurityException)
+        NitriteOperationFailure.from(rejection, "PERSIST", operations.dataSourceName).message
+                .contains("`micronaut.nitrite.archive.mvstore-allowed-classes`")
 
         cleanup:
         ctx.close()

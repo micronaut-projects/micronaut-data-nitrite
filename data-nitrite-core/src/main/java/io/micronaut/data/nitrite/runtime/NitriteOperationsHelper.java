@@ -50,6 +50,14 @@ public interface NitriteOperationsHelper {
      */
     NitriteCollection getCollection(Class<?> type);
 
+    /**
+     * Gets the name of the datasource these operations belong to.
+     *
+     * @return the datasource name, as used in {@code micronaut.nitrite.<name>.*} properties
+     * @since 5.2.0
+     */
+    String getDataSourceName();
+
 
     /**
      * Generates an ID for the entity if necessary.

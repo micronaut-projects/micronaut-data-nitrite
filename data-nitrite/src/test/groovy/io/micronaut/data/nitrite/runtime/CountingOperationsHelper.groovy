@@ -32,6 +32,11 @@ class CountingOperationsHelper implements NitriteOperationsHelper {
     }
 
     @Override
+    String getDataSourceName() {
+        "default"
+    }
+
+    @Override
     NitriteCollection getCollection(Class<?> type) {
         lookups[type] = lookups[type] + 1
         return collections[type]

@@ -171,6 +171,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     private final NitriteCollectionRegistry collectionRegistry;
     private final NitriteQueryBinder queryBinder;
     private final boolean useCursorLimitForSortedReads;
+    private final String dataSourceName;
 
     /**
      * Create Nitrite repository operations.
@@ -197,6 +198,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         this.useCursorLimitForSortedReads = configuration.getSortedReadStrategy()
             .usesCursorLimit(configuration.getStorageMode());
         this.database = database;
+        this.dataSourceName = configuration.getName();
         this.collectionRegistry = new NitriteCollectionRegistry(database, transactionHolder, configuration, this::getEntity);
         this.entityMapper =
             new NitriteEntityMapper(conversionService, serdeObjectMapper, runtimeEntityRegistry);
@@ -347,6 +349,11 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public void checkWritable() {
         collectionRegistry.checkWritable();
+    }
+
+    @Override
+    public String getDataSourceName() {
+        return dataSourceName;
     }
 
     @Override
