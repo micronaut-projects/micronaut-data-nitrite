@@ -154,49 +154,57 @@ final class NitriteCollectionRegistry {
         RuntimePersistentEntity<?> entity = entityFactory.apply(type);
         List<AnnotationValue<Index>> indexes = entity.getAnnotationMetadata().getAnnotationValuesByType(Index.class);
         for (AnnotationValue<Index> index : indexes) {
-            String[] columns = index.getRequiredValue("columns", String[].class);
-            String[] translatedColumns = new String[columns.length];
-            for (int i = 0; i < columns.length; i++) {
-                String col = columns[i];
-                RuntimePersistentProperty<?> prop = entity.getPropertyByName(col);
-                translatedColumns[i] = prop != null ? prop.getPersistedName() : col;
-            }
-            boolean unique = index.booleanValue("unique").orElse(false);
-            IndexOptions options = indexOptions(unique ? IndexType.UNIQUE : IndexType.NON_UNIQUE);
-            try {
-                collection.createIndex(options, translatedColumns);
-            } catch (Exception e) {
-                LOG.warn("Could not create index for collection {}: {}", collection.getName(), e.getMessage());
-            }
+            createEntityIndex(entity, collection, index);
         }
         for (RuntimePersistentProperty<?> property : entity.getPersistentProperties()) {
-            if (property.getAnnotationMetadata().hasAnnotation(Index.class)) {
-                AnnotationValue<Index> index = property.getAnnotationMetadata().getAnnotation(Index.class);
-                if (index != null) {
-                    boolean unique = index.booleanValue("unique").orElse(false);
-                    try {
-                        collection.createIndex(indexOptions(unique ? IndexType.UNIQUE : IndexType.NON_UNIQUE), property.getPersistedName());
-                    } catch (Exception e) {
-                        LOG.warn("Could not create index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
-                    }
-                }
-            }
-            if (property.getAnnotationMetadata().hasAnnotation(FullTextIndex.class)) {
+            createPropertyIndexes(collection, property);
+        }
+        ensureIdentityIndex(entity, collection);
+    }
+
+    private void createEntityIndex(RuntimePersistentEntity<?> entity, NitriteCollection collection, AnnotationValue<Index> index) {
+        String[] columns = index.getRequiredValue("columns", String[].class);
+        String[] translatedColumns = new String[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            String col = columns[i];
+            RuntimePersistentProperty<?> prop = entity.getPropertyByName(col);
+            translatedColumns[i] = prop != null ? prop.getPersistedName() : col;
+        }
+        boolean unique = index.booleanValue("unique").orElse(false);
+        IndexOptions options = indexOptions(unique ? IndexType.UNIQUE : IndexType.NON_UNIQUE);
+        try {
+            collection.createIndex(options, translatedColumns);
+        } catch (Exception e) {
+            LOG.warn("Could not create index for collection {}: {}", collection.getName(), e.getMessage());
+        }
+    }
+
+    private void createPropertyIndexes(NitriteCollection collection, RuntimePersistentProperty<?> property) {
+        if (property.getAnnotationMetadata().hasAnnotation(Index.class)) {
+            AnnotationValue<Index> index = property.getAnnotationMetadata().getAnnotation(Index.class);
+            if (index != null) {
+                boolean unique = index.booleanValue("unique").orElse(false);
                 try {
-                    collection.createIndex(indexOptions(IndexType.FULL_TEXT), property.getPersistedName());
+                    collection.createIndex(indexOptions(unique ? IndexType.UNIQUE : IndexType.NON_UNIQUE), property.getPersistedName());
                 } catch (Exception e) {
-                    LOG.warn("Could not create full-text index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
-                }
-            }
-            if (property.getAnnotationMetadata().hasAnnotation(SpatialIndex.class)) {
-                try {
-                    collection.createIndex(indexOptions("Spatial"), property.getPersistedName());
-                } catch (Exception e) {
-                    LOG.warn("Could not create spatial index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
+                    LOG.warn("Could not create index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
                 }
             }
         }
-        ensureIdentityIndex(entity, collection);
+        if (property.getAnnotationMetadata().hasAnnotation(FullTextIndex.class)) {
+            try {
+                collection.createIndex(indexOptions(IndexType.FULL_TEXT), property.getPersistedName());
+            } catch (Exception e) {
+                LOG.warn("Could not create full-text index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
+            }
+        }
+        if (property.getAnnotationMetadata().hasAnnotation(SpatialIndex.class)) {
+            try {
+                collection.createIndex(indexOptions("Spatial"), property.getPersistedName());
+            } catch (Exception e) {
+                LOG.warn("Could not create spatial index for field {} in collection {}: {}", property.getName(), collection.getName(), e.getMessage());
+            }
+        }
     }
 
     /**
