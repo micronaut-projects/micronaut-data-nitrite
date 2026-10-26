@@ -1192,47 +1192,54 @@ public final class NitriteEntityMapper {
     }
 
     if (value instanceof Map<?, ?> mapValue) {
-      if (Map.class.isAssignableFrom(t)) {
-        Argument<?>[] typeParameters = target.getTypeParameters();
-        if (typeParameters.length == 2) {
-          Argument<?> valueArg = typeParameters[1];
-          Map<Object, Object> result = new LinkedHashMap<>();
-          for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
-            result.put(entry.getKey(), convertFromDocumentValue(entry.getValue(), valueArg));
-          }
-          return result;
-        }
-      } else if (!t.isInstance(value)) {
-        // Map → POJO: prefer BeanIntrospection (no Serde codec required) when available,
-        // fall back to Serde for types with custom codecs but no @Introspected metadata.
-        Optional<BeanIntrospection<Object>> maybeIntro =
-            BeanIntrospector.SHARED.findIntrospection(castClass(t));
-        if (maybeIntro.isPresent()) {
-          return mapToPojo(mapValue, maybeIntro.get());
-        }
-        if (serdeObjectMapper != null) {
-          try {
-            String json = serdeObjectMapper.writeValueAsString(value);
-            return serdeObjectMapper.readValue(json, target);
-          } catch (Exception _) {
-            return conversionService.convert(value, target).orElse(null);
-          }
-        }
+      return convertMapValue(mapValue, t, target);
+    }
+    return convertIterableOrDirect(value, t, target);
+  }
+
+  private @Nullable Object convertMapValue(Map<?, ?> mapValue, Class<?> t, Argument<?> target) {
+    if (Map.class.isAssignableFrom(t)) {
+      Argument<?>[] typeParameters = target.getTypeParameters();
+      if (typeParameters.length == 2) {
+        return convertMapEntries(mapValue, typeParameters[1]);
+      }
+    } else if (!t.isInstance(mapValue)) {
+      // Map → POJO: prefer BeanIntrospection (no Serde codec required) when available,
+      // fall back to Serde for types with custom codecs but no @Introspected metadata.
+      Optional<BeanIntrospection<Object>> maybeIntro =
+          BeanIntrospector.SHARED.findIntrospection(castClass(t));
+      if (maybeIntro.isPresent()) {
+        return mapToPojo(mapValue, maybeIntro.get());
+      }
+      if (serdeObjectMapper != null) {
+        return serdeConvert(serdeObjectMapper, mapValue, target);
       }
     }
+    return convertIterableOrDirect(mapValue, t, target);
+  }
 
+  private Map<Object, Object> convertMapEntries(Map<?, ?> mapValue, Argument<?> valueArg) {
+    Map<Object, Object> result = new LinkedHashMap<>();
+    for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+      result.put(entry.getKey(), convertFromDocumentValue(entry.getValue(), valueArg));
+    }
+    return result;
+  }
+
+  private @Nullable Object serdeConvert(ObjectMapper objectMapper, Object value, Argument<?> target) {
+    try {
+      String json = objectMapper.writeValueAsString(value);
+      return objectMapper.readValue(json, target);
+    } catch (Exception _) {
+      return conversionService.convert(value, target).orElse(null);
+    }
+  }
+
+  private @Nullable Object convertIterableOrDirect(Object value, Class<?> t, Argument<?> target) {
     if (value instanceof Iterable<?> iterable && Iterable.class.isAssignableFrom(t)) {
       Argument<?>[] typeParameters = target.getTypeParameters();
       if (typeParameters.length == 1) {
-        Argument<?> itemArg = typeParameters[0];
-        List<Object> result = new ArrayList<>();
-        for (Object item : iterable) {
-          result.add(convertFromDocumentValue(item, itemArg));
-        }
-        if (Set.class.isAssignableFrom(t)) {
-          return new LinkedHashSet<>(result);
-        }
-        return result;
+        return convertItems(iterable, typeParameters[0], t);
       }
     }
 
@@ -1241,6 +1248,17 @@ public final class NitriteEntityMapper {
     }
 
     return conversionService.convert(value, target).orElse(null);
+  }
+
+  private Collection<Object> convertItems(Iterable<?> iterable, Argument<?> itemArg, Class<?> t) {
+    List<Object> result = new ArrayList<>();
+    for (Object item : iterable) {
+      result.add(convertFromDocumentValue(item, itemArg));
+    }
+    if (Set.class.isAssignableFrom(t)) {
+      return new LinkedHashSet<>(result);
+    }
+    return result;
   }
 
   private Map<String, Object> documentToMap(Document document) {
@@ -1409,45 +1427,8 @@ public final class NitriteEntityMapper {
         LOG.debug("fromDocumentInternal: type={}, doc={}", type.getName(), doc);
     }
     RuntimePersistentEntity<T> persistentEntity = runtimeEntityRegistry.getEntity(type);
-    BeanIntrospection<T> introspection = persistentEntity.getIntrospection();
-
     RuntimePersistentProperty<T> idProp = safeGetIdentity(persistentEntity);
-
-    T entity;
-    Argument<?>[] ctorArgs = introspection.getConstructorArguments();
-    if (ctorArgs.length > 0) {
-        Object[] args = new Object[ctorArgs.length];
-        for (int i = 0; i < ctorArgs.length; i++) {
-            Argument<?> arg = ctorArgs[i];
-            String name = arg.getName();
-            RuntimePersistentProperty<T> prop = persistentEntity.getPropertyByName(name);
-            String storedName = prop != null ? prop.getPersistedName() : name;
-            if (idProp != null && idProp.getName().equals(name)) {
-                storedName = ID_FIELD;
-            }
-            Object val = ID_FIELD.equals(storedName)
-                ? docGet(doc, storedName, name, "_id")
-                : docGet(doc, storedName, name);
-            if (val == null) {
-                args[i] = null;
-            } else if (prop instanceof RuntimeAssociation && (prop.isReadOnly() || arg.isNonNull())) {
-                // The association has to be supplied at construction time: either there is no
-                // writable property to populate afterwards, or the constructor parameter rejects
-                // null (a Kotlin non-nullable parameter).
-                args[i] = resolveAssociationValue(prop, val, visited);
-            } else if (prop instanceof RuntimeAssociation) {
-                // Writable associations are populated after instantiation. Deferring them lets the
-                // current entity enter the visited cache before a bidirectional association is
-                // hydrated and avoids resolving the same association twice.
-                args[i] = null;
-            } else {
-                args[i] = convertFromDocumentValue(val, arg);
-            }
-        }
-        entity = introspection.instantiate(false, args);
-    } else {
-        entity = introspection.instantiate();
-    }
+    T entity = instantiate(doc, persistentEntity, idProp, visited);
 
     if (cacheKey != null) {
         // Cache before populating properties so that a back-reference resolves to this instance.
@@ -1456,6 +1437,79 @@ public final class NitriteEntityMapper {
 
     // Set identity early so mappedBy hydration can use it
     if (idProp != null && !idProp.isReadOnly()) {
+        populateIdentity(doc, entity, idProp);
+    }
+
+    if (idProp == null && persistentEntity.hasCompositeIdentity()) {
+        populateCompositeIdentity(doc, entity, persistentEntity);
+    }
+
+    // Populate properties
+    for (RuntimePersistentProperty<T> prop : persistentEntity.getPersistentProperties()) {
+        if (!prop.isReadOnly() && !prop.isAnnotationPresent(Transient.class)) {
+            populateProperty(doc, entity, prop, idProp, type, visited);
+        }
+        // Note: mappedBy associations (ONE_TO_MANY, MANY_TO_MANY) are NOT auto-hydrated.
+        // They remain lazy by default. @Join support would require explicit fetch logic.
+    }
+
+    populateVersion(doc, entity, type);
+
+    // Trigger postLoad event
+    runtimeEntityRegistry.getEntityEventListener().postLoad(
+        (EntityEventContext<Object>) new DefaultEntityEventContext<>(persistentEntity, entity)
+    );
+
+    return entity;
+  }
+
+    private <T> T instantiate(Document doc,
+                              RuntimePersistentEntity<T> persistentEntity,
+                              @Nullable RuntimePersistentProperty<T> idProp,
+                              Map<String, Object> visited) {
+        BeanIntrospection<T> introspection = persistentEntity.getIntrospection();
+        Argument<?>[] ctorArgs = introspection.getConstructorArguments();
+        if (ctorArgs.length == 0) {
+            return introspection.instantiate();
+        }
+        Object[] args = new Object[ctorArgs.length];
+        for (int i = 0; i < ctorArgs.length; i++) {
+            args[i] = constructorArgument(doc, ctorArgs[i], persistentEntity, idProp, visited);
+        }
+        return introspection.instantiate(false, args);
+    }
+
+    private <T> @Nullable Object constructorArgument(Document doc,
+                                                     Argument<?> arg,
+                                                     RuntimePersistentEntity<T> persistentEntity,
+                                                     @Nullable RuntimePersistentProperty<T> idProp,
+                                                     Map<String, Object> visited) {
+        String name = arg.getName();
+        RuntimePersistentProperty<T> prop = persistentEntity.getPropertyByName(name);
+        String storedName = prop != null ? prop.getPersistedName() : name;
+        if (idProp != null && idProp.getName().equals(name)) {
+            storedName = ID_FIELD;
+        }
+        Object val = ID_FIELD.equals(storedName)
+            ? docGet(doc, storedName, name, "_id")
+            : docGet(doc, storedName, name);
+        if (val == null) {
+            return null;
+        }
+        if (prop instanceof RuntimeAssociation) {
+            /*
+             * The association has to be supplied at construction time when there is no writable
+             * property to populate afterwards, or the constructor parameter rejects null (a Kotlin
+             * non-nullable parameter). Writable associations are populated after instantiation:
+             * deferring them lets the current entity enter the visited cache before a bidirectional
+             * association is hydrated and avoids resolving the same association twice.
+             */
+            return prop.isReadOnly() || arg.isNonNull() ? resolveAssociationValue(prop, val, visited) : null;
+        }
+        return convertFromDocumentValue(val, arg);
+    }
+
+    private <T> void populateIdentity(Document doc, T entity, RuntimePersistentProperty<T> idProp) {
         Object storedId = docGet(doc, ID_FIELD, idProp.getPersistedName(), idProp.getName(), "_id");
         if (storedId != null && !(storedId instanceof NitriteId)) {
             Object convertedId = convertFromDocumentValue(storedId, idProp.getProperty().asArgument());
@@ -1465,9 +1519,9 @@ public final class NitriteEntityMapper {
         }
     }
 
-    // A composite identity has no single id property and its properties are not part of
-    // getPersistentProperties(), so they are read back explicitly, mirroring how they are written.
-    if (idProp == null && persistentEntity.hasCompositeIdentity()) {
+    private <T> void populateCompositeIdentity(Document doc, T entity, RuntimePersistentEntity<T> persistentEntity) {
+        // A composite identity has no single id property and its properties are not part of
+        // getPersistentProperties(), so they are read back explicitly, mirroring how they are written.
         for (RuntimePersistentProperty<T> identityProperty : persistentEntity.getRuntimeIdentityProperties()) {
             if (identityProperty.isReadOnly()) {
                 continue;
@@ -1482,117 +1536,115 @@ public final class NitriteEntityMapper {
         }
     }
 
-    // Populate properties
-    for (RuntimePersistentProperty<T> prop : persistentEntity.getPersistentProperties()) {
-        if (prop.isReadOnly() || prop.isAnnotationPresent(Transient.class)) {
-            continue;
-        }
-        String storedName = prop.getPersistedName();
-        if (idProp != null && idProp.equals(prop)) {
-            storedName = ID_FIELD;
-        }
-
+    private <T> void populateProperty(Document doc,
+                                      T entity,
+                                      RuntimePersistentProperty<T> prop,
+                                      @Nullable RuntimePersistentProperty<T> idProp,
+                                      Class<T> type,
+                                      Map<String, Object> visited) {
+        String storedName = idProp != null && idProp.equals(prop) ? ID_FIELD : prop.getPersistedName();
         BeanProperty<T, Object> property = prop.getProperty();
         Object value = ID_FIELD.equals(storedName)
             ? docGet(doc, storedName, prop.getName(), "_id")
             : docGet(doc, storedName, prop.getName());
 
-        if (value == null && prop instanceof RuntimeAssociation<?>) {
-            // An association to a composite-identity entity stores no single id reference, only the
-            // local fields named by its @JoinColumns, so it is resolved from those instead.
-            Object byJoinColumns = resolveByCompositeJoinColumns(doc, prop, type, visited);
-            if (byJoinColumns != null) {
-                property.set(entity, byJoinColumns);
-                continue;
-            }
-        }
-
-        if (value != null) {
-            boolean associationStoredEmbedded = isAssociationStoredEmbedded(prop);
-            if (prop instanceof RuntimeAssociation<?> association && !associationStoredEmbedded) {
-                Class<Object> associatedType = castClass(association.getAssociatedEntity().getIntrospection().getBeanType());
-                // A @Join fetch replaces the raw foreign-key scalar with the full joined
-                // sub-document (or array of them) via $lookup — hydrate directly from what's
-                // already there rather than treating it as an id to re-query.
-                if (value instanceof Document embeddedDoc) {
-                    property.set(entity, fromDocumentInternal(embeddedDoc, associatedType, visited));
-                    continue;
-                } else if (value instanceof Collection<?> collection
-                    && !collection.isEmpty()
-                    && collection.iterator().next() instanceof Document) {
-                    List<Object> associatedEntities = new ArrayList<>();
-                    for (Object item : collection) {
-                        if (item instanceof Document d) {
-                            associatedEntities.add(fromDocumentInternal(d, associatedType, visited));
-                        }
-                    }
-                    property.set(entity, conversionService.convert(associatedEntities, property.asArgument()).orElse(null));
-                    continue;
-                } else if (helper != null) {
-                    if (value instanceof Iterable<?> ids) {
-                        List<Object> associatedEntities = new ArrayList<>();
-                        for (Object associatedId : ids) {
-                            Document associatedDoc = helper.getCollection(associatedType).find(idEqualsFilter(associatedType, associatedId)).firstOrNull();
-                            if (associatedDoc != null) {
-                                associatedEntities.add(fromDocumentInternal(associatedDoc, associatedType, visited));
-                            }
-                        }
-                        property.set(entity, conversionService.convert(associatedEntities, property.asArgument()).orElse(null));
-                        continue;
-                    } else {
-                        // It's a single ID
-                        Document associatedDoc = helper.getCollection(associatedType).find(idEqualsFilter(associatedType, value)).firstOrNull();
-                        if (associatedDoc != null) {
-                            property.set(entity, fromDocumentInternal(associatedDoc, associatedType, visited));
-                            continue;
-                        }
-                    }
-                }
-            } else if (prop instanceof RuntimeAssociation<?> association) {
-                if (value instanceof Document embeddedDoc) {
-                    property.set(entity, fromDocumentInternal(embeddedDoc, castClass(association.getAssociatedEntity().getIntrospection().getBeanType()), visited));
-                    continue;
-                } else if (value instanceof Collection<?> collection) {
-                    List<Object> embeddedEntities = new ArrayList<>();
-                    for (Object item : collection) {
-                        if (item instanceof Document d) {
-                            embeddedEntities.add(fromDocumentInternal(d, castClass(association.getAssociatedEntity().getIntrospection().getBeanType()), visited));
-                        }
-                    }
-                    property.set(entity, conversionService.convert(embeddedEntities, property.asArgument()).orElse(null));
-                    continue;
+        if (value == null) {
+            if (prop instanceof RuntimeAssociation<?>) {
+                // An association to a composite-identity entity stores no single id reference, only the
+                // local fields named by its @JoinColumns, so it is resolved from those instead.
+                Object byJoinColumns = resolveByCompositeJoinColumns(doc, prop, type, visited);
+                if (byJoinColumns != null) {
+                    property.set(entity, byJoinColumns);
                 }
             }
-
-            Object converted = convertFromDocumentValue(value, property.asArgument());
-            if (converted != null) {
-                property.set(entity, converted);
-            }
+            return;
         }
-        // Note: mappedBy associations (ONE_TO_MANY, MANY_TO_MANY) are NOT auto-hydrated.
-        // They remain lazy by default. @Join support would require explicit fetch logic.
+
+        if (prop instanceof RuntimeAssociation<?> association
+            && populateAssociation(entity, property, association, isAssociationStoredEmbedded(prop), value, visited)) {
+            return;
+        }
+        Object converted = convertFromDocumentValue(value, property.asArgument());
+        if (converted != null) {
+            property.set(entity, converted);
+        }
+    }
+
+    // False when the value is neither a document, a list of them, nor an id the associated
+    // collection resolves; the caller then converts it as a plain value.
+    private <T> boolean populateAssociation(T entity,
+                                            BeanProperty<T, Object> property,
+                                            RuntimeAssociation<?> association,
+                                            boolean storedEmbedded,
+                                            Object value,
+                                            Map<String, Object> visited) {
+        Class<Object> associatedType = castClass(association.getAssociatedEntity().getIntrospection().getBeanType());
+        // A @Join fetch replaces the raw foreign-key scalar with the full joined
+        // sub-document (or array of them) via $lookup — hydrate directly from what's
+        // already there rather than treating it as an id to re-query.
+        if (value instanceof Document embeddedDoc) {
+            property.set(entity, fromDocumentInternal(embeddedDoc, associatedType, visited));
+            return true;
+        }
+        if (value instanceof Collection<?> collection && (storedEmbedded || isDocumentCollection(collection))) {
+            List<Object> associatedEntities = new ArrayList<>();
+            for (Object item : collection) {
+                if (item instanceof Document d) {
+                    associatedEntities.add(fromDocumentInternal(d, associatedType, visited));
+                }
+            }
+            property.set(entity, conversionService.convert(associatedEntities, property.asArgument()).orElse(null));
+            return true;
+        }
+        NitriteOperationsHelper operationsHelper = helper;
+        return !storedEmbedded && operationsHelper != null
+            && populateReferencedAssociation(operationsHelper, entity, property, associatedType, value, visited);
+    }
+
+    private static boolean isDocumentCollection(Collection<?> collection) {
+        return !collection.isEmpty() && collection.iterator().next() instanceof Document;
+    }
+
+    private <T> boolean populateReferencedAssociation(NitriteOperationsHelper operationsHelper,
+                                                      T entity,
+                                                      BeanProperty<T, Object> property,
+                                                      Class<Object> associatedType,
+                                                      Object value,
+                                                      Map<String, Object> visited) {
+        if (value instanceof Iterable<?> ids) {
+            List<Object> associatedEntities = new ArrayList<>();
+            for (Object associatedId : ids) {
+                Document associatedDoc = operationsHelper.getCollection(associatedType).find(idEqualsFilter(associatedType, associatedId)).firstOrNull();
+                if (associatedDoc != null) {
+                    associatedEntities.add(fromDocumentInternal(associatedDoc, associatedType, visited));
+                }
+            }
+            property.set(entity, conversionService.convert(associatedEntities, property.asArgument()).orElse(null));
+            return true;
+        }
+        // It's a single ID
+        Document associatedDoc = operationsHelper.getCollection(associatedType).find(idEqualsFilter(associatedType, value)).firstOrNull();
+        if (associatedDoc == null) {
+            return false;
+        }
+        property.set(entity, fromDocumentInternal(associatedDoc, associatedType, visited));
+        return true;
     }
 
     // Handle version property explicitly (might not be in persistent properties or value could be 0)
-    RuntimePersistentProperty<T> versionProp = getOrBuildMeta(type).versionProp();
-    if (versionProp != null && !versionProp.isReadOnly()) {
-        BeanProperty<T, Object> versionProperty = versionProp.getProperty();
-        Object versionValue = docGet(doc, versionProp.getPersistedName(), versionProp.getName());
-        if (versionValue != null) {
-            Object convertedVersion = convertFromDocumentValue(versionValue, versionProperty.asArgument());
-            if (convertedVersion != null) {
-                versionProperty.set(entity, convertedVersion);
+    private <T> void populateVersion(Document doc, T entity, Class<T> type) {
+        RuntimePersistentProperty<T> versionProp = getOrBuildMeta(type).versionProp();
+        if (versionProp != null && !versionProp.isReadOnly()) {
+            BeanProperty<T, Object> versionProperty = versionProp.getProperty();
+            Object versionValue = docGet(doc, versionProp.getPersistedName(), versionProp.getName());
+            if (versionValue != null) {
+                Object convertedVersion = convertFromDocumentValue(versionValue, versionProperty.asArgument());
+                if (convertedVersion != null) {
+                    versionProperty.set(entity, convertedVersion);
+                }
             }
         }
     }
-
-    // Trigger postLoad event
-    runtimeEntityRegistry.getEntityEventListener().postLoad(
-        (EntityEventContext<Object>) new DefaultEntityEventContext<>(persistentEntity, entity)
-    );
-
-    return entity;
-  }
 
     /**
      * Resolve the raw foreign-key value of an association-typed constructor argument into the actual
