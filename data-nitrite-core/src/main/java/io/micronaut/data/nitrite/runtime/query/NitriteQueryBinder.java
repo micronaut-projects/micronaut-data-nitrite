@@ -105,27 +105,11 @@ public final class NitriteQueryBinder {
                                         Map<String, Object> namedParameters,
                                         UnaryOperator<Object> toFilterValue) {
         if (value instanceof String s) {
-            Object resolved = null;
-            boolean isPlaceholder = false;
             if (s.startsWith(NitriteInternalKeys.QUERY_PARAMETER_PREFIX)) {
-                isPlaceholder = true;
-                try {
-                    int idx = Integer.parseInt(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()));
-                    if (jsonParams != null && idx >= 0 && idx < jsonParams.length) {
-                        resolved = jsonParams[idx];
-                    }
-                } catch (Exception ignored) {
-                    // Ignore parsing errors for malformed placeholders
-                }
-            } else if (s.startsWith(":")) {
-                isPlaceholder = true;
-                String pname = s.substring(1);
-                if (namedParameters.containsKey(pname)) {
-                    resolved = namedParameters.get(pname);
-                }
+                return toFilterValue.apply(positionalParameter(s, jsonParams));
             }
-            if (isPlaceholder) {
-                return toFilterValue.apply(resolved);
+            if (s.startsWith(":")) {
+                return toFilterValue.apply(namedParameters.get(s.substring(1)));
             }
         }
         if (value instanceof Map vm && vm.get(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER) instanceof Integer idx
@@ -133,6 +117,16 @@ public final class NitriteQueryBinder {
             return toFilterValue.apply(jsonParams[idx]);
         }
         return value;
+    }
+
+    private static @Nullable Object positionalParameter(String placeholder, @Nullable Object[] params) {
+        try {
+            int index = Integer.parseInt(placeholder.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()));
+            return params != null && index >= 0 && index < params.length ? params[index] : null;
+        } catch (Exception _) {
+            // Malformed or out-of-range placeholders resolve to null before conversion.
+            return null;
+        }
     }
 
     /**

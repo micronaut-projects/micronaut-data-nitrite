@@ -17,6 +17,7 @@ package io.micronaut.data.nitrite.model.query.builder;
 
 import io.micronaut.core.annotation.AnnotationValue;
 import io.micronaut.core.annotation.Internal;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.sql.JoinColumn;
 import io.micronaut.data.model.Association;
@@ -80,84 +81,73 @@ final class NitriteQueryBuilderHelper {
             .toList();
         Map<String, LookupsStage> subLookupMap = new HashMap<>();
         for (String join : sorted) {
-            PersistentEntity currentEntity = rootEntity;
-            List<Map<String, Object>> currentPipeline = pipeline;
-            Map<String, LookupsStage> currentSubLookups = subLookupMap;
-            StringJoiner processedPath = new StringJoiner(".");
-            for (String segment : join.split("\\.", -1)) {
-                processedPath.add(segment);
-                String pathKey = processedPath.toString();
-                if (currentSubLookups.containsKey(pathKey)) {
-                    LookupsStage existing = currentSubLookups.get(pathKey);
-                    currentPipeline = existing.pipeline;
-                    currentSubLookups = existing.subLookups;
-                    currentEntity = existing.entity;
-                    continue;
-                }
+            addLookupPath(join, rootEntity, pipeline, subLookupMap);
+        }
+    }
+
+    private static void addLookupPath(String join, PersistentEntity rootEntity,
+                                       List<Map<String, Object>> pipeline, Map<String, LookupsStage> subLookupMap) {
+        PersistentEntity currentEntity = rootEntity;
+        List<Map<String, Object>> currentPipeline = pipeline;
+        Map<String, LookupsStage> currentSubLookups = subLookupMap;
+        StringJoiner processedPath = new StringJoiner(".");
+        for (String segment : join.split("\\.", -1)) {
+            processedPath.add(segment);
+            String pathKey = processedPath.toString();
+            LookupsStage stage = currentSubLookups.get(pathKey);
+            if (stage == null) {
                 PersistentPropertyPath propPath = currentEntity.getPropertyPath(segment);
-                if (propPath == null || !(propPath.getProperty() instanceof Association association)) {
-                    continue;
-                }
-                if (association.isEmbedded()) {
-                    continue;
-                }
-
-                // Composite foreign key via @JoinColumn (multiple = composite FK).
-                // The annotation processor maps each jakarta @JoinColumn to a separate
-                // sql.JoinColumn value (no JoinColumns container is synthesised), so read
-                // the repeated values by type rather than via the container.
-                List<AnnotationValue<JoinColumn>> joinColumnValues =
-                    association.getAnnotationMetadata().getAnnotationValuesByType(JoinColumn.class);
-                if (joinColumnValues.size() > 1) {
-                    LookupsStage stage = new LookupsStage(association.getAssociatedEntity());
-                    String joinedCollection = association.getAssociatedEntity().getPersistedName();
-                    List<String> localFields = new ArrayList<>();
-                    List<String> foreignFields = new ArrayList<>();
-                    for (var jc : joinColumnValues) {
-                        localFields.add(jc.stringValue("name").orElse(segment));
-                        foreignFields.add(jc.stringValue("referencedColumnName").orElse("_id"));
-                    }
-                    currentPipeline.add(lookup(joinedCollection, localFields, foreignFields, stage.pipeline, segment));
-                    currentSubLookups.put(pathKey, stage);
-                    currentPipeline = stage.pipeline;
-                    currentSubLookups = stage.subLookups;
-                    currentEntity = stage.entity;
-                    continue;
-                }
-
-                LookupsStage stage = new LookupsStage(association.getAssociatedEntity());
-                String joinedCollection = association.getAssociatedEntity().getPersistedName();
-                boolean isForeignKey = association.isForeignKey();
-                boolean hasMappedBy = association.getAnnotationMetadata()
-                    .stringValue(Relation.class, "mappedBy").isPresent();
-
-                if (isForeignKey || hasMappedBy) {
-                    // ONE_TO_MANY: localField=_id, foreignField=FK persisted name in other entity
-                    String mappedBy = association.getAnnotationMetadata()
-                        .stringValue(Relation.class, "mappedBy").orElse(null);
-                    if (mappedBy == null) {
-                        continue;
-                    }
-                    PersistentPropertyPath backPropPath = association.getAssociatedEntity().getPropertyPath(mappedBy);
-                    if (backPropPath == null) {
-                        continue;
-                    }
-                    String foreignField = backPropPath.getProperty().getPersistedName();
-                    currentPipeline.add(lookup(joinedCollection, "_id", foreignField, stage.pipeline, segment));
-                } else {
-                    // MANY_TO_ONE / ONE_TO_ONE: localField=FK persisted name, foreignField=_id
-                    String localField = association.getPersistedName();
-                    currentPipeline.add(lookup(joinedCollection, localField, "_id", stage.pipeline, segment));
-                    if (association.getKind().isSingleEnded()) {
-                        currentPipeline.add(unwind("$" + segment));
+                if (propPath != null && propPath.getProperty() instanceof Association association && !association.isEmbedded()) {
+                    stage = addAssociationLookup(association, segment, currentPipeline);
+                    if (stage != null) {
+                        currentSubLookups.put(pathKey, stage);
                     }
                 }
-                currentSubLookups.put(pathKey, stage);
+            }
+            if (stage != null) {
                 currentPipeline = stage.pipeline;
                 currentSubLookups = stage.subLookups;
                 currentEntity = stage.entity;
             }
         }
+    }
+
+    private static @Nullable LookupsStage addAssociationLookup(Association association, String segment,
+                                                                List<Map<String, Object>> pipeline) {
+        LookupsStage stage = new LookupsStage(association.getAssociatedEntity());
+        String joinedCollection = association.getAssociatedEntity().getPersistedName();
+        // Read repeated values: the annotation processor does not synthesize a JoinColumns container.
+        List<AnnotationValue<JoinColumn>> joinColumnValues =
+            association.getAnnotationMetadata().getAnnotationValuesByType(JoinColumn.class);
+        if (joinColumnValues.size() > 1) {
+            List<String> localFields = new ArrayList<>();
+            List<String> foreignFields = new ArrayList<>();
+            for (var joinColumn : joinColumnValues) {
+                localFields.add(joinColumn.stringValue("name").orElse(segment));
+                foreignFields.add(joinColumn.stringValue("referencedColumnName").orElse("_id"));
+            }
+            pipeline.add(lookup(joinedCollection, localFields, foreignFields, stage.pipeline, segment));
+            return stage;
+        }
+        boolean hasMappedBy = association.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").isPresent();
+        if (association.isForeignKey() || hasMappedBy) {
+            String mappedBy = association.getAnnotationMetadata().stringValue(Relation.class, "mappedBy").orElse(null);
+            if (mappedBy == null) {
+                return null;
+            }
+            PersistentPropertyPath backPropPath = association.getAssociatedEntity().getPropertyPath(mappedBy);
+            if (backPropPath == null) {
+                return null;
+            }
+            String foreignField = backPropPath.getProperty().getPersistedName();
+            pipeline.add(lookup(joinedCollection, "_id", foreignField, stage.pipeline, segment));
+        } else {
+            pipeline.add(lookup(joinedCollection, association.getPersistedName(), "_id", stage.pipeline, segment));
+            if (association.getKind().isSingleEnded()) {
+                pipeline.add(unwind("$" + segment));
+            }
+        }
+        return stage;
     }
 
     private static Map<String, Object> lookup(String from, List<String> localFields, List<String> foreignFields,

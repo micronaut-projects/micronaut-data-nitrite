@@ -76,65 +76,63 @@ public final class RuntimeExpressionHandler implements NitriteExpressionHandler 
         NitriteQueryState queryState,
         PersistentPropertyPath propertyPath) {
 
-        String ciPrefix = ignoreCase ? "(?i)" : "";
-        // Only the generated anchors and wildcards below stay unquoted; the user-provided value is
-        // regex-quoted so that a value such as "a.b" cannot match "aXb".
-        String prefix = startsWith ? "^" : ".*";
-        String suffix = endsWith ? "$" : ".*";
-
         Object paramPlaceholder = rightExpression instanceof LiteralExpression<?> literal
             ? ValueConverter.toFilterValueStatic(unwrapLiteral(literal))
             : resolveValue(queryState, propertyPath, rightExpression);
 
         if (startsWith && !endsWith && !ignoreCase && !isLike) {
-            // A pure prefix match is a lexicographic range, not a pattern: NitriteFilterBuilder
-            // turns this into an indexed GTE/LT pair instead of RegexFilter's per-document scan.
-            Map<String, Object> range = new LinkedHashMap<>(1);
+            // A plain prefix stays an indexed range rather than a per-document regex scan.
+            Map<String, Object> range = LinkedHashMap.newLinkedHashMap(1);
             range.put(NitriteInternalKeys.RANGE_PREFIX, paramPlaceholder);
             return range;
         }
-
-        String paramStr;
-        if (paramPlaceholder instanceof Map<?, ?> m
-            && m.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER)) {
-            Object idx = m.get(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER);
-            paramStr = NitriteInternalKeys.QUERY_PARAMETER_PREFIX + idx;
-        } else {
-            paramStr = paramPlaceholder != null ? paramPlaceholder.toString() : "";
-        }
-
+        boolean parameterPlaceholder = paramPlaceholder instanceof Map<?, ?> map
+            && map.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER);
         if (isLike) {
             Character escapeChar = resolveEscapeChar(queryState, propertyPath, escapeExpression);
-            if (paramPlaceholder instanceof Map<?, ?> m
-                && m.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER)) {
-                Map<String, Object> pattern = new LinkedHashMap<>(2);
-                pattern.put(NitriteInternalKeys.LIKE_PATTERN, paramPlaceholder);
-                if (escapeChar != null) {
-                    pattern.put(NitriteInternalKeys.LIKE_ESCAPE, escapeChar);
-                }
-                return pattern;
-            }
-            return ciPrefix + PatternConverter.convertLikeToRegex(paramStr, escapeChar);
+            return likePattern(paramPlaceholder, parameterPlaceholder, escapeChar, ignoreCase);
         }
-        boolean parameterPlaceholder = paramPlaceholder instanceof Map<?, ?> m
-            && m.containsKey(NitriteInternalKeys.QUERY_PARAMETER_PLACEHOLDER);
         if (parameterPlaceholder) {
-            // The value is not known until bind time, so emit a descriptor and let the filter
-            // builder quote the resolved value.
-            Map<String, Object> pattern = new LinkedHashMap<>(4);
-            pattern.put(NitriteInternalKeys.REGEX_PATTERN, paramPlaceholder);
-            if (startsWith) {
-                pattern.put(NitriteInternalKeys.REGEX_STARTS_WITH, true);
-            }
-            if (endsWith) {
-                pattern.put(NitriteInternalKeys.REGEX_ENDS_WITH, true);
-            }
-            if (ignoreCase) {
-                pattern.put(NitriteInternalKeys.REGEX_IGNORE_CASE, true);
+            return regexDescriptor(paramPlaceholder, startsWith, endsWith, ignoreCase);
+        }
+        String ciPrefix = ignoreCase ? "(?i)" : "";
+        String prefix = startsWith ? "^" : ".*";
+        String suffix = endsWith ? "$" : ".*";
+        String value = paramPlaceholder != null ? paramPlaceholder.toString() : "";
+        // Quote user values; only generated anchors and wildcards remain unquoted.
+        return ciPrefix + prefix + Pattern.quote(value) + suffix;
+    }
+
+    private static Object likePattern(@Nullable Object value, boolean parameterPlaceholder,
+                                      @Nullable Character escapeChar, boolean ignoreCase) {
+        if (parameterPlaceholder) {
+            Map<String, Object> pattern = LinkedHashMap.newLinkedHashMap(2);
+            pattern.put(NitriteInternalKeys.LIKE_PATTERN, value);
+            if (escapeChar != null) {
+                pattern.put(NitriteInternalKeys.LIKE_ESCAPE, escapeChar);
             }
             return pattern;
         }
-        return ciPrefix + prefix + Pattern.quote(paramStr) + suffix;
+        String ciPrefix = ignoreCase ? "(?i)" : "";
+        String text = value != null ? value.toString() : "";
+        return ciPrefix + PatternConverter.convertLikeToRegex(text, escapeChar);
+    }
+
+    private static Map<String, Object> regexDescriptor(@Nullable Object value,
+                                                        boolean startsWith, boolean endsWith, boolean ignoreCase) {
+        // Binding owns quoting because the parameter's value is not yet known.
+        Map<String, Object> pattern = LinkedHashMap.newLinkedHashMap(4);
+        pattern.put(NitriteInternalKeys.REGEX_PATTERN, value);
+        if (startsWith) {
+            pattern.put(NitriteInternalKeys.REGEX_STARTS_WITH, true);
+        }
+        if (endsWith) {
+            pattern.put(NitriteInternalKeys.REGEX_ENDS_WITH, true);
+        }
+        if (ignoreCase) {
+            pattern.put(NitriteInternalKeys.REGEX_IGNORE_CASE, true);
+        }
+        return pattern;
     }
 
     private @Nullable Character resolveEscapeChar(

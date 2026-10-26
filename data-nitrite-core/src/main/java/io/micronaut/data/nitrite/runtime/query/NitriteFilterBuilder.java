@@ -145,42 +145,9 @@ public final class NitriteFilterBuilder {
                     || COUNT.equals(key) || PROJECT.equals(key))) {
                 continue;
             }
-            switch (key) {
-                case AND -> {
-                    if (value instanceof List<?> list) {
-                        List<NitriteFilterAST> ands = list.stream()
-                            .filter(Map.class::isInstance)
-                            .map(item -> (NitriteFilterAST) compile(entity, toStringObjectMap((Map<?, ?>) item)))
-                            .toList();
-                        compiledFilters.add(new NitriteFilterAST.AndNode(ands));
-                    }
-                }
-                case OR -> {
-                    if (value instanceof List<?> list) {
-                        List<NitriteFilterAST> ors = list.stream()
-                            .filter(Map.class::isInstance)
-                            .map(item -> (NitriteFilterAST) compile(entity, toStringObjectMap((Map<?, ?>) item)))
-                            .toList();
-                        compiledFilters.add(new NitriteFilterAST.OrNode(ors));
-                    }
-                }
-                case NOT -> {
-                    if (value instanceof Map<?, ?> m) {
-                        compiledFilters.add(new NitriteFilterAST.NotNode(
-                            (NitriteFilterAST) compile(entity, toStringObjectMap(m))));
-                    }
-                }
-                case EXPR -> {
-                    if (value instanceof Map<?, ?> m && m.size() == 1) {
-                        Map.Entry<?, ?> exprEntry = m.entrySet().iterator().next();
-                        String op = (String) exprEntry.getKey();
-                        if (exprEntry.getValue() instanceof List<?> operands && operands.size() == 2) {
-                            compiledFilters.add(new NitriteFilterAST.ExprNode(
-                                op, compileExprValue(entity, operands.getFirst()), compileExprValue(entity, operands.get(1))));
-                        }
-                    }
-                }
-                case null, default -> compiledFilters.add(compileFieldFilter(entity, key, value));
+            NitriteFilterAST compiled = compileEntry(entity, key, value);
+            if (compiled != null) {
+                compiledFilters.add(compiled);
             }
         }
 
@@ -191,6 +158,41 @@ public final class NitriteFilterBuilder {
             return compiledFilters.getFirst();
         }
         return new NitriteFilterAST.AndNode(compiledFilters);
+    }
+
+    private @Nullable NitriteFilterAST compileEntry(RuntimePersistentEntity<?> entity,
+                                                     @Nullable String key, @Nullable Object value) {
+        return switch (value) {
+            case List<?> list when AND.equals(key) -> new NitriteFilterAST.AndNode(compileChildren(entity, list));
+            case List<?> list when OR.equals(key) -> new NitriteFilterAST.OrNode(compileChildren(entity, list));
+            case Map<?, ?> map when NOT.equals(key) -> new NitriteFilterAST.NotNode(
+                (NitriteFilterAST) compile(entity, toStringObjectMap(map)));
+            case Map<?, ?> map when EXPR.equals(key) && map.size() == 1 -> compileExpressionEntry(entity, map);
+            case null, default -> {
+                if (AND.equals(key) || OR.equals(key) || NOT.equals(key) || EXPR.equals(key)) {
+                    // Preserve the ignored malformed logical operators from the query map.
+                    yield null;
+                }
+                yield compileFieldFilter(entity, key, value);
+            }
+        };
+    }
+
+    private List<NitriteFilterAST> compileChildren(RuntimePersistentEntity<?> entity, List<?> children) {
+        return children.stream()
+            .filter(Map.class::isInstance)
+            .map(child -> (NitriteFilterAST) compile(entity, toStringObjectMap((Map<?, ?>) child)))
+            .toList();
+    }
+
+    private @Nullable NitriteFilterAST compileExpressionEntry(RuntimePersistentEntity<?> entity, Map<?, ?> expression) {
+        Map.Entry<?, ?> entry = expression.entrySet().iterator().next();
+        String operator = (String) entry.getKey();
+        if (entry.getValue() instanceof List<?> operands && operands.size() == 2) {
+            return new NitriteFilterAST.ExprNode(
+                operator, compileExprValue(entity, operands.getFirst()), compileExprValue(entity, operands.get(1)));
+        }
+        return null;
     }
 
     /**

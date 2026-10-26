@@ -327,11 +327,7 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         if (isComputedExpression(expression)) {
             PersistentPropertyPath ctx = requirePropertyOperand(expression);
             Object valueExpr = requireExprOperand(expression, ctx);
-            List<Object> resolvedValues = values == null ? List.of() : values.stream()
-                .map(val -> val instanceof Expression<?> valueExpression
-                    ? requireExprOperand(valueExpression, ctx)
-                    : valueRepresentation(queryState, ctx, val))
-                .toList();
+            List<Object> resolvedValues = computedInValues(values, ctx);
             putExpressionOperator(negated ? NIN : IN, valueExpr, resolvedValues);
             return;
         }
@@ -368,6 +364,17 @@ final class NitritePredicateVisitor implements AdvancedPredicateVisitor<Persiste
         }
 
         putFieldOperator(fieldName, negated ? NIN : IN, resolvedValues);
+    }
+
+    private List<Object> computedInValues(@Nullable Collection<?> values, PersistentPropertyPath context) {
+        if (values == null) {
+            return List.of();
+        }
+        return values.stream()
+            .map(value -> value instanceof Expression<?> expression
+                ? requireExprOperand(expression, context)
+                : valueRepresentation(queryState, context, value))
+            .toList();
     }
 
     @Override

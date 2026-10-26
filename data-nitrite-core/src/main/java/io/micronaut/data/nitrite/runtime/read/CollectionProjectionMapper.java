@@ -131,27 +131,7 @@ public final class CollectionProjectionMapper {
         }
 
         if (Tuple.class.equals(resultType)) {
-            Object[] values = new Object[fields.size()];
-            // Both keys resolve: a selection declaring alias("bookName") is read back under that
-            // name, and the persisted field name keeps working for a selection that declared none.
-            Map<String, Integer> aliases = new LinkedHashMap<>(fields.size());
-            List<String> elementAliases = new ArrayList<>(fields.size());
-            for (int i = 0; i < fields.size(); i++) {
-                String field = fields.get(i);
-                String alias = i < selectionAliases.size() ? selectionAliases.get(i) : null;
-                values[i] = getProjectedValue(doc, field, entity);
-                if (alias != null) {
-                    aliases.putIfAbsent(alias, i);
-                }
-                aliases.putIfAbsent(field, i);
-                elementAliases.add(alias);
-            }
-            return (R) new NitriteTuple(
-                valueConverter,
-                values,
-                aliases,
-                elementAliases,
-                selectionJavaTypes);
+            return (R) mapTuple(doc, fields, selectionAliases, selectionJavaTypes, entity);
         } else if (fields.size() == 1) {
             // Single field projection - extract and convert the value
             Object value = getProjectedValue(doc, fields.getFirst(), entity);
@@ -171,7 +151,32 @@ public final class CollectionProjectionMapper {
         }
     }
 
-    private Object getProjectedValue(Document doc, String fieldName, @Nullable RuntimePersistentEntity<?> entity) {
+    private NitriteTuple mapTuple(Document doc, List<String> fields, List<String> selectionAliases,
+                                   List<Class<?>> selectionJavaTypes, @Nullable RuntimePersistentEntity<?> entity) {
+        Object[] values = new Object[fields.size()];
+        // Both keys resolve: a selection declaring alias("bookName") is read back under that
+        // name, and the persisted field name keeps working for a selection that declared none.
+        Map<String, Integer> aliases = LinkedHashMap.newLinkedHashMap(fields.size());
+        List<String> elementAliases = new ArrayList<>(fields.size());
+        for (int i = 0; i < fields.size(); i++) {
+            String field = fields.get(i);
+            String alias = i < selectionAliases.size() ? selectionAliases.get(i) : null;
+            values[i] = getProjectedValue(doc, field, entity);
+            if (alias != null) {
+                aliases.putIfAbsent(alias, i);
+            }
+            aliases.putIfAbsent(field, i);
+            elementAliases.add(alias);
+        }
+        return new NitriteTuple(
+            valueConverter,
+            values,
+            aliases,
+            elementAliases,
+            selectionJavaTypes);
+    }
+
+    private @Nullable Object getProjectedValue(Document doc, String fieldName, @Nullable RuntimePersistentEntity<?> entity) {
         String normalized = entityMapper.normalizeFieldName(fieldName, entity);
         Object value = doc.get(normalized);
         if (value == null && !normalized.equals(fieldName)) {

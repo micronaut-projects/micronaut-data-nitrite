@@ -883,32 +883,25 @@ public final class NitriteCriteriaExecutor {
             options.limit((long) limit);
         }
 
-        if (parsedQuery != null) {
-            try {
-                List<Map<?, ?>> stages;
-                if (parsedQuery instanceof Map<?, ?> m) {
-                    stages = List.of(m);
-                } else if (parsedQuery instanceof List<?> pipeline) {
-                    stages = pipeline.stream()
-                        .filter(Map.class::isInstance)
-                        .<Map<?, ?>>map(s -> (Map<?, ?>) s)
-                        .toList();
-                } else {
-                    return options;
+        try {
+            List<Map<?, ?>> stages = switch (parsedQuery) {
+                case Map<?, ?> map -> List.of(map);
+                case List<?> pipeline -> pipeline.stream()
+                    .filter(Map.class::isInstance)
+                    .<Map<?, ?>>map(stage -> (Map<?, ?>) stage)
+                    .toList();
+                case null, default -> List.of();
+            };
+            for (Map<?, ?> stage : stages) {
+                if (applyWindow && offset <= 0 && stage.get(NitriteQueryOperators.SKIP) instanceof Number skip) {
+                    options.skip(skip.longValue());
                 }
-
-                for (Map<?, ?> stage : stages) {
-                    if (applyWindow && offset <= 0 && stage.get(NitriteQueryOperators.SKIP) instanceof Number skip) {
-                        options.skip(skip.longValue());
-                    }
-                    if (applyWindow && limit <= 0 && stage.get(NitriteQueryOperators.LIMIT) instanceof Number lim) {
-                        options.limit(lim.longValue());
-                    }
+                if (applyWindow && limit <= 0 && stage.get(NitriteQueryOperators.LIMIT) instanceof Number lim) {
+                    options.limit(lim.longValue());
                 }
-
-            } catch (Exception e) {
-                // Ignore parse errors for options
             }
+        } catch (Exception _) {
+            // Ignore parse errors for options.
         }
         return options;
     }
