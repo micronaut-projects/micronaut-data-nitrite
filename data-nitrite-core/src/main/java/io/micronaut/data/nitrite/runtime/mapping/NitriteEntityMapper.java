@@ -225,7 +225,10 @@ public final class NitriteEntityMapper {
     RuntimePersistentEntity<Object> entity = runtimeEntityRegistry.getEntity(castClass(clazz));
     RuntimePersistentProperty<Object> idProp = safeGetIdentity(entity);
     Object idValue = idProp != null ? idProp.getProperty().get(val) : null;
-    return idValue != null ? normalizeIdentityValue(idProp, idValue) : toFilterValue(val);
+    if (idProp == null || idValue == null) {
+      return toFilterValue(val);
+    }
+    return normalizeIdentityValue(idProp, idValue);
   }
 
   /**
@@ -967,7 +970,7 @@ public final class NitriteEntityMapper {
     };
   }
 
-  private Object serdeRoundTrip(Object value) {
+  private @Nullable Object serdeRoundTrip(Object value) {
     if (serdeObjectMapper == null) {
       return value;
     }

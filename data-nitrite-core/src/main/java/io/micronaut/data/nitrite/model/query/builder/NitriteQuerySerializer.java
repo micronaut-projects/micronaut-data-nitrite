@@ -24,10 +24,8 @@ final class NitriteQuerySerializer {
     private NitriteQuerySerializer() { }
 
     static String toJsonString(Object obj) {
-        switch (obj) {
-            case null -> {
-                return "null";
-            }
+        return switch (obj) {
+            case null -> "null";
             case Map<?, ?> map -> {
                 StringBuilder sb = new StringBuilder("{");
                 boolean first = true;
@@ -45,24 +43,14 @@ final class NitriteQuerySerializer {
                     sb.append(toJsonString(val));
                 }
                 sb.append("}");
-                return sb.toString();
+                yield sb.toString();
             }
-            case Collection<?> coll -> {
-                return collectionToJson(coll);
-            }
-            case String str -> {
-                return quote(str);
-            }
-            case Boolean b -> {
-                return b.toString();
-            }
-            case Number _ -> {
-                return obj.toString();
-            }
-            default -> {
-                return quote(obj.toString());
-            }
-        }
+            case Collection<?> coll -> collectionToJson(coll);
+            case String str -> quote(str);
+            case Boolean b -> b.toString();
+            case Number number -> number.toString();
+            default -> quote(obj.toString());
+        };
     }
 
     private static String collectionToJson(Collection<?> collection) {

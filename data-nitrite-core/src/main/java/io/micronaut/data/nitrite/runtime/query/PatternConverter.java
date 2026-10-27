@@ -111,7 +111,7 @@ public final class PatternConverter {
             }
         }
         if (escaping) {
-            appendLiteral(regex, escapeChar);
+            appendLiteral(regex, pattern.charAt(pattern.length() - 1));
         }
         if (regex.isEmpty() || regex.charAt(regex.length() - 1) != '$') {
             regex.append('$');
