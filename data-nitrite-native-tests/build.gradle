@@ -10,7 +10,6 @@ micronaut {
 }
 
 def backend = providers.gradleProperty('nativeBackend').getOrElse('all')
-def verifySpatialIndexReopen = providers.gradleProperty('verifySpatialIndexReopen').map { it.toBoolean() }.getOrElse(false)
 def backends = ['all', 'in-memory', 'mvstore', 'rocksdb', 'spatial']
 if (!backends.contains(backend)) {
     throw new GradleException("nativeBackend must be one of ${backends}; got '${backend}'")
@@ -50,7 +49,6 @@ dependencies {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     systemProperty 'nitrite.native.backend', backend
-    systemProperty 'nitrite.verify.spatial-index-reopen', verifySpatialIndexReopen
     systemProperty 'micronaut.test.resources.enabled', 'false'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
@@ -64,7 +62,6 @@ graalvmNative {
         test {
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
             runtimeArgs.add('-Dnitrite.native.backend=' + backend)
-            runtimeArgs.add('-Dnitrite.verify.spatial-index-reopen=' + verifySpatialIndexReopen)
             runtimeArgs.add('-Dmicronaut.test.resources.enabled=false')
         }
     }
