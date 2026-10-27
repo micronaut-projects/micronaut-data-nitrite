@@ -83,6 +83,7 @@ dependencies {
 
     testImplementation libs.micronaut.data.runtime
     testImplementation mn.micronaut.inject.groovy
+    testImplementation mn.micronaut.inject.java.test
     testImplementation mnTest.micronaut.test.spock
 
     // Optional dependency tests - ROCKSDB adapter (only for rocksDbPresentTest source set)
