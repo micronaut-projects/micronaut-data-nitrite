@@ -139,7 +139,7 @@ final class ValueResolver {
         return value;
     }
 
-    CompiledValue compileValue(Object value) {
+    CompiledValue compileValue(@Nullable Object value) {
         if (value instanceof String s) {
             Integer idx = isSinglePositionalPlaceholder(s)
                 ? parseIndex(s.substring(NitriteInternalKeys.QUERY_PARAMETER_PREFIX.length()))

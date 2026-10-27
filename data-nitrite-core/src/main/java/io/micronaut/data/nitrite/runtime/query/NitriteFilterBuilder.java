@@ -173,6 +173,9 @@ public final class NitriteFilterBuilder {
                     // Preserve the ignored malformed logical operators from the query map.
                     yield null;
                 }
+                if (key == null) {
+                    yield null;
+                }
                 yield compileFieldFilter(entity, key, value);
             }
         };
@@ -291,7 +294,7 @@ public final class NitriteFilterBuilder {
     private NitriteFilterAST compileFieldFilter(
             final RuntimePersistentEntity<?> entity,
             final String rawField,
-            final Object rawValue) {
+            @Nullable final Object rawValue) {
 
         PathResolver.PathResolution resolution = PathResolver.resolve(entity, rawField);
         String persistedName = compiledFieldName(entity, rawField, resolution);
@@ -306,7 +309,7 @@ public final class NitriteFilterBuilder {
                 operatorValues.put(entry.getKey(), valueResolver.compileValue(entry.getValue()));
             }
         } else {
-            operators = Map.of(EQ, rawValue);
+            operators = Collections.singletonMap(EQ, rawValue);
             operatorValues.put(EQ, valueResolver.compileValue(rawValue));
         }
 

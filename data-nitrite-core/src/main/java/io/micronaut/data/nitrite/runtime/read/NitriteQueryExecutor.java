@@ -936,7 +936,7 @@ public final class NitriteQueryExecutor {
     }
 
     private static boolean isReferenceChar(char c) {
-        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '.';
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.';
     }
 
     private void applyVersionIncrement(Document updateDoc, RuntimePersistentEntity<?> entity, Map<String, Object> namedParameters) {

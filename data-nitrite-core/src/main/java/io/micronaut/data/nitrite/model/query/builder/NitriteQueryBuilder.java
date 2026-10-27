@@ -265,8 +265,13 @@ public final class NitriteQueryBuilder implements QueryBuilder {
         if (value instanceof BinaryExpression<?> binaryExpression) {
             putArithmeticUpdate(queryState, property, persistedName, binaryExpression, operations);
         } else {
-            operations.get(NitriteQueryOperators.SET).put(persistedName, updateExpressionValue(queryState, property, value));
+            operationFields(operations, NitriteQueryOperators.SET)
+                .put(persistedName, updateExpressionValue(queryState, property, value));
         }
+    }
+
+    private Map<String, Object> operationFields(Map<String, Map<String, Object>> operations, String operator) {
+        return Objects.requireNonNull(operations.get(operator), "Missing update operator: " + operator);
     }
 
     /**
@@ -289,11 +294,11 @@ public final class NitriteQueryBuilder implements QueryBuilder {
             updateExpressionValue(queryState, property, binaryExpression.getRight()),
             () -> "Null operand in arithmetic update of property: " + persistedName);
         switch (binaryExpression.getType()) {
-            case CONCAT -> operations.get(NitriteQueryOperators.CONCAT).put(persistedName, updateValue);
-            case SUM -> operations.get(NitriteQueryOperators.INC).put(persistedName, updateValue);
-            case PROD -> operations.get(NitriteQueryOperators.MUL).put(persistedName, updateValue);
-            case QUOT -> operations.get(NitriteQueryOperators.MUL).put(persistedName, withFlag(updateValue, NitriteInternalKeys.RECIPROCATE));
-            case DIFF -> operations.get(NitriteQueryOperators.INC).put(persistedName, withFlag(updateValue, NitriteInternalKeys.NEGATE));
+            case CONCAT -> operationFields(operations, NitriteQueryOperators.CONCAT).put(persistedName, updateValue);
+            case SUM -> operationFields(operations, NitriteQueryOperators.INC).put(persistedName, updateValue);
+            case PROD -> operationFields(operations, NitriteQueryOperators.MUL).put(persistedName, updateValue);
+            case QUOT -> operationFields(operations, NitriteQueryOperators.MUL).put(persistedName, withFlag(updateValue, NitriteInternalKeys.RECIPROCATE));
+            case DIFF -> operationFields(operations, NitriteQueryOperators.INC).put(persistedName, withFlag(updateValue, NitriteInternalKeys.NEGATE));
             default -> throw new IllegalStateException("Unsupported binary expression type: " + binaryExpression.getType());
         }
     }

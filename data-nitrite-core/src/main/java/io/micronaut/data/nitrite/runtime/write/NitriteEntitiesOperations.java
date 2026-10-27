@@ -420,7 +420,11 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
     @Nullable
     private Object priorVersion(NitriteEntityMeta<T> meta, T entity) {
         Object versionValue = priorVersions != null ? priorVersions.get(entity) : null;
-        return versionValue != null ? versionValue : meta.versionProp().getProperty().get(entity);
+        if (versionValue != null) {
+            return versionValue;
+        }
+        var versionProp = meta.versionProp();
+        return versionProp != null ? versionProp.getProperty().get(entity) : null;
     }
 
     @SuppressWarnings("unchecked")
