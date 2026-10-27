@@ -43,15 +43,25 @@ public final class NitriteTckCompatibilityVisitor implements TypeElementVisitor<
     private final boolean nitrite;
 
     public NitriteTckCompatibilityVisitor() {
+        this(isNitrite(NitriteTckCompatibilityVisitor.class.getResourceAsStream("/aprocessor.properties")));
+    }
+
+    NitriteTckCompatibilityVisitor(boolean nitrite) {
+        this.nitrite = nitrite;
+    }
+
+    static boolean isNitrite(@Nullable InputStream input) {
+        if (input == null) {
+            return false;
+        }
         Properties properties = new Properties();
-        try (InputStream input = getClass().getResourceAsStream("/aprocessor.properties")) {
-            if (input != null) {
-                properties.load(input);
-            }
+        try (input) {
+            properties.load(input);
         } catch (IOException _) {
             // Ignore an unreadable optional TCK marker.
+            return false;
         }
-        nitrite = "nitrite".equals(properties.getProperty("implementation"));
+        return "nitrite".equals(properties.getProperty("implementation"));
     }
 
     @Override

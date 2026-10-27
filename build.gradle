@@ -1,5 +1,3 @@
-import org.gradle.api.plugins.quality.Checkstyle
-
 plugins {
     id "io.micronaut.build.internal.parent"
     id "io.micronaut.build.internal.data-nitrite-dependencies"
@@ -30,14 +28,19 @@ tasks.named('javadoc', Javadoc) {
 tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
-subprojects { subproject ->
-    plugins.withId('java') {
-        def generatedSources = subproject.layout.buildDirectory.dir('generated').get().asFile.toPath()
-        tasks.withType(Checkstyle).configureEach {
-            onlyIf { source.files.any { !it.toPath().startsWith(generatedSources) } }
-            doFirst {
-                setSource(source.files.findAll { !it.toPath().startsWith(generatedSources) })
-            }
+
+/**
+ * The aggregate report reads only each library module's `test` suite. data-nitrite's other suites,
+ * the Jakarta Data TCK, the doc examples and the JVM run of native-tests exercise the same library
+ * classes, so their execution data feeds the report too.
+ */
+plugins.withId('jacoco-report-aggregation') {
+    subprojects {
+        plugins.withId('java') {
+            apply plugin: 'jacoco'
         }
+    }
+    tasks.named('testCodeCoverageReport', JacocoReport) { report ->
+        subprojects.each { report.executionData(it.tasks.withType(Test)) }
     }
 }
