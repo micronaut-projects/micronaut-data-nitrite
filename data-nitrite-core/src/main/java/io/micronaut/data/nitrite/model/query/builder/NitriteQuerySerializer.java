@@ -41,7 +41,7 @@ final class NitriteQuerySerializer {
                     }
                     first = false;
                     String k = entry.getKey().toString();
-                    sb.append(needsQuoting(k) ? "'" + k + "'" : k).append(":");
+                    sb.append(needsQuoting(k) ? quote(k) : k).append(":");
                     sb.append(toJsonString(val));
                 }
                 sb.append("}");
@@ -51,9 +51,7 @@ final class NitriteQuerySerializer {
                 return collectionToJson(coll);
             }
             case String str -> {
-                // Backslashes must be escaped before quotes: the parser unescapes '\\' back to a
-                // single backslash, so an unescaped 'C:\tmp' would otherwise be read as a tab.
-                return "'" + str.replace("\\", "\\\\").replace("'", "\\'") + "'";
+                return quote(str);
             }
             case Boolean b -> {
                 return b.toString();
@@ -62,7 +60,7 @@ final class NitriteQuerySerializer {
                 return obj.toString();
             }
             default -> {
-                return "'" + obj.toString().replace("\\", "\\\\").replace("'", "\\'") + "'";
+                return quote(obj.toString());
             }
         }
     }
@@ -79,6 +77,12 @@ final class NitriteQuerySerializer {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    // Backslashes must be escaped before quotes: the parser unescapes '\\' back to a
+    // single backslash, so an unescaped 'C:\tmp' would otherwise be read as a tab.
+    private static String quote(String text) {
+        return "'" + text.replace("\\", "\\\\").replace("'", "\\'") + "'";
     }
 
     private static boolean needsQuoting(String key) {
