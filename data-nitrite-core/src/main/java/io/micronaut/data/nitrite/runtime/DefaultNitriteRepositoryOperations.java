@@ -863,7 +863,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         } else {
             storedQuery = createNitriteStoredQuery(preparedQuery);
         }
-        return new DefaultNitritePreparedQuery<>(preparedQuery, buildFilterFromPreparedQuery(preparedQuery, storedQuery), storedQuery.getFilterMap(), storedQuery.getCompiledFilter(), storedQuery.getUpdateMap());
+        return new DefaultNitritePreparedQuery<>(preparedQuery, buildFilterFromPreparedQuery(preparedQuery, storedQuery), storedQuery);
     }
 
     private <E, R> NitritePreparedQuery<E, R> getNitritePreparedQuery(PreparedQuery<E, R> q) {
