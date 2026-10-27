@@ -36,30 +36,22 @@ import java.util.Map;
 public class DefaultNitritePreparedQuery<E, R> extends DefaultBindableParametersPreparedQuery<E, R> implements NitritePreparedQuery<E, R> {
 
     private final Filter nitriteFilter;
-    private final @Nullable Map<String, Object> filterMap;
-    private final @Nullable CompiledNitriteFilter compiledFilter;
-    private final @Nullable Map<String, Object> updateMap;
+    private final NitriteStoredQuery<E, R> nitriteStoredQuery;
 
     /**
      * Create a delegating Nitrite prepared query.
      *
      * @param delegate The original prepared query
      * @param nitriteFilter The pre-calculated Nitrite filter
-     * @param filterMap The pre-parsed filter map (JSON queries) or {@code null}
-     * @param compiledFilter The pre-compiled filter structure
-     * @param updateMap The pre-parsed update map (JSON {@code $set}) or {@code null}
+     * @param nitriteStoredQuery The stored query holding the pre-parsed filter and update structures
      */
     public DefaultNitritePreparedQuery(
         @NonNull PreparedQuery<E, R> delegate,
         @NonNull Filter nitriteFilter,
-        @Nullable Map<String, Object> filterMap,
-        @Nullable CompiledNitriteFilter compiledFilter,
-        @Nullable Map<String, Object> updateMap) {
+        @NonNull NitriteStoredQuery<E, R> nitriteStoredQuery) {
         super(delegate);
         this.nitriteFilter = nitriteFilter;
-        this.filterMap = filterMap;
-        this.compiledFilter = compiledFilter;
-        this.updateMap = updateMap;
+        this.nitriteStoredQuery = nitriteStoredQuery;
     }
 
     @Override
@@ -71,18 +63,18 @@ public class DefaultNitritePreparedQuery<E, R> extends DefaultBindableParameters
     @Override
     @Nullable
     public Map<String, Object> getFilterMap() {
-        return filterMap;
+        return nitriteStoredQuery.getFilterMap();
     }
 
     @Override
     @Nullable
     public CompiledNitriteFilter getCompiledFilter() {
-        return compiledFilter;
+        return nitriteStoredQuery.getCompiledFilter();
     }
 
     @Override
     @Nullable
     public Map<String, Object> getUpdateMap() {
-        return updateMap;
+        return nitriteStoredQuery.getUpdateMap();
     }
 }
