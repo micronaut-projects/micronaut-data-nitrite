@@ -911,17 +911,7 @@ public final class NitriteEntityMapper {
     Document doc = Document.createDocument();
 
     for (WritablePropertyMeta<T> wpm : meta.writableProps()) {
-      Object value = wpm.prop().getProperty().get(entity);
-      PropertyStrategy strategy = wpm.strategy();
-      if (value != null && strategy != null) {
-        Object stored = storedValue(wpm, strategy, value, visited);
-        if (stored != null) {
-          doc.put(wpm.fieldName(), stored);
-        }
-        if (!wpm.compositeJoinColumns().isEmpty()) {
-          putCompositeJoinColumns(doc, wpm, value);
-        }
-      }
+      putWritableProperty(doc, wpm, entity, visited);
     }
 
     // Identity
@@ -943,6 +933,20 @@ public final class NitriteEntityMapper {
     }
 
     return doc;
+  }
+
+  private <T> void putWritableProperty(Document doc, WritablePropertyMeta<T> wpm, T entity, Set<Object> visited) {
+    Object value = wpm.prop().getProperty().get(entity);
+    PropertyStrategy strategy = wpm.strategy();
+    if (value != null && strategy != null) {
+      Object stored = storedValue(wpm, strategy, value, visited);
+      if (stored != null) {
+        doc.put(wpm.fieldName(), stored);
+      }
+      if (!wpm.compositeJoinColumns().isEmpty()) {
+        putCompositeJoinColumns(doc, wpm, value);
+      }
+    }
   }
 
   private <T> @Nullable Object storedValue(WritablePropertyMeta<T> wpm, PropertyStrategy strategy, Object value, Set<Object> visited) {
