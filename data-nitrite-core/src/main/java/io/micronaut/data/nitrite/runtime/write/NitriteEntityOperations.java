@@ -28,7 +28,6 @@ import io.micronaut.data.model.runtime.RuntimePersistentProperty;
 import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMeta;
-import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
 import io.micronaut.data.runtime.operations.internal.AbstractSyncEntityOperations;
 import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper;
 import org.dizitart.no2.collection.Document;
@@ -349,7 +348,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             return filter;
         }
         Object versionValue = preVersionValue != null ? preVersionValue : versionProp.getProperty().get(entity);
-        return Filter.and(filter, NitriteFilterUtils.eq(versionProp.getPersistedName(), helper.toFilterValue(versionValue)));
+        return NitriteCrudOperations.withVersion(filter, versionProp, versionValue, helper);
     }
 
     private void persistNewCascadeChildren(NitriteEntityMeta<T> meta) {

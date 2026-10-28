@@ -82,7 +82,9 @@ public final class CompileExpressionHandler implements NitriteExpressionHandler 
             }
             String ciPrefix = ignoreCase ? "(?i)" : "";
             String pattern = val != null ? val.toString() : "";
-            if (startsWith) {
+            if (startsWith && endsWith) {
+                pattern = "^" + Pattern.quote(pattern) + "$";
+            } else if (startsWith) {
                 pattern = "^" + Pattern.quote(pattern) + ".*";
             } else if (endsWith) {
                 pattern = ".*" + Pattern.quote(pattern) + "$";

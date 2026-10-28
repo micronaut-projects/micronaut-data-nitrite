@@ -40,6 +40,10 @@ class CompileExpressionHandlerUnitSpec extends Specification {
 
         // ignoreCase = true
         handler.handleRegex(true, false, false, literal, queryState, null) == '(?i).*\\QJohn\\E.*'
+
+        // startsWith and endsWith = true: an exact match, anchored at both ends.
+        handler.handleRegex(false, true, true, literal, queryState, null) == '^\\QJohn\\E$'
+        handler.handleRegex(true, true, true, literal, queryState, null) == '(?i)^\\QJohn\\E$'
     }
 
     void "test resolveRegexValue"() {

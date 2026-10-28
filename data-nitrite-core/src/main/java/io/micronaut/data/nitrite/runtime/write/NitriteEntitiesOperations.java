@@ -26,7 +26,6 @@ import io.micronaut.data.model.runtime.RuntimePersistentEntity;
 import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMeta;
-import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
 import io.micronaut.data.runtime.config.DataSettings;
 import io.micronaut.data.runtime.event.DefaultEntityEventContext;
 import io.micronaut.data.runtime.operations.internal.SyncCascadeOperations;
@@ -283,7 +282,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
             if (meta.versionProp() != null) {
                 BeanProperty<T, Object> versionProperty = meta.versionProp().getProperty();
                 Object versionValue = versionProperty.get(entity);
-                filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
+                filter = NitriteCrudOperations.withVersion(filter, meta.versionProp(), versionValue, helper);
             }
             DefaultEntityEventContext<T> event = new DefaultEntityEventContext<>(persistentEntity, entity);
             if (entityEventListener.preRemove((EntityEventContext<Object>) event)) {
@@ -408,7 +407,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
         Filter filter = entityMapper.idEqualsFilter(meta, id);
         if (meta.versionProp() != null) {
             Object versionValue = priorVersion(meta, entity);
-            filter = Filter.and(filter, NitriteFilterUtils.eq(meta.versionProp().getPersistedName(), helper.toFilterValue(versionValue)));
+            filter = NitriteCrudOperations.withVersion(filter, meta.versionProp(), versionValue, helper);
             long nextVersion = (versionValue == null ? 0L : ((Number) versionValue).longValue()) + 1;
             entity = helper.updateEntityId(meta.versionProp().getProperty(), entity, nextVersion);
             entities.set(index, entity);
