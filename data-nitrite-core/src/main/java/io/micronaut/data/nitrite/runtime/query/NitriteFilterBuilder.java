@@ -162,22 +162,17 @@ public final class NitriteFilterBuilder {
 
     private @Nullable NitriteFilterAST compileEntry(RuntimePersistentEntity<?> entity,
                                                      @Nullable String key, @Nullable Object value) {
-        return switch (value) {
-            case List<?> list when AND.equals(key) -> new NitriteFilterAST.AndNode(compileChildren(entity, list));
-            case List<?> list when OR.equals(key) -> new NitriteFilterAST.OrNode(compileChildren(entity, list));
-            case Map<?, ?> map when NOT.equals(key) -> new NitriteFilterAST.NotNode(
-                (NitriteFilterAST) compile(entity, toStringObjectMap(map)));
-            case Map<?, ?> map when EXPR.equals(key) && map.size() == 1 -> compileExpressionEntry(entity, map);
-            case null, default -> {
-                if (AND.equals(key) || OR.equals(key) || NOT.equals(key) || EXPR.equals(key)) {
-                    // Preserve the ignored malformed logical operators from the query map.
-                    yield null;
-                }
-                if (key == null) {
-                    yield null;
-                }
-                yield compileFieldFilter(entity, key, value);
-            }
+        if (key == null) {
+            return null;
+        }
+        // A malformed logical operator is ignored, so each operator yields null unless its operand has its shape.
+        return switch (key) {
+            case AND -> value instanceof List<?> list ? new NitriteFilterAST.AndNode(compileChildren(entity, list)) : null;
+            case OR -> value instanceof List<?> list ? new NitriteFilterAST.OrNode(compileChildren(entity, list)) : null;
+            case NOT -> value instanceof Map<?, ?> map
+                ? new NitriteFilterAST.NotNode((NitriteFilterAST) compile(entity, toStringObjectMap(map))) : null;
+            case EXPR -> value instanceof Map<?, ?> map && map.size() == 1 ? compileExpressionEntry(entity, map) : null;
+            default -> compileFieldFilter(entity, key, value);
         };
     }
 

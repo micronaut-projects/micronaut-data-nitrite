@@ -16,6 +16,10 @@
 package io.micronaut.data.nitrite.runtime.write;
 
 import io.micronaut.core.annotation.Internal;
+import io.micronaut.core.annotation.Nullable;
+import io.micronaut.data.model.runtime.RuntimePersistentProperty;
+import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
+import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.UpdateOptions;
@@ -57,6 +61,15 @@ final class NitriteCrudOperations {
             return 1;
         }
         return 0;
+    }
+
+    /**
+     * Narrows an identity filter to the version an optimistic-lock write expects, so the single and
+     * batch writes of a versioned entity share one lock predicate.
+     */
+    static Filter withVersion(Filter identityFilter, RuntimePersistentProperty<?> versionProp,
+                              @Nullable Object version, NitriteOperationsHelper helper) {
+        return Filter.and(identityFilter, NitriteFilterUtils.eq(versionProp.getPersistedName(), helper.toFilterValue(version)));
     }
 
     static long remove(NitriteCollection collection, Filter identityFilter) {
