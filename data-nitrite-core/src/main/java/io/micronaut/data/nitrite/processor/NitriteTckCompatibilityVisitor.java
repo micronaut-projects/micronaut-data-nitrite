@@ -42,6 +42,9 @@ public final class NitriteTckCompatibilityVisitor implements TypeElementVisitor<
 
     private final boolean nitrite;
 
+    /**
+     * Creates the visitor and detects whether the current processor run targets Nitrite.
+     */
     public NitriteTckCompatibilityVisitor() {
         this(isNitrite(NitriteTckCompatibilityVisitor.class.getResourceAsStream("/aprocessor.properties")));
     }

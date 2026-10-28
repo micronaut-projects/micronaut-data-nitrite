@@ -46,6 +46,7 @@ import io.micronaut.data.nitrite.model.query.builder.NitriteRuntimeFilter;
 import io.micronaut.data.nitrite.model.query.builder.NitriteSortKey;
 import io.micronaut.data.nitrite.model.query.builder.NitriteSortKeys;
 import io.micronaut.data.nitrite.runtime.CollectionUpdateLock;
+import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder;
@@ -101,6 +102,7 @@ public final class NitriteCriteriaExecutor {
     private final ConversionService conversionService;
     private final JoinFetcher joinFetcher;
     private final boolean useCursorLimitForSortedReads;
+    private final NitriteOperationsHelper helper;
 
     /**
      * Creates a new NitriteCriteriaExecutor.
@@ -116,8 +118,9 @@ public final class NitriteCriteriaExecutor {
         this.entityFactory = readSupport.entityFactory();
         this.conversionService = readSupport.conversionService();
         this.useCursorLimitForSortedReads = readSupport.useCursorLimitForSortedReads();
+        this.helper = readSupport.helper();
         this.projectionMapper = new CollectionProjectionMapper(new ValueConverter(conversionService), entityMapper);
-        this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService);
+        this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService, helper);
     }
 
     /**
@@ -129,7 +132,9 @@ public final class NitriteCriteriaExecutor {
     public boolean exists(@NonNull CriteriaQuery<?> query) {
         CriteriaReadPlan plan = prepareRead(query, -1, -1);
         if (!plan.innerJoin()) {
-            return collectionFactory.apply(plan.entityType()).find(plan.filter()).iterator().hasNext();
+            NitriteCollection collection = collectionFactory.apply(plan.entityType());
+            helper.logFind(collection.getName(), plan.filter());
+            return collection.find(plan.filter()).iterator().hasNext();
         }
         return !readDocuments(plan, true).documents().isEmpty();
     }
@@ -327,13 +332,17 @@ public final class NitriteCriteriaExecutor {
     }
 
     private DocumentRead readDocuments(CriteriaReadPlan plan, boolean fetchAssociations) {
-        DocumentCursor cursor = collectionFactory.apply(plan.entityType()).find(plan.filter(), plan.options());
+        NitriteCollection collection = collectionFactory.apply(plan.entityType());
+        helper.logFind(collection.getName(), plan.filter());
+        DocumentCursor cursor = collection.find(plan.filter(), plan.options());
         NativeJoin nativeJoin = fetchAssociations ? resolveNativeJoin(plan) : null;
         RecordStream<Document> stream = cursor;
         Set<JoinPath> nativeJoinPaths = Set.of();
 
         if (nativeJoin != null) {
-            stream = cursor.join(nativeJoin.foreignCollection().find(), nativeJoin.lookup());
+            NitriteCollection foreignCollection = nativeJoin.foreignCollection();
+            helper.logFind(foreignCollection.getName(), Filter.ALL);
+            stream = cursor.join(foreignCollection.find(), nativeJoin.lookup());
             nativeJoinPaths = Set.of(nativeJoin.joinPath());
         } else if (!plan.innerJoin() && !plan.projectedFields().isEmpty()) {
             stream = cursor.project(nativeProjection(plan));
@@ -655,6 +664,7 @@ public final class NitriteCriteriaExecutor {
             // the write, which would let a concurrent update be overwritten.
             return Optional.of(CollectionUpdateLock.withLock(collection.getName(), () -> {
                 List<Document> docs = new ArrayList<>();
+                helper.logFind(collection.getName(), filter);
                 for (Document doc : collection.find(filter)) {
                     docs.add(doc);
                 }
@@ -663,6 +673,7 @@ public final class NitriteCriteriaExecutor {
                         doc.put(entry.getKey(), entry.getValue());
                     }
                     Filter idFilter = NitriteFilterUtils.eq("_id", doc.get("_id"));
+                    helper.logUpdate(collection.getName(), idFilter, doc);
                     collection.update(idFilter, doc);
                 }
                 return docs.size();
@@ -706,7 +717,9 @@ public final class NitriteCriteriaExecutor {
                 .build(AnnotationMetadata.EMPTY_METADATA, queryBuilder), "Failed to build query for criteria delete");
         Class<?> type = getEntityType(query);
         Filter filter = buildFilterFromQueryResult(queryResult, type);
-        long count = collectionFactory.apply(type).remove(filter).getAffectedCount();
+        NitriteCollection collection = collectionFactory.apply(type);
+        helper.logDelete(collection.getName(), filter);
+        long count = collection.remove(filter).getAffectedCount();
         return Optional.of(count);
     }
 

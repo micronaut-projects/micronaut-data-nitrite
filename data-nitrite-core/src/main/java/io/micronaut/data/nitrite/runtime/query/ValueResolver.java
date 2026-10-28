@@ -21,8 +21,7 @@ import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteTypeRegistry;
 import io.micronaut.data.nitrite.runtime.query.ast.CompiledValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.micronaut.data.runtime.config.DataSettings;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -34,8 +33,6 @@ import java.util.UUID;
 @Internal
 final class ValueResolver {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ValueResolver.class);
-
     private final NitriteEntityMapper entityMapper;
 
     ValueResolver(NitriteEntityMapper entityMapper) {
@@ -44,7 +41,7 @@ final class ValueResolver {
 
     @Nullable Object resolveValue(@Nullable Object value, Object[] params, Map<String, Object> namedParameters) {
         Object resolved = resolveValueInternal(value, params, namedParameters);
-        LOG.debug("resolveValue: value={}, resolved={}", value, resolved);
+        DataSettings.QUERY_LOG.debug("resolveValue: value={}, resolved={}", value, resolved);
         return resolved;
     }
 

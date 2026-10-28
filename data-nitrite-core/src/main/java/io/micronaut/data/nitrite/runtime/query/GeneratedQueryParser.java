@@ -904,6 +904,15 @@ public final class GeneratedQueryParser {
     @Internal
     @FunctionalInterface
     public interface PredicateFilterFactory {
+
+        /**
+         * Builds a filter from the predicate and its bound parameters.
+         *
+         * @param entity    the entity being queried
+         * @param predicate the predicate representation
+         * @param params    the bound query parameters
+         * @return the resulting filter
+         */
         Filter build(RuntimePersistentEntity<?> entity, Map<String, Object> predicate, Object[] params);
     }
 

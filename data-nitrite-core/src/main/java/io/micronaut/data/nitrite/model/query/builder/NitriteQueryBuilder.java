@@ -36,12 +36,11 @@ import io.micronaut.data.model.query.builder.QueryResult;
 import io.micronaut.data.nitrite.model.query.NitriteInternalKeys;
 import io.micronaut.data.nitrite.model.query.NitriteQueryOperators;
 import io.micronaut.data.nitrite.model.query.builder.compile.CompileExpressionHandler;
+import io.micronaut.data.runtime.config.DataSettings;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Nulls;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -65,7 +64,6 @@ import java.util.Objects;
 @TypeHint(NitriteQueryBuilder.class)
 public final class NitriteQueryBuilder implements QueryBuilder {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NitriteQueryBuilder.class);
     private final AnnotationMetadata queryBuilderMetadata;
 
     /**
@@ -94,8 +92,8 @@ public final class NitriteQueryBuilder implements QueryBuilder {
     public QueryResult buildSelect(
         @NonNull final AnnotationMetadata annotationMetadata,
         @NonNull final SelectQueryDefinition query) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("buildSelect: entity={}, predicate={}", query.persistentEntity().getName(), query.predicate());
+        if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+            DataSettings.QUERY_LOG.debug("buildSelect: entity={}, predicate={}", query.persistentEntity().getName(), query.predicate());
         }
         SelectParts parts = selectParts(query);
         Object sortObj = parts.sortKeys().isEmpty() ? null : NitriteSortKeys.toJson(parts.sortKeys());

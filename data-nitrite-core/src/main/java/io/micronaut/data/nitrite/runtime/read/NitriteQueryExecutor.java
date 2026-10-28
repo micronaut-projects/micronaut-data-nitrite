@@ -140,7 +140,7 @@ public final class NitriteQueryExecutor {
         this.projectionMapper = new CollectionProjectionMapper(valueConverter, entityMapper);
         this.nativeProjectionHandler = new CollectionFieldMapper(queryParser);
         this.aggregationHandler = new CollectionAggregator();
-        this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService);
+        this.joinFetcher = new JoinFetcher(entityMapper, collectionFactory, entityFactory, conversionService, helper);
     }
 
     /**
@@ -206,9 +206,9 @@ public final class NitriteQueryExecutor {
         }
 
         Filter filter = nq.getNitriteFilter();
-        helper.logFind(coll.getName(), filter);
 
         if (isCountQuery(q, nq)) {
+            helper.logFind(coll.getName(), filter);
             return count(coll, filter, nq);
         }
 
@@ -217,6 +217,7 @@ public final class NitriteQueryExecutor {
         // Handle aggregation methods (findMax/Min/Sum/Avg...By)
         AggregationCall aggregation = aggregationCall(methodName);
         if (aggregation != null) {
+            helper.logFind(coll.getName(), filter);
             return aggregate(coll.find(filter).toList(), aggregation, nq);
         }
 
@@ -228,12 +229,16 @@ public final class NitriteQueryExecutor {
         applyOffsetLimit(findOptions, nq, limit);
         boolean hasFindOptions = !sortKeys.isEmpty() || nq.getPageable().getSort().isSorted() || bounded;
         long cursorLimit = CursorWindow.withholdSortedLimit(findOptions, useCursorLimitForSortedReads);
-        // A query that is nothing but an identity equality is answered by the document key when
-        // the identity is stored as one, which is a key seek rather than the collection scan the
-        // identity field would take - it carries no index precisely because the key already is
-        // one. This provider always writes such an identity to the key, so a miss is a miss.
+        /*
+         * A query that is nothing but an identity equality is answered by the document key when
+         * the identity is stored as one, which is a key seek rather than the collection scan the
+         * identity field would take - it carries no index precisely because the key already is
+         * one. This provider always writes such an identity to the key, so a miss is a miss.
+         */
         Filter documentKeyFilter = entityMapper.documentKeyFilterFor(entityFactory.apply(q.getRootEntity()), filter);
-        Document doc = readOne(coll, documentKeyFilter != null ? documentKeyFilter : filter,
+        Filter executedFilter = documentKeyFilter != null ? documentKeyFilter : filter;
+        helper.logFind(coll.getName(), executedFilter);
+        Document doc = readOne(coll, executedFilter,
             findOptions, hasFindOptions, cursorLimit, bounded, find.sortPlan());
         if (doc == null) {
             return null;
@@ -565,6 +570,7 @@ public final class NitriteQueryExecutor {
                                     Object[] jsonParams, Map<String, Object> namedParameters,
                                     @Nullable RuntimePersistentEntity<?> versionedEntity) {
         long updated = 0;
+        helper.logFind(collection.getName(), filter);
         for (Document doc : collection.find(filter).toList()) {
             Document updateDoc = versionedUpdateDocument(updateOperations, doc, jsonParams, namedParameters, versionedEntity);
             Object id = doc.get("id");
@@ -697,9 +703,11 @@ public final class NitriteQueryExecutor {
                 updateDoc.put(entry.getKey(), resolveParameterValue(entry.getValue(), jsonParams, namedParameters));
             }
         }
-        // Every derived operator reads the stored value, so they only run on the per-document
-        // branch. requiresDocumentUpdate() names exactly those operators, so a null current
-        // document here means none of them are present.
+        /*
+         * Every derived operator reads the stored value, so they only run on the per-document
+         * branch. requiresDocumentUpdate() names exactly those operators, so a null current
+         * document here means none of them are present.
+         */
         if (currentDocument != null) {
             applyNumericUpdate(updateDoc, currentDocument, updateOperations.get(NitriteQueryOperators.INC),
                 jsonParams, namedParameters, NitriteQueryOperators.INC);
@@ -794,7 +802,9 @@ public final class NitriteQueryExecutor {
      * @return the total number of documents matching the query filter
      */
     public long count(NitritePreparedQuery<?, ?> nq) {
-        return collectionFactory.apply(nq.getRootEntity()).find(nq.getNitriteFilter()).size();
+        NitriteCollection collection = collectionFactory.apply(nq.getRootEntity());
+        helper.logFind(collection.getName(), nq.getNitriteFilter());
+        return collection.find(nq.getNitriteFilter()).size();
     }
 
     private Document remapDtoProjectionDocument(Document doc, NitritePreparedQuery<?, ?> nq) {

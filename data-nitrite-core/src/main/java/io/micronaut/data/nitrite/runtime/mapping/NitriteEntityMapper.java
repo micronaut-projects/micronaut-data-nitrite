@@ -39,9 +39,11 @@ import io.micronaut.data.nitrite.runtime.NameUtils;
 import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.ValueConverter;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
+import io.micronaut.data.runtime.config.DataSettings;
 import io.micronaut.data.runtime.event.DefaultEntityEventContext;
 import io.micronaut.serde.ObjectMapper;
 import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.EqualsFilter;
 import org.dizitart.no2.filters.Filter;
@@ -545,8 +547,8 @@ public final class NitriteEntityMapper {
    * @return the Nitrite Filter
    */
   public <E> Filter eqWithNumericCoercion(final RuntimePersistentEntity<E> entity, final String field, final @Nullable Object value, final String dottedPath) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("eqWithNumericCoercion: field={}, value={}, type={}, dottedPath={}", field, value, value != null ? value.getClass().getName() : "null", dottedPath);
+    if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+      DataSettings.QUERY_LOG.debug("eqWithNumericCoercion: field={}, value={}, type={}, dottedPath={}", field, value, value != null ? value.getClass().getName() : "null", dottedPath);
     }
 
     if (value == null) {
@@ -1621,7 +1623,7 @@ public final class NitriteEntityMapper {
         if (value instanceof Iterable<?> ids) {
             List<Object> associatedEntities = new ArrayList<>();
             for (Object associatedId : ids) {
-                Document associatedDoc = operationsHelper.getCollection(associatedType).find(idEqualsFilter(associatedType, associatedId)).firstOrNull();
+                Document associatedDoc = findAssociatedDocument(operationsHelper, associatedType, idEqualsFilter(associatedType, associatedId));
                 if (associatedDoc != null) {
                     associatedEntities.add(fromDocumentInternal(associatedDoc, associatedType, visited));
                 }
@@ -1630,7 +1632,7 @@ public final class NitriteEntityMapper {
             return true;
         }
         // It's a single ID
-        Document associatedDoc = operationsHelper.getCollection(associatedType).find(idEqualsFilter(associatedType, value)).firstOrNull();
+        Document associatedDoc = findAssociatedDocument(operationsHelper, associatedType, idEqualsFilter(associatedType, value));
         if (associatedDoc == null) {
             return false;
         }
@@ -1639,6 +1641,12 @@ public final class NitriteEntityMapper {
     }
 
     // Handle version property explicitly (might not be in persistent properties or value could be 0)
+    private static @Nullable Document findAssociatedDocument(NitriteOperationsHelper operationsHelper, Class<?> type, Filter filter) {
+        NitriteCollection collection = operationsHelper.getCollection(type);
+        operationsHelper.logFind(collection.getName(), filter);
+        return collection.find(filter).firstOrNull();
+    }
+
     private <T> void populateVersion(Document doc, T entity, Class<T> type) {
         RuntimePersistentProperty<T> versionProp = getOrBuildMeta(type).versionProp();
         if (versionProp != null && !versionProp.isReadOnly()) {
@@ -1680,7 +1688,7 @@ public final class NitriteEntityMapper {
             // A @Join fetch already replaced the foreign key with the joined sub-document.
             return fromDocumentInternal(joinedDoc, associatedType, visited);
         }
-        Document associatedDoc = helper.getCollection(associatedType).find(idEqualsFilter(associatedType, rawValue)).firstOrNull();
+        Document associatedDoc = findAssociatedDocument(helper, associatedType, idEqualsFilter(associatedType, rawValue));
         return fromDocumentInternal(associatedDoc, associatedType, visited);
     }
 
@@ -1724,7 +1732,7 @@ public final class NitriteEntityMapper {
         }
         Class<Object> associatedType = castClass(associatedEntity.getIntrospection().getBeanType());
         Filter filter = filters.size() == 1 ? filters.getFirst() : Filter.and(filters.toArray(new Filter[0]));
-        Document associatedDoc = helper.getCollection(associatedType).find(filter).firstOrNull();
+        Document associatedDoc = findAssociatedDocument(helper, associatedType, filter);
         return associatedDoc == null ? null : fromDocumentInternal(associatedDoc, associatedType, visited);
     }
 

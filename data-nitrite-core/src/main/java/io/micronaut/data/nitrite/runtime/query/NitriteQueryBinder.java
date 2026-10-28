@@ -27,9 +27,8 @@ import io.micronaut.data.nitrite.runtime.DefaultNitriteRepositoryOperations;
 import io.micronaut.data.nitrite.runtime.NameUtils;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor;
+import io.micronaut.data.runtime.config.DataSettings;
 import org.dizitart.no2.collection.Document;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.temporal.Temporal;
 import java.util.Arrays;
@@ -54,8 +53,6 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.OR;
  */
 @Internal
 public final class NitriteQueryBinder {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NitriteQueryBinder.class);
 
     private final NitriteEntityMapper entityMapper;
 
@@ -415,8 +412,8 @@ public final class NitriteQueryBinder {
         } catch (RuntimeException e) {
             // Expected when segment traversal reaches a scalar value (e.g. a String or
             // Number) that cannot be converted to a Document; treat as "no such segment".
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Could not resolve segment '{}' on value of type {}: {}",
+            if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+                DataSettings.QUERY_LOG.debug("Could not resolve segment '{}' on value of type {}: {}",
                     segment, current.getClass(), e.getMessage());
             }
             return null;

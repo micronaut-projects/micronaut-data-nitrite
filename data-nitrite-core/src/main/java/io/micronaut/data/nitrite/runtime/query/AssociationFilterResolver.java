@@ -25,10 +25,9 @@ import io.micronaut.data.nitrite.runtime.mapping.CompositeJoinColumn;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder.SubQueryExecutor;
 import io.micronaut.data.nitrite.runtime.query.PathResolver.PathResolution;
+import io.micronaut.data.runtime.config.DataSettings;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.filters.Filter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,8 +43,6 @@ import static io.micronaut.data.nitrite.model.query.NitriteQueryOperators.OR;
 
 @Internal
 final class AssociationFilterResolver {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AssociationFilterResolver.class);
 
     private final NitriteEntityMapper entityMapper;
     private final @Nullable SubQueryExecutor subQueryExecutor;
@@ -208,8 +205,8 @@ final class AssociationFilterResolver {
         }
 
         String backRefPersistedName = backRefProp.getPersistedName();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Reverse lookup sub-query: entity={}, filter={}, backRef={}",
+        if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+            DataSettings.QUERY_LOG.debug("Reverse lookup sub-query: entity={}, filter={}, backRef={}",
                 associatedEntity.getName(), subFilterMap, backRefPersistedName);
         }
 
