@@ -212,7 +212,8 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             conversionService,
             collectionRegistry::getCollection,
             this::getEntity,
-            useCursorLimitForSortedReads);
+            useCursorLimitForSortedReads,
+            this);
         this.criteriaExecutor = new NitriteCriteriaExecutor(readSupport);
         this.queryExecutor = new NitriteQueryExecutor(readSupport, this::buildFind, this);
         this.writeSupport = new NitriteWriteSupport(
@@ -236,6 +237,7 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
             Filter subFilter = filterMap != null && !filterMap.isEmpty()
                 ? builderRef[0].buildFilterFromJson(associatedEntity, filterMap, params, namedParameters)
                 : Filter.ALL;
+            logFind(assocCollection.getName(), subFilter);
             return assocCollection.find(subFilter).toList().stream()
                 .flatMap(doc -> projectSubQueryDocument(doc, associatedEntity, targetField, retainDocuments))
                 .distinct()
@@ -493,7 +495,9 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
     @Override
     public <T> @Nullable T findOne(final Class<T> type, final Object id) {
         Filter filter = entityMapper.idEqualsFilter(type, id);
-        Document doc = getCollection(type).find(filter).firstOrNull();
+        NitriteCollection collection = getCollection(type);
+        logFind(collection.getName(), filter);
+        Document doc = collection.find(filter).firstOrNull();
         if (doc == null) {
             return null;
         }
@@ -782,7 +786,9 @@ public final class DefaultNitriteRepositoryOperations extends AbstractRepository
         NitriteFind find = buildFind(query.getPageable(), List.of(), limit, getEntity(type));
         FindOptions findOptions = find.options();
         long cursorLimit = CursorWindow.withholdSortedLimit(findOptions, useCursorLimitForSortedReads);
-        List<Document> documents = CursorWindow.limit(getCollection(type).find(filter, findOptions), cursorLimit).toList();
+        NitriteCollection collection = getCollection(type);
+        logFind(collection.getName(), filter);
+        List<Document> documents = CursorWindow.limit(collection.find(filter, findOptions), cursorLimit).toList();
         if (find.sortPlan() != null) {
             documents = find.sortPlan().apply(documents, findOptions.collator());
         }

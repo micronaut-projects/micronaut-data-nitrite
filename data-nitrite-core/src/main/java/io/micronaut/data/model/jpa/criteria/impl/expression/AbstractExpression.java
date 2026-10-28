@@ -39,6 +39,11 @@ public abstract class AbstractExpression<E> implements IExpression<E> {
 
     private final ExpressionType<E> expressionType;
 
+    /**
+     * Creates an expression with the given type.
+     *
+     * @param expressionType the expression type
+     */
     public AbstractExpression(ExpressionType<E> expressionType) {
         this.expressionType = expressionType;
     }

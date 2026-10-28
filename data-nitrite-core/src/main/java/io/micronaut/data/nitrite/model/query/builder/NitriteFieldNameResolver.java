@@ -20,8 +20,7 @@ import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.model.Association;
 import io.micronaut.data.model.PersistentProperty;
 import io.micronaut.data.model.PersistentPropertyPath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.micronaut.data.runtime.config.DataSettings;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,14 +30,12 @@ final class NitriteFieldNameResolver {
 
     static final String ID_FIELD = "id";
 
-    private static final Logger LOG = LoggerFactory.getLogger(NitriteFieldNameResolver.class);
-
     private NitriteFieldNameResolver() { }
 
     static String getFieldName(PersistentPropertyPath propertyPath) {
         String result = resolve(propertyPath);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("getFieldName: path={}, result={}", propertyPath.getPath(), result);
+        if (DataSettings.QUERY_LOG.isDebugEnabled()) {
+            DataSettings.QUERY_LOG.debug("getFieldName: path={}, result={}", propertyPath.getPath(), result);
         }
         return result;
     }

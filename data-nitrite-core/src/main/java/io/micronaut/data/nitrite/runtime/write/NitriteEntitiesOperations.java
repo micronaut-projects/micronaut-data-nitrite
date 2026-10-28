@@ -156,9 +156,11 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
             executeHalf(newEntities, true);
             executeHalf(existingEntities, false);
 
-            // Post-phase over the halves themselves. An immutable entity given a generated id or
-            // an initial version is replaced by a new instance in the list execute() was handed,
-            // so the combined view has to be built from the halves after execute() has run.
+            /*
+             * Post-phase over the halves themselves. An immutable entity given a generated id or
+             * an initial version is replaced by a new instance in the list execute() was handed,
+             * so the combined view has to be built from the halves after execute() has run.
+             */
             postPersist(newEntities);
             postUpdate(existingEntities);
             List<T> combined = new ArrayList<>(newEntities.size() + existingEntities.size());
@@ -199,6 +201,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
             return false;
         }
         Filter identityFilter = entityMapper.idEqualsFilter(meta, id);
+        helper.logFind(collection.getName(), identityFilter);
         return NitriteCrudOperations.exists(collection, identityFilter);
     }
 
@@ -296,6 +299,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
 
         int count = 0;
         for (int i = 0; i < filters.size(); i++) {
+            helper.logDelete(collection.getName(), filters.get(i));
             if (NitriteCrudOperations.remove(collection, filters.get(i)) > 0) {
                 count++;
             }
@@ -413,8 +417,7 @@ public final class NitriteEntitiesOperations<T> extends SyncEntitiesOperations<T
         if (update == null) {
             return 0;
         }
-        helper.logUpdate(collection.getName(), filter, update);
-        return NitriteCrudOperations.update(collection, filter, update);
+        return NitriteCrudOperations.update(collection, filter, update, helper);
     }
 
     @Nullable

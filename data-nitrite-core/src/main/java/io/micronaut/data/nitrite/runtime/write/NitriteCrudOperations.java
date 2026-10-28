@@ -43,11 +43,16 @@ final class NitriteCrudOperations {
 
     static long update(NitriteCollection collection,
                        Filter identityFilter,
-                       Document document) {
-        // Nitrite's WriteResult deliberately reports zero when the update document contains no
-        // mutable fields (for example, an identity-only update), although the filter did match a
-        // document. Jakarta Data CRUD counts the matched entity, so inspect the match separately.
+                       Document document,
+                       NitriteOperationsHelper helper) {
+        /*
+         * Nitrite's WriteResult deliberately reports zero when the update document contains no
+         * mutable fields (for example, an identity-only update), although the filter did match a
+         * document. Jakarta Data CRUD counts the matched entity, so inspect the match separately.
+         */
+        helper.logFind(collection.getName(), identityFilter);
         if (collection.find(identityFilter).firstOrNull() != null) {
+            helper.logUpdate(collection.getName(), identityFilter, document);
             collection.update(identityFilter, document, UpdateOptions.updateOptions(false));
             return 1;
         }

@@ -24,6 +24,7 @@ import io.micronaut.data.model.query.JoinPath;
 import io.micronaut.data.model.runtime.RuntimeAssociation;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
 import io.micronaut.data.model.runtime.RuntimePersistentProperty;
+import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.mapping.CompositeJoinColumn;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterUtils;
@@ -52,6 +53,7 @@ public final class JoinFetcher {
     private final Function<Class<?>, NitriteCollection> collectionFactory;
     private final Function<Class<?>, RuntimePersistentEntity<?>> entityFactory;
     private final ConversionService conversionService;
+    private final NitriteOperationsHelper helper;
 
     /**
      * Creates a join fetcher.
@@ -60,15 +62,18 @@ public final class JoinFetcher {
      * @param collectionFactory The collection factory
      * @param entityFactory The persistent entity factory
      * @param conversionService The conversion service
+     * @param helper The operations helper that logs each executed operation
      */
     public JoinFetcher(NitriteEntityMapper entityMapper,
                        Function<Class<?>, NitriteCollection> collectionFactory,
                        Function<Class<?>, RuntimePersistentEntity<?>> entityFactory,
-                       ConversionService conversionService) {
+                       ConversionService conversionService,
+                       NitriteOperationsHelper helper) {
         this.entityMapper = entityMapper;
         this.collectionFactory = collectionFactory;
         this.entityFactory = entityFactory;
         this.conversionService = conversionService;
+        this.helper = helper;
     }
 
     /**
@@ -150,6 +155,7 @@ public final class JoinFetcher {
 
         Filter filter = backReferenceFilter(finalBackFieldName, parentIds);
         List<Object> fetchedChildren = new ArrayList<>();
+        helper.logFind(assocCollection.getName(), filter);
         Map<Object, List<Object>> resultsByParentId = groupByParentId(
             assocCollection.find(filter), finalBackFieldName, associatedType, fetchedChildren);
 
@@ -233,6 +239,7 @@ public final class JoinFetcher {
                 continue;
             }
             List<Object> children = new ArrayList<>();
+            helper.logFind(assocCollection.getName(), filter);
             for (Document doc : assocCollection.find(filter)) {
                 Object child = entityMapper.fromDocument(doc, associatedType);
                 children.add(child);

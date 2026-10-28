@@ -181,6 +181,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             boolean isUpdate = false;
             if (!ctx.isStrictInsert() && idValue != null) {
                 Filter identityFilter = entityMapper.idEqualsFilter(meta, idValue);
+                helper.logFind(collection.getName(), identityFilter);
                 isUpdate = NitriteCrudOperations.exists(collection, identityFilter);
             }
 
@@ -197,10 +198,12 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
     }
 
     private void persistAsUpdate(NitriteEntityMeta<T> meta) {
-        // The common Micronaut save interceptor represents a save of an entity with a
-        // generated identity as an UPDATE operation. For assigned identities, however,
-        // it represents save as INSERT and the provider resolves existence here. Keep
-        // the lifecycle decision and the write decision aligned before executing.
+        /*
+         * The common Micronaut save interceptor represents a save of an entity with a
+         * generated identity as an UPDATE operation. For assigned identities, however,
+         * it represents save as INSERT and the provider resolves existence here. Keep
+         * the lifecycle decision and the write decision aligned before executing.
+         */
         operationType = OperationType.UPDATE;
         // Entity has ID - use update lifecycle for proper version/@DateUpdated handling
         boolean vetoed = triggerPreUpdate();
@@ -297,9 +300,11 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
     }
 
     private void executeUpdate(NitriteEntityMeta<T> meta) {
-        // Update operation: replace existing document by ID
-        // Requires entity to have an ID; throws OptimisticLockException if version mismatch
-        // Note: VersionGeneratingEntityEventListener.preUpdate() already incremented the version
+        /*
+         * Update operation: replace existing document by ID
+         * Requires entity to have an ID; throws OptimisticLockException if version mismatch
+         * Note: VersionGeneratingEntityEventListener.preUpdate() already incremented the version
+         */
         Object id = entityMapper.getEntityIdValue(meta, entity);
         // A transient entity has nothing to update: an "id == null" filter would match every
         // identity-less document in the collection. Report zero affected rows instead.
@@ -311,9 +316,8 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
         Filter filter = versionedIdentityFilter(meta, id);
         Document update = repositoryWriter.toDocument(entity);
         if (update != null) {
-            helper.logUpdate(collection.getName(), filter, update);
             // Explicit update is strict for every entity, including unversioned entities.
-            long rows = NitriteCrudOperations.update(collection, filter, update);
+            long rows = NitriteCrudOperations.update(collection, filter, update, helper);
             affectedCount = rows;
             checkOptimisticLocking(rows);
         }
@@ -328,7 +332,7 @@ public final class NitriteEntityOperations<T> extends AbstractSyncEntityOperatio
             return;
         }
         Filter filter = versionedIdentityFilter(meta, id);
-        helper.logFind(collection.getName(), filter);
+        helper.logDelete(collection.getName(), filter);
         long rows = NitriteCrudOperations.remove(collection, filter);
         affectedCount = rows;
         checkOptimisticLocking(rows);

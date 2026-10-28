@@ -41,16 +41,34 @@ public final class InPredicate<T> extends AbstractPredicate implements CriteriaB
     private final List<Expression<?>> values;
     private final @Nullable CriteriaBuilder criteriaBuilder;
 
+    /**
+     * Creates an IN predicate with no values.
+     *
+     * @param expression      the expression to test
+     * @param criteriaBuilder the criteria builder used to create literal values
+     */
     public InPredicate(Expression<T> expression, CriteriaBuilder criteriaBuilder) {
         this(expression, Collections.emptyList(), criteriaBuilder);
     }
 
+    /**
+     * Creates an IN predicate with the given values.
+     *
+     * @param expression      the expression to test
+     * @param values          the values to match
+     * @param criteriaBuilder the criteria builder used to create literal values, if available
+     */
     public InPredicate(Expression<T> expression, Collection<Expression<?>> values, @Nullable CriteriaBuilder criteriaBuilder) {
         this.expression = expression;
         this.values = new ArrayList<>(values);
         this.criteriaBuilder = criteriaBuilder;
     }
 
+    /**
+     * Returns the values in this predicate.
+     *
+     * @return the values to match
+     */
     public List<Expression<?>> getValues() {
         return values;
     }

@@ -18,6 +18,7 @@ package io.micronaut.data.nitrite.runtime.read;
 import io.micronaut.core.annotation.Internal;
 import io.micronaut.core.convert.ConversionService;
 import io.micronaut.data.model.runtime.RuntimePersistentEntity;
+import io.micronaut.data.nitrite.runtime.NitriteOperationsHelper;
 import io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper;
 import io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder;
 import io.micronaut.data.nitrite.runtime.query.NitriteQueryParser;
@@ -35,6 +36,7 @@ import java.util.function.Function;
  * @param collectionFactory            the collection factory function
  * @param entityFactory                the entity factory function
  * @param useCursorLimitForSortedReads whether sorted bounds should be moved to the cursor
+ * @param helper                       the operations helper that logs each executed operation
  * @since 5.2.0
  */
 @Internal
@@ -45,5 +47,6 @@ public record NitriteReadSupport(
     ConversionService conversionService,
     Function<Class<?>, NitriteCollection> collectionFactory,
     Function<Class<?>, RuntimePersistentEntity<?>> entityFactory,
-    boolean useCursorLimitForSortedReads) {
+    boolean useCursorLimitForSortedReads,
+    NitriteOperationsHelper helper) {
 }
