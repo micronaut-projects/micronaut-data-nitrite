@@ -4,6 +4,18 @@ Nitrite entities are standard Micronaut Data entities (see https://micronaut-pro
 - Nitrite stores documents internally with reserved fields (for example `_id`, `_revision`, `_modified`). Micronaut Data Nitrite stores your entity identifier in its own mapped field; a `Long` identity is also used as Nitrite's internal `_id` for direct key lookups.
 - The default identifier field used by Micronaut Data Nitrite is `id`.
 
+Java records and other immutable entities are supported when their identities are assigned by
+the application. On reads, the mapper supplies stored property values to the entity's
+Micronaut-introspected constructor. Constructor parameter names must match entity property names;
+mapped field names are resolved through the property metadata.
+
+snippet::example.ImmutableBook[project-base="doc-examples/nitrite-example", source="main", tags="immutable-entity"]
+
+Supply the identifier when constructing the entity, before calling `save()`. Immutable entities
+with generated identities are not supported because ID generation requires a writable identity
+property. Use an application-assigned identity as above, or a mutable entity with
+<<nitriteIdGenerator, ID generation>>.
+
 See the following sections for Nitrite-specific mapping notes:
 
 - <<nitriteAnnotations, Mapping annotations>>

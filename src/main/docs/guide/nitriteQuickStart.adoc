@@ -131,12 +131,12 @@ The selected integration modules carry their backend metadata for GraalVM native
 same runtime dependencies for JVM and native applications.
 
 This repository verifies core operations, MVStore/RocksDB persistence, transactions and spatial
-queries in the dedicated Java/JUnit `data-nitrite-native-tests` project. With a GraalVM JDK selected
-through `jenv`, compile and execute its native suite with:
+queries in the dedicated Java/JUnit `data-nitrite-native-tests` project. With GraalVM 25 selected,
+compile and execute its native suite with:
 
 [source,shell]
 ----
-jenv exec ./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
+./gradlew :micronaut-data-nitrite-native-tests:nativeCheck
 ----
 
 The default classpath includes all integrations. Append `-PnativeBackend=in-memory`, `mvstore`,

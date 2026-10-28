@@ -23,16 +23,10 @@ jobs:
           java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
-      - name: Select GraalVM with jenv
-        run: |
-          git clone --depth 1 --branch 0.6.0 https://github.com/jenv/jenv.git "$RUNNER_TEMP/jenv"
-          echo "$RUNNER_TEMP/jenv/bin" >> "$GITHUB_PATH"
-          "$RUNNER_TEMP/jenv/bin/jenv" add "$JAVA_HOME"
-          "$RUNNER_TEMP/jenv/bin/jenv" global 25
       - name: Run JVM repository matrix and dedicated tests
         if: matrix.backend == 'all'
         run: |
-          jenv exec ./gradlew -PincludeDataTck=true \
+          ./gradlew -PincludeDataTck=true \
             :micronaut-data-nitrite:test \
             :micronaut-jakarta-data-tck:micronaut-nitrite:test \
             :micronaut-doc-examples:micronaut-nitrite-example-groovy:check \
@@ -40,9 +34,9 @@ jobs:
             :micronaut-doc-examples:micronaut-nitrite-example-kotlin:check \
             :micronaut-data-nitrite-native-tests:test --no-daemon
       - name: Compile native verification executable
-        run: jenv exec ./gradlew :micronaut-data-nitrite-native-tests:nativeTestCompile -PnativeBackend=${{ matrix.backend }} --no-daemon
+        run: ./gradlew :micronaut-data-nitrite-native-tests:nativeTestCompile -PnativeBackend=${{ matrix.backend }} --no-daemon
       - name: Execute native verification tests
-        run: jenv exec ./gradlew :micronaut-data-nitrite-native-tests:nativeCheck -PnativeBackend=${{ matrix.backend }} --no-daemon
+        run: ./gradlew :micronaut-data-nitrite-native-tests:nativeCheck -PnativeBackend=${{ matrix.backend }} --no-daemon
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
