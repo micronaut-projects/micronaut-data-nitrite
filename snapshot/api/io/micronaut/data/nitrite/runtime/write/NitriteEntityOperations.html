@@ -58,15 +58,15 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-summary" tabindex="0">Method Summary</a></li>
 <li><a href="#constructor-detail" tabindex="0">Constructor Details</a>
 <ol class="toc-list">
-<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" tabindex="0">NitriteEntityOperations(NitriteOperationContext, SyncCascadeOperations, EntityEventListener, RuntimePersistentEntity, ConversionService, NitriteEntityMapper, NitriteOperationsHelper, SyncCascadeOperations.SyncCascadeOperationsHelper, T, NitriteEntityOperations.OperationType)</a></li>
+<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" tabindex="0">NitriteEntityOperations(NitriteOperationContext, NitriteWriteSupport, RuntimePersistentEntity, T, NitriteEntityOperations.OperationType)</a></li>
 </ol>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
-<li><a href="#delete()" tabindex="0">delete()</a></li>
 <li><a href="#update()" tabindex="0">update()</a></li>
 <li><a href="#getAffectedCount()" tabindex="0">getAffectedCount()</a></li>
 <li><a href="#persist()" tabindex="0">persist()</a></li>
+<li><a href="#delete()" tabindex="0">delete()</a></li>
 <li><a href="#upsert()" tabindex="0">upsert()</a></li>
 </ol>
 </li>
@@ -152,14 +152,9 @@ both cases as one, and conditions neither on the entity carrying a version, so n
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" class="member-name-link">NitriteEntityOperations</a><wbr>(<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&nbsp;ctx,
- io.micronaut.data.runtime.operations.internal.SyncCascadeOperations&lt;<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&gt;&nbsp;cascadeOperations,
- io.micronaut.data.event.EntityEventListener&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;entityEventListener,
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" class="member-name-link">NitriteEntityOperations</a><wbr>(<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&nbsp;ctx,
+ <a href="NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a>&nbsp;writeSupport,
  io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;<a href="#type-param-T" title="type parameter in NitriteEntityOperations">T</a>&gt;&nbsp;persistentEntity,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService,
- <a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
- <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper,
- io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper&lt;<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&gt;&nbsp;cascadeHelper,
  <a href="#type-param-T" title="type parameter in NitriteEntityOperations">T</a>&nbsp;entity,
  <a href="NitriteEntityOperations.OperationType.html" title="enum class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations.OperationType</a>&nbsp;operationType)</code></div>
 <div class="col-last even-row-color">
@@ -222,30 +217,20 @@ identity.</div>
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)">
-<h3 id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper,java.lang.Object,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)">NitriteEntityOperations</h3>
+<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)">
+<h3 id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.Object,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)">NitriteEntityOperations</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">NitriteEntityOperations</span><wbr><span class="parameters">(<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&nbsp;ctx,
- io.micronaut.data.runtime.operations.internal.SyncCascadeOperations&lt;<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&gt;&nbsp;cascadeOperations,
- io.micronaut.data.event.EntityEventListener&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;entityEventListener,
+ <a href="NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a>&nbsp;writeSupport,
  io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;<a href="#type-param-T" title="type parameter in NitriteEntityOperations">T</a>&gt;&nbsp;persistentEntity,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService,
- <a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
- <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper,
- io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper&lt;<a href="NitriteOperationContext.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteOperationContext</a>&gt;&nbsp;cascadeHelper,
  <a href="#type-param-T" title="type parameter in NitriteEntityOperations">T</a>&nbsp;entity,
  <a href="NitriteEntityOperations.OperationType.html" title="enum class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations.OperationType</a>&nbsp;operationType)</span></div>
 <div class="block">Creates a new NitriteEntityOperations.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>ctx</code> - the operation context</dd>
-<dd><code>cascadeOperations</code> - the cascade operations</dd>
-<dd><code>entityEventListener</code> - the entity event listener</dd>
+<dd><code>writeSupport</code> - the collaborators shared by every write operation</dd>
 <dd><code>persistentEntity</code> - the persistent entity</dd>
-<dd><code>conversionService</code> - the conversion service</dd>
-<dd><code>entityMapper</code> - the entity mapper</dd>
-<dd><code>helper</code> - the operations helper</dd>
-<dd><code>cascadeHelper</code> - the cascade operations helper</dd>
 <dd><code>entity</code> - the entity to operate on</dd>
 <dd><code>operationType</code> - the operation type</dd>
 </dl>
@@ -260,14 +245,6 @@ identity.</div>
 <section class="method-details" id="method-detail">
 <h2>Method Details</h2>
 <ul class="member-list">
-<li>
-<section class="detail" id="delete()">
-<h3>delete</h3>
-<div class="horizontal-scroll">
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">delete</span>()</div>
-</div>
-</section>
-</li>
 <li>
 <section class="detail" id="update()">
 <h3>update</h3>
@@ -302,6 +279,14 @@ update or delete of an entity without an identity, affects nothing.</div>
 <div class="block">Resolve Jakarta Data save semantics before firing lifecycle events. A non-null identity is
 not by itself proof that a row exists: both assigned identities and generated identities can
 be supplied for a new entity.</div>
+</div>
+</section>
+</li>
+<li>
+<section class="detail" id="delete()">
+<h3>delete</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">delete</span>()</div>
 </div>
 </section>
 </li>

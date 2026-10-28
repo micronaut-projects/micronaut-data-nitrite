@@ -57,7 +57,9 @@ loadScripts(document, 'script');</script>
 <div class="block">The abstract expression.</div>
 </dd>
 <dt><a href="io/micronaut/data/model/jpa/criteria/impl/expression/AbstractExpression.html#%3Cinit%3E(io.micronaut.data.model.jpa.criteria.ExpressionType)" class="member-name-link">AbstractExpression(ExpressionType)</a> - Constructor for class io.micronaut.data.model.jpa.criteria.impl.expression.<a href="io/micronaut/data/model/jpa/criteria/impl/expression/AbstractExpression.html" title="class in io.micronaut.data.model.jpa.criteria.impl.expression">AbstractExpression</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Creates an expression with the given type.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/read/CollectionAggregator.html#aggregate(java.util.List,java.lang.String,java.lang.String)" class="member-name-link">aggregate(List, String, String)</a> - Method in class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/CollectionAggregator.html" title="class in io.micronaut.data.nitrite.runtime.read">CollectionAggregator</a></dt>
 <dd>
 <div class="block">Execute aggregation on a list of documents.</div>
@@ -148,7 +150,9 @@ loadScripts(document, 'script');</script>
 <div class="block">Builds the filter for one field and its operators.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/GeneratedQueryParser.PredicateFilterFactory.html#build(io.micronaut.data.model.runtime.RuntimePersistentEntity,java.util.Map,java.lang.Object%5B%5D)" class="member-name-link">build(RuntimePersistentEntity, Map, Object[])</a> - Method in interface io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/GeneratedQueryParser.PredicateFilterFactory.html" title="interface in io.micronaut.data.nitrite.runtime.query">GeneratedQueryParser.PredicateFilterFactory</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Builds a filter from the predicate and its bound parameters.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteSortPlan.html#build(java.util.List,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,java.lang.Object%5B%5D,java.util.Map)" class="member-name-link">build(List, RuntimePersistentEntity, NitriteEntityMapper, NitriteFilterBuilder, Object[], Map)</a> - Static method in class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteSortPlan.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteSortPlan</a></dt>
 <dd>
 <div class="block">Builds the plan for a sort.</div>
@@ -178,7 +182,7 @@ parsing its <code>WHERE</code> clause.</div>
 <dd>
 <div class="block">Builds an array of JSON parameter values from a prepared query.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#buildJsonParameterValues(io.micronaut.data.model.runtime.PreparedQuery,java.util.function.Function,java.util.function.BiFunction)" class="member-name-link">buildJsonParameterValues(PreparedQuery, Function, BiFunction)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#buildJsonParameterValues(io.micronaut.data.model.runtime.PreparedQuery,java.util.function.UnaryOperator,java.util.function.BiFunction)" class="member-name-link">buildJsonParameterValues(PreparedQuery, UnaryOperator, BiFunction)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
 <dd>
 <div class="block">Builds an array of JSON parameter values from a prepared query.</div>
 </dd>
@@ -188,7 +192,7 @@ parsing its <code>WHERE</code> clause.</div>
 <dd>
 <div class="block">Builds a map of named parameter values from a prepared query.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#buildNamedParameterValues(io.micronaut.data.model.runtime.PreparedQuery,java.util.function.Function)" class="member-name-link">buildNamedParameterValues(PreparedQuery, Function)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#buildNamedParameterValues(io.micronaut.data.model.runtime.PreparedQuery,java.util.function.UnaryOperator)" class="member-name-link">buildNamedParameterValues(PreparedQuery, UnaryOperator)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
 <dd>
 <div class="block">Builds a named-parameter map from query bindings and method argument names.</div>
 </dd>
@@ -213,6 +217,14 @@ serialize/reparse round trip <a href="io/micronaut/data/nitrite/model/query/buil
 <dt><a href="io/micronaut/data/nitrite/runtime/NameUtils.html#camelToSnake(java.lang.String)" class="member-name-link">camelToSnake(String)</a> - Static method in class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NameUtils.html" title="class in io.micronaut.data.nitrite.runtime">NameUtils</a></dt>
 <dd>
 <div class="block">Convert a camelCase string to snake_case.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#cascadeHelper()" class="member-name-link">cascadeHelper()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-cascadeHelper"><code>cascadeHelper</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#cascadeOperations()" class="member-name-link">cascadeOperations()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-cascadeOperations"><code>cascadeOperations</code></a> record component.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/NitriteEntityMeta.html#cascadeProps()" class="member-name-link">cascadeProps()</a> - Method in record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/NitriteEntityMeta.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMeta</a></dt>
 <dd>
@@ -251,6 +263,10 @@ serialize/reparse round trip <a href="io/micronaut/data/nitrite/model/query/buil
 <dt><a href="io/micronaut/data/nitrite/runtime/read/CollectionAggregator.html#%3Cinit%3E()" class="member-name-link">CollectionAggregator()</a> - Constructor for class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/CollectionAggregator.html" title="class in io.micronaut.data.nitrite.runtime.read">CollectionAggregator</a></dt>
 <dd>
 <div class="block">Create a new aggregator.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#collectionFactory()" class="member-name-link">collectionFactory()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-collectionFactory"><code>collectionFactory</code></a> record component.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/read/CollectionFieldMapper.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime.read">CollectionFieldMapper</a> - Class in <a href="io/micronaut/data/nitrite/runtime/read/package-summary.html">io.micronaut.data.nitrite.runtime.read</a></dt>
 <dd>
@@ -332,6 +348,18 @@ the value, and the name of the property on the associated entity it mirrors.</di
 <dd>
 <div class="block">Concatenate operator.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#configuration()" class="member-name-link">configuration()</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/NitriteDatasource.html#param-configuration"><code>configuration</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#conversionService()" class="member-name-link">conversionService()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-conversionService"><code>conversionService</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#conversionService()" class="member-name-link">conversionService()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-conversionService"><code>conversionService</code></a> record component.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/ValueConverter.html#convert(java.lang.Object,java.lang.Class)" class="member-name-link">convert(Object, Class)</a> - Method in class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/ValueConverter.html" title="class in io.micronaut.data.nitrite.runtime">ValueConverter</a></dt>
 <dd>
 <div class="block">Convert a value to the target type.</div>
@@ -360,7 +388,7 @@ intermediate value's fields (e.g.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html#count(io.micronaut.data.model.runtime.PagedQuery)" class="member-name-link">count(PagedQuery)</a> - Method in class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html" title="class in io.micronaut.data.nitrite.runtime">DefaultNitriteRepositoryOperations</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html#count(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" class="member-name-link">count(PreparedQuery, NitritePreparedQuery)</a> - Method in class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html#count(io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" class="member-name-link">count(NitritePreparedQuery)</a> - Method in class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor</a></dt>
 <dd>
 <div class="block">Executes a count query to determine the number of matching documents.</div>
 </dd>
@@ -417,6 +445,10 @@ intermediate value's fields (e.g.</div>
 </dl>
 <h2 class="title" id="I:D">D</h2>
 <dl class="index">
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#database()" class="member-name-link">database()</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/NitriteDatasource.html#param-database"><code>database</code></a> record component.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/conf/NitriteConfiguration.SortedReadStrategy.html#DATABASE" class="member-name-link">DATABASE</a> - Enum constant in enum class io.micronaut.data.nitrite.conf.<a href="io/micronaut/data/nitrite/conf/NitriteConfiguration.SortedReadStrategy.html" title="enum class in io.micronaut.data.nitrite.conf">NitriteConfiguration.SortedReadStrategy</a></dt>
 <dd>
 <div class="block">Keep the limit on the Nitrite find.</div>
@@ -433,7 +465,7 @@ intermediate value's fields (e.g.</div>
 <dd>
 <div class="block">Delegating implementation of <a href="io/micronaut/data/nitrite/runtime/query/NitritePreparedQuery.html" title="interface in io.micronaut.data.nitrite.runtime.query"><code>NitritePreparedQuery</code></a>.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/query/DefaultNitritePreparedQuery.html#%3Cinit%3E(io.micronaut.data.model.runtime.PreparedQuery,org.dizitart.no2.filters.Filter,java.util.Map,io.micronaut.data.nitrite.runtime.query.ast.CompiledNitriteFilter,java.util.Map)" class="member-name-link">DefaultNitritePreparedQuery(PreparedQuery, Filter, Map, CompiledNitriteFilter, Map)</a> - Constructor for class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/DefaultNitritePreparedQuery.html" title="class in io.micronaut.data.nitrite.runtime.query">DefaultNitritePreparedQuery</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/query/DefaultNitritePreparedQuery.html#%3Cinit%3E(io.micronaut.data.model.runtime.PreparedQuery,org.dizitart.no2.filters.Filter,io.micronaut.data.nitrite.runtime.query.NitriteStoredQuery)" class="member-name-link">DefaultNitritePreparedQuery(PreparedQuery, Filter, NitriteStoredQuery)</a> - Constructor for class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/DefaultNitritePreparedQuery.html" title="class in io.micronaut.data.nitrite.runtime.query">DefaultNitritePreparedQuery</a></dt>
 <dd>
 <div class="block">Create a delegating Nitrite prepared query.</div>
 </dd>
@@ -441,7 +473,7 @@ intermediate value's fields (e.g.</div>
 <dd>
 <div class="block">Default Nitrite repository operations.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html#%3Cinit%3E(org.dizitart.no2.Nitrite,io.micronaut.data.nitrite.conf.NitriteConfiguration,io.micronaut.data.runtime.date.DateTimeProvider,io.micronaut.data.model.runtime.RuntimeEntityRegistry,io.micronaut.data.runtime.convert.DataConversionService,io.micronaut.data.model.runtime.AttributeConverterRegistry,io.micronaut.data.nitrite.transaction.NitriteTransactionHolder,io.micronaut.serde.ObjectMapper)" class="member-name-link">DefaultNitriteRepositoryOperations(Nitrite, NitriteConfiguration, DateTimeProvider, RuntimeEntityRegistry, DataConversionService, AttributeConverterRegistry, NitriteTransactionHolder, ObjectMapper)</a> - Constructor for class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html" title="class in io.micronaut.data.nitrite.runtime">DefaultNitriteRepositoryOperations</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.NitriteDatasource,io.micronaut.data.runtime.date.DateTimeProvider,io.micronaut.data.model.runtime.RuntimeEntityRegistry,io.micronaut.data.runtime.convert.DataConversionService,io.micronaut.data.model.runtime.AttributeConverterRegistry,io.micronaut.serde.ObjectMapper)" class="member-name-link">DefaultNitriteRepositoryOperations(NitriteDatasource, DateTimeProvider, RuntimeEntityRegistry, DataConversionService, AttributeConverterRegistry, ObjectMapper)</a> - Constructor for class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/DefaultNitriteRepositoryOperations.html" title="class in io.micronaut.data.nitrite.runtime">DefaultNitriteRepositoryOperations</a></dt>
 <dd>
 <div class="block">Create Nitrite repository operations.</div>
 </dd>
@@ -540,6 +572,22 @@ is not a bare identity equality.</div>
 <dd>
 <div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.SimpleOperatorNode.html#param-entity"><code>entity</code></a> record component.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#entityEventListener()" class="member-name-link">entityEventListener()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-entityEventListener"><code>entityEventListener</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#entityFactory()" class="member-name-link">entityFactory()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-entityFactory"><code>entityFactory</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#entityMapper()" class="member-name-link">entityMapper()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-entityMapper"><code>entityMapper</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#entityMapper()" class="member-name-link">entityMapper()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-entityMapper"><code>entityMapper</code></a> record component.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/ValueConverter.html#epochNanos(java.time.Instant)" class="member-name-link">epochNanos(Instant)</a> - Static method in class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/ValueConverter.html" title="class in io.micronaut.data.nitrite.runtime">ValueConverter</a></dt>
 <dd>
 <div class="block">Converts a java.time.Instant to epoch nanoseconds.</div>
@@ -573,6 +621,10 @@ is not a bare identity equality.</div>
 <div class="block">Indicates whether some other object is "equal to" this one.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html#equals(java.lang.Object)" class="member-name-link">equals(Object)</a> - Method in record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html" title="class in io.micronaut.data.nitrite.runtime.mapping">WritablePropertyMeta</a></dt>
+<dd>
+<div class="block">Indicates whether some other object is "equal to" this one.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#equals(java.lang.Object)" class="member-name-link">equals(Object)</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
 <dd>
 <div class="block">Indicates whether some other object is "equal to" this one.</div>
 </dd>
@@ -681,6 +733,14 @@ is not a bare identity equality.</div>
 <div class="block">Indicates whether some other object is "equal to" this one.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteFind.html#equals(java.lang.Object)" class="member-name-link">equals(Object)</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteFind.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteFind</a></dt>
+<dd>
+<div class="block">Indicates whether some other object is "equal to" this one.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#equals(java.lang.Object)" class="member-name-link">equals(Object)</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Indicates whether some other object is "equal to" this one.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#equals(java.lang.Object)" class="member-name-link">equals(Object)</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
 <dd>
 <div class="block">Indicates whether some other object is "equal to" this one.</div>
 </dd>
@@ -867,6 +927,10 @@ that uses <code>$project</code> syntax, bypassing the JSON parse step.</div>
 <dt><a href="io/micronaut/data/nitrite/spi/NitriteSpatialSupport.html#filter(java.lang.String,java.lang.Object,java.lang.String)" class="member-name-link">filter(String, Object, String)</a> - Method in interface io.micronaut.data.nitrite.spi.<a href="io/micronaut/data/nitrite/spi/NitriteSpatialSupport.html" title="interface in io.micronaut.data.nitrite.spi">NitriteSpatialSupport</a></dt>
 <dd>
 <div class="block">Creates a containment or intersection filter.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#filterBuilder()" class="member-name-link">filterBuilder()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-filterBuilder"><code>filterBuilder</code></a> record component.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryParser.ParsedJsonQuery.html#filterMap()" class="member-name-link">filterMap()</a> - Method in record class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryParser.ParsedJsonQuery.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryParser.ParsedJsonQuery</a></dt>
 <dd>
@@ -1172,7 +1236,9 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <div class="block">Returns the username.</div>
 </dd>
 <dt><a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html#getValues()" class="member-name-link">getValues()</a> - Method in class io.micronaut.data.model.jpa.criteria.impl.predicate.<a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html" title="class in io.micronaut.data.model.jpa.criteria.impl.predicate">InPredicate</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Returns the values in this predicate.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/processor/NitriteNativeQueryVisitor.html#getVisitorKind()" class="member-name-link">getVisitorKind()</a> - Method in class io.micronaut.data.nitrite.processor.<a href="io/micronaut/data/nitrite/processor/NitriteNativeQueryVisitor.html" title="class in io.micronaut.data.nitrite.processor">NitriteNativeQueryVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/processor/NitriteTckCompatibilityVisitor.html#getVisitorKind()" class="member-name-link">getVisitorKind()</a> - Method in class io.micronaut.data.nitrite.processor.<a href="io/micronaut/data/nitrite/processor/NitriteTckCompatibilityVisitor.html" title="class in io.micronaut.data.nitrite.processor">NitriteTckCompatibilityVisitor</a></dt>
@@ -1200,13 +1266,13 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 </dl>
 <h2 class="title" id="I:H">H</h2>
 <dl class="index">
-<dt><a href="io/micronaut/data/nitrite/model/query/builder/compile/CompileExpressionHandler.html#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(String, boolean, boolean, boolean, boolean, Expression, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in class io.micronaut.data.nitrite.model.query.builder.compile.<a href="io/micronaut/data/nitrite/model/query/builder/compile/CompileExpressionHandler.html" title="class in io.micronaut.data.nitrite.model.query.builder.compile">CompileExpressionHandler</a></dt>
+<dt><a href="io/micronaut/data/nitrite/model/query/builder/compile/CompileExpressionHandler.html#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(boolean, boolean, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in class io.micronaut.data.nitrite.model.query.builder.compile.<a href="io/micronaut/data/nitrite/model/query/builder/compile/CompileExpressionHandler.html" title="class in io.micronaut.data.nitrite.model.query.builder.compile">CompileExpressionHandler</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="io/micronaut/data/nitrite/model/query/builder/NitriteExpressionHandler.html#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(String, boolean, boolean, boolean, boolean, Expression, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in interface io.micronaut.data.nitrite.model.query.builder.<a href="io/micronaut/data/nitrite/model/query/builder/NitriteExpressionHandler.html" title="interface in io.micronaut.data.nitrite.model.query.builder">NitriteExpressionHandler</a></dt>
+<dt><a href="io/micronaut/data/nitrite/model/query/builder/NitriteExpressionHandler.html#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(boolean, boolean, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in interface io.micronaut.data.nitrite.model.query.builder.<a href="io/micronaut/data/nitrite/model/query/builder/NitriteExpressionHandler.html" title="interface in io.micronaut.data.nitrite.model.query.builder">NitriteExpressionHandler</a></dt>
 <dd>
-<div class="block">Handle a regex-based expression (Like, StartsWith, EndsWith, Contains).</div>
+<div class="block">Handle a regex-based expression (StartsWith, EndsWith, Contains, case-insensitive equality).</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(String, boolean, boolean, boolean, boolean, Expression, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in class io.micronaut.data.nitrite.model.query.builder.<a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html" title="class in io.micronaut.data.nitrite.model.query.builder">RuntimeExpressionHandler</a></dt>
+<dt><a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex(boolean, boolean, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a> - Method in class io.micronaut.data.nitrite.model.query.builder.<a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html" title="class in io.micronaut.data.nitrite.model.query.builder">RuntimeExpressionHandler</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/NitriteEntityMeta.html#hasBackReferences()" class="member-name-link">hasBackReferences()</a> - Method in record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/NitriteEntityMeta.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMeta</a></dt>
 <dd>
@@ -1237,6 +1303,10 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <div class="block">Returns a hash code value for this object.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html#hashCode()" class="member-name-link">hashCode()</a> - Method in record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html" title="class in io.micronaut.data.nitrite.runtime.mapping">WritablePropertyMeta</a></dt>
+<dd>
+<div class="block">Returns a hash code value for this object.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#hashCode()" class="member-name-link">hashCode()</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
 <dd>
 <div class="block">Returns a hash code value for this object.</div>
 </dd>
@@ -1348,9 +1418,25 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dd>
 <div class="block">Returns a hash code value for this object.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#hashCode()" class="member-name-link">hashCode()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns a hash code value for this object.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#hashCode()" class="member-name-link">hashCode()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns a hash code value for this object.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryParser.html#hasProjection(java.lang.String)" class="member-name-link">hasProjection(String)</a> - Method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryParser.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryParser</a></dt>
 <dd>
 <div class="block">Check if a JSON query uses <code>$project</code> syntax.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#helper()" class="member-name-link">helper()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-helper"><code>helper</code></a> record component.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#helper()" class="member-name-link">helper()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#param-helper"><code>helper</code></a> record component.</div>
 </dd>
 </dl>
 <h2 class="title" id="I:I">I</h2>
@@ -1426,9 +1512,13 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <div class="block">The IN predicate implementation.</div>
 </dd>
 <dt><a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html#%3Cinit%3E(jakarta.persistence.criteria.Expression,jakarta.persistence.criteria.CriteriaBuilder)" class="member-name-link">InPredicate(Expression, CriteriaBuilder)</a> - Constructor for class io.micronaut.data.model.jpa.criteria.impl.predicate.<a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html" title="class in io.micronaut.data.model.jpa.criteria.impl.predicate">InPredicate</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Creates an IN predicate with no values.</div>
+</dd>
 <dt><a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html#%3Cinit%3E(jakarta.persistence.criteria.Expression,java.util.Collection,jakarta.persistence.criteria.CriteriaBuilder)" class="member-name-link">InPredicate(Expression, Collection, CriteriaBuilder)</a> - Constructor for class io.micronaut.data.model.jpa.criteria.impl.predicate.<a href="io/micronaut/data/model/jpa/criteria/impl/predicate/InPredicate.html" title="class in io.micronaut.data.model.jpa.criteria.impl.predicate">InPredicate</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Creates an IN predicate with the given values.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.OperationType.html#INSERT" class="member-name-link">INSERT</a> - Enum constant in enum class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.OperationType.html" title="enum class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations.OperationType</a></dt>
 <dd>
 <div class="block">Represents a new entity insertion operation.</div>
@@ -1546,7 +1636,7 @@ of entities passed in when an entity was vetoed, had no identity, or was already
 <dd>
 <div class="block">Fetches joined associations for query results.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/read/JoinFetcher.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService)" class="member-name-link">JoinFetcher(NitriteEntityMapper, Function, Function, ConversionService)</a> - Constructor for class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/JoinFetcher.html" title="class in io.micronaut.data.nitrite.runtime.read">JoinFetcher</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/JoinFetcher.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" class="member-name-link">JoinFetcher(NitriteEntityMapper, Function, Function, ConversionService, NitriteOperationsHelper)</a> - Constructor for class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/JoinFetcher.html" title="class in io.micronaut.data.nitrite.runtime.read">JoinFetcher</a></dt>
 <dd>
 <div class="block">Creates a join fetcher.</div>
 </dd>
@@ -1808,15 +1898,23 @@ containing <code>%</code>, <code>_</code>, or <code>*</code> characters.</div>
 <dd>
 <div class="block">Helper class to execute Criteria queries for Nitrite.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/criteria/NitriteCriteriaExecutor.html#%3Cinit%3E(io.micronaut.data.model.query.builder.QueryBuilder,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,boolean)" class="member-name-link">NitriteCriteriaExecutor(QueryBuilder, NitriteEntityMapper, NitriteQueryParser, NitriteFilterBuilder, ConversionService, Function, Function, boolean)</a> - Constructor for class io.micronaut.data.nitrite.runtime.criteria.<a href="io/micronaut/data/nitrite/runtime/criteria/NitriteCriteriaExecutor.html" title="class in io.micronaut.data.nitrite.runtime.criteria">NitriteCriteriaExecutor</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/criteria/NitriteCriteriaExecutor.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.read.NitriteReadSupport)" class="member-name-link">NitriteCriteriaExecutor(NitriteReadSupport)</a> - Constructor for class io.micronaut.data.nitrite.runtime.criteria.<a href="io/micronaut/data/nitrite/runtime/criteria/NitriteCriteriaExecutor.html" title="class in io.micronaut.data.nitrite.runtime.criteria">NitriteCriteriaExecutor</a></dt>
 <dd>
 <div class="block">Creates a new NitriteCriteriaExecutor.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a> - Record Class in <a href="io/micronaut/data/nitrite/runtime/package-summary.html">io.micronaut.data.nitrite.runtime</a></dt>
+<dd>
+<div class="block">The beans of one named Nitrite datasource that its repository operations are built from.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#%3Cinit%3E(org.dizitart.no2.Nitrite,io.micronaut.data.nitrite.conf.NitriteConfiguration,io.micronaut.data.nitrite.transaction.NitriteTransactionHolder)" class="member-name-link">NitriteDatasource(Nitrite, NitriteConfiguration, NitriteTransactionHolder)</a> - Constructor for record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
+<dd>
+<div class="block">Creates an instance of a <code>NitriteDatasource</code> record class.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntitiesOperations.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntitiesOperations&lt;T&gt;</a> - Class in <a href="io/micronaut/data/nitrite/runtime/write/package-summary.html">io.micronaut.data.nitrite.runtime.write</a></dt>
 <dd>
 <div class="block">Internal entities operations for Nitrite with automatic event firing and version handling.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntitiesOperations.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,java.lang.Iterable,boolean)" class="member-name-link">NitriteEntitiesOperations(NitriteOperationContext, SyncCascadeOperations, EntityEventListener, RuntimePersistentEntity, ConversionService, NitriteEntityMapper, NitriteOperationsHelper, Iterable, boolean)</a> - Constructor for class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntitiesOperations.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntitiesOperations</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntitiesOperations.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.Iterable,boolean)" class="member-name-link">NitriteEntitiesOperations(NitriteOperationContext, NitriteWriteSupport, RuntimePersistentEntity, Iterable, boolean)</a> - Constructor for class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntitiesOperations.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntitiesOperations</a></dt>
 <dd>
 <div class="block">Creates a new NitriteEntitiesOperations.</div>
 </dd>
@@ -1840,7 +1938,7 @@ containing <code>%</code>, <code>_</code>, or <code>*</code> characters.</div>
 <dd>
 <div class="block">Internal entity operations for Nitrite with automatic event firing and version handling.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.data.model.runtime.RuntimePersistentEntity,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" class="member-name-link">NitriteEntityOperations(NitriteOperationContext, SyncCascadeOperations, EntityEventListener, RuntimePersistentEntity, ConversionService, NitriteEntityMapper, NitriteOperationsHelper, SyncCascadeOperations.SyncCascadeOperationsHelper, T, NitriteEntityOperations.OperationType)</a> - Constructor for class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.write.NitriteOperationContext,io.micronaut.data.nitrite.runtime.write.NitriteWriteSupport,io.micronaut.data.model.runtime.RuntimePersistentEntity,T,io.micronaut.data.nitrite.runtime.write.NitriteEntityOperations.OperationType)" class="member-name-link">NitriteEntityOperations(NitriteOperationContext, NitriteWriteSupport, RuntimePersistentEntity, T, NitriteEntityOperations.OperationType)</a> - Constructor for class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations</a></dt>
 <dd>
 <div class="block">Creates a new NitriteEntityOperations.</div>
 </dd>
@@ -2062,7 +2160,7 @@ query is bound at runtime.</div>
 <dd>
 <div class="block">Executes runtime data retrieval queries against a Nitrite collection.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.event.EntityEventListener,boolean)" class="member-name-link">NitriteQueryExecutor(NitriteEntityMapper, NitriteQueryParser, NitriteFilterBuilder, ConversionService, Function, Function, NitriteQueryExecutor.FindOptionsBuilder, NitriteOperationsHelper, EntityEventListener, boolean)</a> - Constructor for class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.read.NitriteReadSupport,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" class="member-name-link">NitriteQueryExecutor(NitriteReadSupport, NitriteQueryExecutor.FindOptionsBuilder, NitriteOperationsHelper)</a> - Constructor for class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteQueryExecutor.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor</a></dt>
 <dd>
 <div class="block">Creates a new NitriteQueryExecutor.</div>
 </dd>
@@ -2089,6 +2187,14 @@ query is bound at runtime.</div>
 <dt><a href="io/micronaut/data/nitrite/model/query/builder/NitriteQueryState.html" class="type-name-link" title="class in io.micronaut.data.nitrite.model.query.builder">NitriteQueryState</a> - Class in <a href="io/micronaut/data/nitrite/model/query/builder/package-summary.html">io.micronaut.data.nitrite.model.query.builder</a></dt>
 <dd>
 <div class="block">Holder for state during query translation.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a> - Record Class in <a href="io/micronaut/data/nitrite/runtime/read/package-summary.html">io.micronaut.data.nitrite.runtime.read</a></dt>
+<dd>
+<div class="block">The collaborators the query and criteria executors of one repository operations instance share.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,boolean,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" class="member-name-link">NitriteReadSupport(NitriteEntityMapper, NitriteQueryParser, NitriteFilterBuilder, ConversionService, Function, Function, boolean, NitriteOperationsHelper)</a> - Constructor for record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Creates an instance of a <code>NitriteReadSupport</code> record class.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/annotation/NitriteRepository.html" class="type-name-link" title="annotation interface in io.micronaut.data.nitrite.annotation">NitriteRepository</a> - Annotation Interface in <a href="io/micronaut/data/nitrite/annotation/package-summary.html">io.micronaut.data.nitrite.annotation</a></dt>
 <dd>
@@ -2140,7 +2246,9 @@ maps built directly from a runtime Criteria query, with no JSON serialize/repars
 <div class="block">Supplies the Nitrite annotations missing from the released Jakarta Data TCK visitor.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/processor/NitriteTckCompatibilityVisitor.html#%3Cinit%3E()" class="member-name-link">NitriteTckCompatibilityVisitor()</a> - Constructor for class io.micronaut.data.nitrite.processor.<a href="io/micronaut/data/nitrite/processor/NitriteTckCompatibilityVisitor.html" title="class in io.micronaut.data.nitrite.processor">NitriteTckCompatibilityVisitor</a></dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Creates the visitor and detects whether the current processor run targets Nitrite.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/transaction/NitriteTransactionContext.html" class="type-name-link" title="class in io.micronaut.data.nitrite.transaction">NitriteTransactionContext</a> - Class in <a href="io/micronaut/data/nitrite/transaction/package-summary.html">io.micronaut.data.nitrite.transaction</a></dt>
 <dd>
 <div class="block">Transaction context holder that provides transaction-aware collection and repository access.</div>
@@ -2172,6 +2280,14 @@ maps built directly from a runtime Criteria query, with no JSON serialize/repars
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/NitriteTypeRegistry.TypeEntry.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteTypeRegistry.TypeEntry&lt;T&gt;</a> - Record Class in <a href="io/micronaut/data/nitrite/runtime/mapping/package-summary.html">io.micronaut.data.nitrite.runtime.mapping</a></dt>
 <dd>
 <div class="block">Per-type serialization descriptor.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" class="type-name-link" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a> - Record Class in <a href="io/micronaut/data/nitrite/runtime/write/package-summary.html">io.micronaut.data.nitrite.runtime.write</a></dt>
+<dd>
+<div class="block">The collaborators every write operation of one repository operations instance shares.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#%3Cinit%3E(io.micronaut.data.runtime.operations.internal.SyncCascadeOperations,io.micronaut.data.event.EntityEventListener,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.runtime.operations.internal.SyncCascadeOperations.SyncCascadeOperationsHelper)" class="member-name-link">NitriteWriteSupport(SyncCascadeOperations, EntityEventListener, ConversionService, NitriteEntityMapper, NitriteOperationsHelper, SyncCascadeOperations.SyncCascadeOperationsHelper)</a> - Constructor for record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Creates an instance of a <code>NitriteWriteSupport</code> record class.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.NoneNode.html#%3Cinit%3E()" class="member-name-link">NoneNode()</a> - Constructor for record class io.micronaut.data.nitrite.runtime.query.ast.<a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.NoneNode.html" title="class in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.NoneNode</a></dt>
 <dd>
@@ -2446,6 +2562,10 @@ into filter and update maps.</div>
 <dd>
 <div class="block">Query parameter placeholder string prefix.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#queryParser()" class="member-name-link">queryParser()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-queryParser"><code>queryParser</code></a> record component.</div>
+</dd>
 </dl>
 <h2 class="title" id="I:R">R</h2>
 <dl class="index">
@@ -2528,7 +2648,7 @@ function.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html#resolveCollectionValue(io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath,jakarta.persistence.criteria.Expression)" class="member-name-link">resolveCollectionValue(NitriteQueryState, PersistentPropertyPath, Expression)</a> - Method in class io.micronaut.data.nitrite.model.query.builder.<a href="io/micronaut/data/nitrite/model/query/builder/RuntimeExpressionHandler.html" title="class in io.micronaut.data.nitrite.model.query.builder">RuntimeExpressionHandler</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#resolveParameterValue(java.lang.Object,java.lang.Object%5B%5D,java.util.Map,java.util.function.Function)" class="member-name-link">resolveParameterValue(Object, Object[], Map, Function)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html#resolveParameterValue(java.lang.Object,java.lang.Object%5B%5D,java.util.Map,java.util.function.UnaryOperator)" class="member-name-link">resolveParameterValue(Object, Object[], Map, UnaryOperator)</a> - Static method in class io.micronaut.data.nitrite.runtime.query.<a href="io/micronaut/data/nitrite/runtime/query/NitriteQueryBinder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryBinder</a></dt>
 <dd>
 <div class="block">Resolves a raw filter or update value: replaces <code>"$mn_qp:N"</code> placeholders and
 <code>":"</code>-prefixed named parameters with their actual values, converting through
@@ -2822,7 +2942,7 @@ function.</div>
 <dd>
 <div class="block">Creates an instance of a <code>ToDouble</code> record class.</div>
 </dd>
-<dt><a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.OperatorBinding.html#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" class="member-name-link">toFilter(NitriteFilterAST.FieldValuePreparer, NitriteFilterAST.OperatorFilterEvaluator, RuntimePersistentEntity, String, String, Object[], Map)</a> - Method in record class io.micronaut.data.nitrite.runtime.query.ast.<a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.OperatorBinding.html" title="class in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.OperatorBinding</a></dt>
+<dt><a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.OperatorBinding.html#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" class="member-name-link">toFilter(NitriteFilterAST.FieldValuePreparer, NitriteFilterAST.OperatorFilterEvaluator, RuntimePersistentEntity, String, Object[], Map)</a> - Method in record class io.micronaut.data.nitrite.runtime.query.ast.<a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.OperatorBinding.html" title="class in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.OperatorBinding</a></dt>
 <dd>
 <div class="block">Converts this operator binding into a functional Nitrite Filter by resolving and preparing the value.</div>
 </dd>
@@ -2906,6 +3026,10 @@ pagination, which pages on stored fields.</div>
 <div class="block">Returns a string representation of this record class.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html#toString()" class="member-name-link">toString()</a> - Method in record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/WritablePropertyMeta.html" title="class in io.micronaut.data.nitrite.runtime.mapping">WritablePropertyMeta</a></dt>
+<dd>
+<div class="block">Returns a string representation of this record class.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#toString()" class="member-name-link">toString()</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
 <dd>
 <div class="block">Returns a string representation of this record class.</div>
 </dd>
@@ -3017,9 +3141,21 @@ pagination, which pages on stored fields.</div>
 <dd>
 <div class="block">Returns a string representation of this record class.</div>
 </dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#toString()" class="member-name-link">toString()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns a string representation of this record class.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html#toString()" class="member-name-link">toString()</a> - Method in record class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteWriteSupport.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteWriteSupport</a></dt>
+<dd>
+<div class="block">Returns a string representation of this record class.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.ExprValueNode.ToUpper.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.ExprValueNode)" class="member-name-link">ToUpper(NitriteFilterAST.ExprValueNode)</a> - Constructor for record class io.micronaut.data.nitrite.runtime.query.ast.<a href="io/micronaut/data/nitrite/runtime/query/ast/NitriteFilterAST.ExprValueNode.ToUpper.html" title="class in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.ExprValueNode.ToUpper</a></dt>
 <dd>
 <div class="block">Creates an instance of a <code>ToUpper</code> record class.</div>
+</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html#transactionHolder()" class="member-name-link">transactionHolder()</a> - Method in record class io.micronaut.data.nitrite.runtime.<a href="io/micronaut/data/nitrite/runtime/NitriteDatasource.html" title="class in io.micronaut.data.nitrite.runtime">NitriteDatasource</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/NitriteDatasource.html#param-transactionHolder"><code>transactionHolder</code></a> record component.</div>
 </dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/mapping/NitriteTypeRegistry.TypeEntry.html#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.PropertyStrategy,java.util.function.Function,java.util.function.Function,java.util.function.Function)" class="member-name-link">TypeEntry(PropertyStrategy, Function, Function, Function)</a> - Constructor for record class io.micronaut.data.nitrite.runtime.mapping.<a href="io/micronaut/data/nitrite/runtime/mapping/NitriteTypeRegistry.TypeEntry.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteTypeRegistry.TypeEntry</a></dt>
 <dd>
@@ -3071,6 +3207,10 @@ identity.</div>
 <dd>&nbsp;</dd>
 <dt><a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html#upsert()" class="member-name-link">upsert()</a> - Method in class io.micronaut.data.nitrite.runtime.write.<a href="io/micronaut/data/nitrite/runtime/write/NitriteEntityOperations.html" title="class in io.micronaut.data.nitrite.runtime.write">NitriteEntityOperations</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#useCursorLimitForSortedReads()" class="member-name-link">useCursorLimitForSortedReads()</a> - Method in record class io.micronaut.data.nitrite.runtime.read.<a href="io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a></dt>
+<dd>
+<div class="block">Returns the value of the <a href="./io/micronaut/data/nitrite/runtime/read/NitriteReadSupport.html#param-useCursorLimitForSortedReads"><code>useCursorLimitForSortedReads</code></a> record component.</div>
+</dd>
 <dt><a href="io/micronaut/data/nitrite/conf/NitriteConfiguration.SortedReadStrategy.html#usesCursorLimit(io.micronaut.data.nitrite.conf.NitriteConfiguration.StorageMode)" class="member-name-link">usesCursorLimit(NitriteConfiguration.StorageMode)</a> - Method in enum class io.micronaut.data.nitrite.conf.<a href="io/micronaut/data/nitrite/conf/NitriteConfiguration.SortedReadStrategy.html" title="enum class in io.micronaut.data.nitrite.conf">NitriteConfiguration.SortedReadStrategy</a></dt>
 <dd>
 <div class="block">Determines whether the sorted limit should be moved to the cursor.</div>

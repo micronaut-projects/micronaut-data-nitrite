@@ -1093,25 +1093,6 @@ runtime = [
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-With Nitrite 5.4.1, spatial-index queries on a reopened MVStore file can fail with
-<code>ClassCastException</code> (<code>DefaultSpatial</code> to <code>MVSpatialKey</code>) inside the upstream adapter. Geometry
-values themselves can be read after reopening. Persistent spatial-index queries on MVStore
-require an adapter release containing the persisted-key fix; the in-memory spatial verification
-does not cover that case. When verifying an adapter containing the fix, add
-<code>-PverifySpatialIndexReopen=true</code> to the dedicated JVM or native verification command to exercise
-persisted spatial queries, updates and deletes. This regression is opt-in while the BOM pins the
-affected 5.4.1 release.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>The module is loaded automatically when it is on the classpath and is simply absent when it is not. A module that is present but cannot be initialized fails at startup rather than being skipped, so spatial indexes and filters are never silently unavailable.</p>
 </div>
@@ -7351,7 +7332,7 @@ class IntersectsExample {
 <p>Embedded/nested POJO values are persisted and round-trip correctly, but derived nested-property queries against arbitrary embedded object fields depend on annotation processor support.</p>
 </li>
 <li>
-<p>Immutable entities are not supported. An entity is populated through its setters on both the write and the read side, so a Java record, or any entity whose identity is read-only, fails with <code>Cannot write a read-only property</code>. A generated identity is assigned in place before the insert, and a document is mapped back into a new instance the same way. An immutable entity whose identity is assigned by the application can be written, and the instance returned by <code>save</code> does carry its initial version, but it cannot be read back.</p>
+<p>Immutable entities with generated identities are not supported. A generated identity is assigned in place after generation, which a Java record or an entity with a read-only identity cannot accommodate without a setter. Immutable entities and Java records whose identities are assigned by the application are supported for writes, updates, and reads.</p>
 </li>
 </ul>
 </div>

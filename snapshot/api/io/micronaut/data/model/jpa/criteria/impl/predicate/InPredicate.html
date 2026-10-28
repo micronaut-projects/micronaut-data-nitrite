@@ -129,11 +129,15 @@ implements jakarta.persistence.criteria.CriteriaBuilder.In&lt;T&gt;</span></div>
 <div class="table-header col-last">Description</div>
 <div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(jakarta.persistence.criteria.Expression,jakarta.persistence.criteria.CriteriaBuilder)" class="member-name-link">InPredicate</a><wbr>(jakarta.persistence.criteria.Expression&lt;<a href="#type-param-T" title="type parameter in InPredicate">T</a>&gt;&nbsp;expression,
  jakarta.persistence.criteria.CriteriaBuilder&nbsp;criteriaBuilder)</code></div>
-<div class="col-last even-row-color">&nbsp;</div>
+<div class="col-last even-row-color">
+<div class="block">Creates an IN predicate with no values.</div>
+</div>
 <div class="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(jakarta.persistence.criteria.Expression,java.util.Collection,jakarta.persistence.criteria.CriteriaBuilder)" class="member-name-link">InPredicate</a><wbr>(jakarta.persistence.criteria.Expression&lt;<a href="#type-param-T" title="type parameter in InPredicate">T</a>&gt;&nbsp;expression,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Collection.html" title="class or interface in java.util" class="external-link">Collection</a>&lt;jakarta.persistence.criteria.Expression&lt;?&gt;&gt;&nbsp;values,
  @Nullable jakarta.persistence.criteria.CriteriaBuilder&nbsp;criteriaBuilder)</code></div>
-<div class="col-last odd-row-color">&nbsp;</div>
+<div class="col-last odd-row-color">
+<div class="block">Creates an IN predicate with the given values.</div>
+</div>
 </div>
 </section>
 </li>
@@ -153,7 +157,9 @@ implements jakarta.persistence.criteria.CriteriaBuilder.In&lt;T&gt;</span></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;jakarta.persistence.criteria.Expression&lt;?&gt;&gt;</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getValues()" class="member-name-link">getValues</a>()</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="block">Returns the values in this predicate.</div>
+</div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
 <div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toString()" class="member-name-link">toString</a>()</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
@@ -204,6 +210,12 @@ implements jakarta.persistence.criteria.CriteriaBuilder.In&lt;T&gt;</span></div>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">InPredicate</span><wbr><span class="parameters">(jakarta.persistence.criteria.Expression&lt;<a href="#type-param-T" title="type parameter in InPredicate">T</a>&gt;&nbsp;expression,
  jakarta.persistence.criteria.CriteriaBuilder&nbsp;criteriaBuilder)</span></div>
+<div class="block">Creates an IN predicate with no values.</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>expression</code> - the expression to test</dd>
+<dd><code>criteriaBuilder</code> - the criteria builder used to create literal values</dd>
+</dl>
 </div>
 </section>
 </li>
@@ -214,6 +226,13 @@ implements jakarta.persistence.criteria.CriteriaBuilder.In&lt;T&gt;</span></div>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">InPredicate</span><wbr><span class="parameters">(jakarta.persistence.criteria.Expression&lt;<a href="#type-param-T" title="type parameter in InPredicate">T</a>&gt;&nbsp;expression,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Collection.html" title="class or interface in java.util" class="external-link">Collection</a>&lt;jakarta.persistence.criteria.Expression&lt;?&gt;&gt;&nbsp;values,
  @Nullable jakarta.persistence.criteria.CriteriaBuilder&nbsp;criteriaBuilder)</span></div>
+<div class="block">Creates an IN predicate with the given values.</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>expression</code> - the expression to test</dd>
+<dd><code>values</code> - the values to match</dd>
+<dd><code>criteriaBuilder</code> - the criteria builder used to create literal values, if available</dd>
+</dl>
 </div>
 </section>
 </li>
@@ -230,6 +249,11 @@ implements jakarta.persistence.criteria.CriteriaBuilder.In&lt;T&gt;</span></div>
 <h3>getValues</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;jakarta.persistence.criteria.Expression&lt;?&gt;&gt;</span>&nbsp;<span class="element-name">getValues</span>()</div>
+<div class="block">Returns the values in this predicate.</div>
+<dl class="notes">
+<dt>Returns:</dt>
+<dd>the values to match</dd>
+</dl>
 </div>
 </section>
 </li>

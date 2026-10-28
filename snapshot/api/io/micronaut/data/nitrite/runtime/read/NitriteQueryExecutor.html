@@ -58,7 +58,7 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-summary" tabindex="0">Method Summary</a></li>
 <li><a href="#constructor-detail" tabindex="0">Constructor Details</a>
 <ol class="toc-list">
-<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.event.EntityEventListener,boolean)" tabindex="0">NitriteQueryExecutor(NitriteEntityMapper, NitriteQueryParser, NitriteFilterBuilder, ConversionService, Function, Function, NitriteQueryExecutor.FindOptionsBuilder, NitriteOperationsHelper, EntityEventListener, boolean)</a></li>
+<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.read.NitriteReadSupport,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" tabindex="0">NitriteQueryExecutor(NitriteReadSupport, NitriteQueryExecutor.FindOptionsBuilder, NitriteOperationsHelper)</a></li>
 </ol>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
@@ -69,7 +69,7 @@ loadScripts(document, 'script');</script>
 <li><a href="#executeUpdate(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" tabindex="0">executeUpdate(PreparedQuery, NitritePreparedQuery)</a></li>
 <li><a href="#buildGeneratedFilter(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.Object%5B%5D)" tabindex="0">buildGeneratedFilter(PreparedQuery, RuntimePersistentEntity, Object[])</a></li>
 <li><a href="#executeDelete(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" tabindex="0">executeDelete(PreparedQuery, NitritePreparedQuery)</a></li>
-<li><a href="#count(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" tabindex="0">count(PreparedQuery, NitritePreparedQuery)</a></li>
+<li><a href="#count(io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" tabindex="0">count(NitritePreparedQuery)</a></li>
 <li><a href="#buildNamedParameterValues(io.micronaut.data.model.runtime.PreparedQuery)" tabindex="0">buildNamedParameterValues(PreparedQuery)</a></li>
 <li><a href="#buildJsonParameterValues(io.micronaut.data.model.runtime.PreparedQuery)" tabindex="0">buildJsonParameterValues(PreparedQuery)</a></li>
 </ol>
@@ -131,16 +131,9 @@ This executor consolidates fetching, aggregation, and projection logic:
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.event.EntityEventListener,boolean)" class="member-name-link">NitriteQueryExecutor</a><wbr>(<a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
- <a href="../query/NitriteQueryParser.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryParser</a>&nbsp;queryParser,
- <a href="../query/NitriteFilterBuilder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteFilterBuilder</a>&nbsp;filterBuilder,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, org.dizitart.no2.collection.NitriteCollection&gt;&nbsp;collectionFactory,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&gt;&nbsp;entityFactory,
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.read.NitriteReadSupport,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" class="member-name-link">NitriteQueryExecutor</a><wbr>(<a href="NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a>&nbsp;readSupport,
  <a href="NitriteQueryExecutor.FindOptionsBuilder.html" title="interface in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor.FindOptionsBuilder</a>&nbsp;findOptionsFactory,
- <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper,
- io.micronaut.data.event.EntityEventListener&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;entityEventListener,
- boolean&nbsp;useCursorLimitForSortedReads)</code></div>
+ <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates a new NitriteQueryExecutor.</div>
 </div>
@@ -177,8 +170,7 @@ parsing its <code>WHERE</code> clause.</div>
 <div class="block">Builds a map of named parameter values from a prepared query.</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>long</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#count(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" class="member-name-link">count</a><wbr>(@NonNull io.micronaut.data.model.runtime.PreparedQuery&lt;?,<wbr>?&gt;&nbsp;q,
- <a href="../query/NitritePreparedQuery.html" title="interface in io.micronaut.data.nitrite.runtime.query">NitritePreparedQuery</a>&lt;?,<wbr>?&gt;&nbsp;nq)</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#count(io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)" class="member-name-link">count</a><wbr>(<a href="../query/NitritePreparedQuery.html" title="interface in io.micronaut.data.nitrite.runtime.query">NitritePreparedQuery</a>&lt;?,<wbr>?&gt;&nbsp;nq)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Executes a count query to determine the number of matching documents.</div>
 </div>
@@ -229,32 +221,18 @@ parsing its <code>WHERE</code> clause.</div>
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,io.micronaut.data.nitrite.runtime.query.NitriteQueryParser,io.micronaut.data.nitrite.runtime.query.NitriteFilterBuilder,io.micronaut.core.convert.ConversionService,java.util.function.Function,java.util.function.Function,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper,io.micronaut.data.event.EntityEventListener,boolean)">
+<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.read.NitriteReadSupport,io.micronaut.data.nitrite.runtime.read.NitriteQueryExecutor.FindOptionsBuilder,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)">
 <h3>NitriteQueryExecutor</h3>
 <div class="horizontal-scroll">
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">NitriteQueryExecutor</span><wbr><span class="parameters">(<a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
- <a href="../query/NitriteQueryParser.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteQueryParser</a>&nbsp;queryParser,
- <a href="../query/NitriteFilterBuilder.html" title="class in io.micronaut.data.nitrite.runtime.query">NitriteFilterBuilder</a>&nbsp;filterBuilder,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, org.dizitart.no2.collection.NitriteCollection&gt;&nbsp;collectionFactory,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&gt;&nbsp;entityFactory,
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">NitriteQueryExecutor</span><wbr><span class="parameters">(<a href="NitriteReadSupport.html" title="class in io.micronaut.data.nitrite.runtime.read">NitriteReadSupport</a>&nbsp;readSupport,
  <a href="NitriteQueryExecutor.FindOptionsBuilder.html" title="interface in io.micronaut.data.nitrite.runtime.read">NitriteQueryExecutor.FindOptionsBuilder</a>&nbsp;findOptionsFactory,
- <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper,
- io.micronaut.data.event.EntityEventListener&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;entityEventListener,
- boolean&nbsp;useCursorLimitForSortedReads)</span></div>
+ <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper)</span></div>
 <div class="block">Creates a new NitriteQueryExecutor.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
-<dd><code>entityMapper</code> - the entity mapper</dd>
-<dd><code>queryParser</code> - the query parser</dd>
-<dd><code>filterBuilder</code> - the filter builder</dd>
-<dd><code>conversionService</code> - the conversion service</dd>
-<dd><code>collectionFactory</code> - the collection factory function</dd>
-<dd><code>entityFactory</code> - the entity factory function</dd>
+<dd><code>readSupport</code> - the collaborators shared with the criteria executor</dd>
 <dd><code>findOptionsFactory</code> - the find options factory function</dd>
 <dd><code>helper</code> - the operations helper</dd>
-<dd><code>entityEventListener</code> - the entity event listener</dd>
-<dd><code>useCursorLimitForSortedReads</code> - whether sorted bounds should be moved to the cursor</dd>
 </dl>
 </div>
 </section>
@@ -389,19 +367,16 @@ and performs the removal against the underlying Nitrite collection.</div>
 </section>
 </li>
 <li>
-<section class="detail" id="count(io.micronaut.data.model.runtime.PreparedQuery,io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)">
+<section class="detail" id="count(io.micronaut.data.nitrite.runtime.query.NitritePreparedQuery)">
 <h3>count</h3>
 <div class="horizontal-scroll">
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">long</span>&nbsp;<span class="element-name">count</span><wbr><span class="parameters">(@NonNull
- @NonNull io.micronaut.data.model.runtime.PreparedQuery&lt;?,<wbr>?&gt;&nbsp;q,
- <a href="../query/NitritePreparedQuery.html" title="interface in io.micronaut.data.nitrite.runtime.query">NitritePreparedQuery</a>&lt;?,<wbr>?&gt;&nbsp;nq)</span></div>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">long</span>&nbsp;<span class="element-name">count</span><wbr><span class="parameters">(<a href="../query/NitritePreparedQuery.html" title="interface in io.micronaut.data.nitrite.runtime.query">NitritePreparedQuery</a>&lt;?,<wbr>?&gt;&nbsp;nq)</span></div>
 <div class="block">Executes a count query to determine the number of matching documents.
 This operation bypasses normal result projection and mapping entirely to efficiently size
 the query result directly from the Nitrite cursor. It natively supports <code>COUNT_DISTINCT</code>
 by resolving a nested <code>$group</code> stage if present in the translated JSON string.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
-<dd><code>q</code> - the generic prepared query</dd>
 <dd><code>nq</code> - the compiled Nitrite prepared query holding the exact filter</dd>
 <dt>Returns:</dt>
 <dd>the total number of documents matching the query filter</dd>

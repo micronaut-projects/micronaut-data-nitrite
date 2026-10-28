@@ -63,7 +63,7 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
 <li><a href="#resolveValue(io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath,java.lang.Object)" tabindex="0">resolveValue(NitriteQueryState, PersistentPropertyPath, Object)</a></li>
-<li><a href="#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" tabindex="0">handleRegex(String, boolean, boolean, boolean, boolean, Expression, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a></li>
+<li><a href="#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" tabindex="0">handleRegex(boolean, boolean, boolean, Expression, NitriteQueryState, PersistentPropertyPath)</a></li>
 <li><a href="#resolveRegexValue(io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath,jakarta.persistence.criteria.Expression)" tabindex="0">resolveRegexValue(NitriteQueryState, PersistentPropertyPath, Expression)</a></li>
 <li><a href="#resolveCollectionValue(io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath,jakarta.persistence.criteria.Expression)" tabindex="0">resolveCollectionValue(NitriteQueryState, PersistentPropertyPath, Expression)</a></li>
 </ol>
@@ -126,18 +126,14 @@ This class is intended for use by the Annotation Processor and is excluded from 
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>@Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;fieldName,
- boolean&nbsp;ignoreCase,
- boolean&nbsp;negated,
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)" class="member-name-link">handleRegex</a><wbr>(boolean&nbsp;ignoreCase,
  boolean&nbsp;startsWith,
  boolean&nbsp;endsWith,
  @Nullable jakarta.persistence.criteria.Expression&lt;?&gt;&nbsp;rightExpression,
- boolean&nbsp;isLike,
- @Nullable jakarta.persistence.criteria.Expression&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Character.html" title="class or interface in java.lang" class="external-link">Character</a>&gt;&nbsp;escapeExpression,
  <a href="../NitriteQueryState.html" title="class in io.micronaut.data.nitrite.model.query.builder">NitriteQueryState</a>&nbsp;queryState,
  io.micronaut.data.model.PersistentPropertyPath&nbsp;propertyPath)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Handle a regex-based expression (Like, StartsWith, EndsWith, Contains).</div>
+<div class="block">Handle a regex-based expression (StartsWith, EndsWith, Contains, case-insensitive equality).</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#resolveCollectionValue(io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath,jakarta.persistence.criteria.Expression)" class="member-name-link">resolveCollectionValue</a><wbr>(<a href="../NitriteQueryState.html" title="class in io.micronaut.data.nitrite.model.query.builder">NitriteQueryState</a>&nbsp;queryState,
@@ -219,36 +215,27 @@ This class is intended for use by the Annotation Processor and is excluded from 
 </section>
 </li>
 <li>
-<section class="detail" id="handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">
+<section class="detail" id="handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">
 <h3>handleRegex</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="annotations">@Nullable
-</span><span class="modifiers">public</span>&nbsp;<span class="return-type">@Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a></span>&nbsp;<span class="element-name">handleRegex</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;fieldName,
- boolean&nbsp;ignoreCase,
- boolean&nbsp;negated,
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type">@Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a></span>&nbsp;<span class="element-name">handleRegex</span><wbr><span class="parameters">(boolean&nbsp;ignoreCase,
  boolean&nbsp;startsWith,
  boolean&nbsp;endsWith,
  @Nullable
  @Nullable jakarta.persistence.criteria.Expression&lt;?&gt;&nbsp;rightExpression,
- boolean&nbsp;isLike,
- @Nullable
- @Nullable jakarta.persistence.criteria.Expression&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Character.html" title="class or interface in java.lang" class="external-link">Character</a>&gt;&nbsp;escapeExpression,
  <a href="../NitriteQueryState.html" title="class in io.micronaut.data.nitrite.model.query.builder">NitriteQueryState</a>&nbsp;queryState,
  io.micronaut.data.model.PersistentPropertyPath&nbsp;propertyPath)</span></div>
-<div class="block"><span class="description-from-type-label">Description copied from interface:&nbsp;<code><a href="../NitriteExpressionHandler.html#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">NitriteExpressionHandler</a></code></span></div>
-<div class="block">Handle a regex-based expression (Like, StartsWith, EndsWith, Contains).</div>
+<div class="block"><span class="description-from-type-label">Description copied from interface:&nbsp;<code><a href="../NitriteExpressionHandler.html#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">NitriteExpressionHandler</a></code></span></div>
+<div class="block">Handle a regex-based expression (StartsWith, EndsWith, Contains, case-insensitive equality).</div>
 <dl class="notes">
 <dt>Specified by:</dt>
-<dd><code><a href="../NitriteExpressionHandler.html#handleRegex(java.lang.String,boolean,boolean,boolean,boolean,jakarta.persistence.criteria.Expression,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">handleRegex</a></code>&nbsp;in interface&nbsp;<code><a href="../NitriteExpressionHandler.html" title="interface in io.micronaut.data.nitrite.model.query.builder">NitriteExpressionHandler</a></code></dd>
+<dd><code><a href="../NitriteExpressionHandler.html#handleRegex(boolean,boolean,boolean,jakarta.persistence.criteria.Expression,io.micronaut.data.nitrite.model.query.builder.NitriteQueryState,io.micronaut.data.model.PersistentPropertyPath)">handleRegex</a></code>&nbsp;in interface&nbsp;<code><a href="../NitriteExpressionHandler.html" title="interface in io.micronaut.data.nitrite.model.query.builder">NitriteExpressionHandler</a></code></dd>
 <dt>Parameters:</dt>
-<dd><code>fieldName</code> - the field name</dd>
 <dd><code>ignoreCase</code> - whether to ignore case</dd>
-<dd><code>negated</code> - whether the expression is negated</dd>
 <dd><code>startsWith</code> - whether it's a starts-with match</dd>
 <dd><code>endsWith</code> - whether it's an ends-with match</dd>
 <dd><code>rightExpression</code> - the right-hand side expression</dd>
-<dd><code>isLike</code> - whether it's a LIKE expression (handling wildcards)</dd>
-<dd><code>escapeExpression</code> - the LIKE escape character expression, if present</dd>
 <dd><code>queryState</code> - the current query state</dd>
 <dd><code>propertyPath</code> - the property path for the left-hand side</dd>
 <dt>Returns:</dt>

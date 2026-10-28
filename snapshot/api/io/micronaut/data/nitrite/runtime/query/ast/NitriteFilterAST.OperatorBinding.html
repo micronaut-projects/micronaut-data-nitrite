@@ -63,7 +63,7 @@ loadScripts(document, 'script');</script>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
-<li><a href="#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" tabindex="0">toFilter(NitriteFilterAST.FieldValuePreparer, NitriteFilterAST.OperatorFilterEvaluator, RuntimePersistentEntity, String, String, Object[], Map)</a></li>
+<li><a href="#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" tabindex="0">toFilter(NitriteFilterAST.FieldValuePreparer, NitriteFilterAST.OperatorFilterEvaluator, RuntimePersistentEntity, String, Object[], Map)</a></li>
 <li><a href="#toString()" tabindex="0">toString()</a></li>
 <li><a href="#hashCode()" tabindex="0">hashCode()</a></li>
 <li><a href="#equals(java.lang.Object)" tabindex="0">equals(Object)</a></li>
@@ -150,11 +150,10 @@ loadScripts(document, 'script');</script>
 <div class="block">Returns the value of the <a href="#param-op"><code>op</code></a> record component.</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.dizitart.no2.filters.Filter</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" class="member-name-link">toFilter</a><wbr>(<a href="NitriteFilterAST.FieldValuePreparer.html" title="interface in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.FieldValuePreparer</a>&nbsp;preparer,
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.Object%5B%5D,java.util.Map)" class="member-name-link">toFilter</a><wbr>(<a href="NitriteFilterAST.FieldValuePreparer.html" title="interface in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.FieldValuePreparer</a>&nbsp;preparer,
  <a href="NitriteFilterAST.OperatorFilterEvaluator.html" title="interface in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.OperatorFilterEvaluator</a>&nbsp;evaluator,
  io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&nbsp;entity,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;persistedName,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawField,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>[]&nbsp;params,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" class="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;namedParameters)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
@@ -211,14 +210,13 @@ loadScripts(document, 'script');</script>
 <h2>Method Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.String,java.lang.Object[],java.util.Map)">
+<section class="detail" id="toFilter(io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.FieldValuePreparer,io.micronaut.data.nitrite.runtime.query.ast.NitriteFilterAST.OperatorFilterEvaluator,io.micronaut.data.model.runtime.RuntimePersistentEntity,java.lang.String,java.lang.Object[],java.util.Map)">
 <h3>toFilter</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">org.dizitart.no2.filters.Filter</span>&nbsp;<span class="element-name">toFilter</span><wbr><span class="parameters">(<a href="NitriteFilterAST.FieldValuePreparer.html" title="interface in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.FieldValuePreparer</a>&nbsp;preparer,
  <a href="NitriteFilterAST.OperatorFilterEvaluator.html" title="interface in io.micronaut.data.nitrite.runtime.query.ast">NitriteFilterAST.OperatorFilterEvaluator</a>&nbsp;evaluator,
  io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&nbsp;entity,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;persistedName,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawField,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>[]&nbsp;params,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" class="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;&nbsp;namedParameters)</span></div>
 <div class="block">Converts this operator binding into a functional Nitrite Filter by resolving and preparing the value.</div>
@@ -228,7 +226,6 @@ loadScripts(document, 'script');</script>
 <dd><code>evaluator</code> - the evaluator to build the final operator filter</dd>
 <dd><code>entity</code> - the runtime persistent entity being queried</dd>
 <dd><code>persistedName</code> - the persisted name of the field</dd>
-<dd><code>rawField</code> - the raw property path of the field</dd>
 <dd><code>params</code> - the positional parameters array</dd>
 <dd><code>namedParameters</code> - the named parameters map</dd>
 <dt>Returns:</dt>

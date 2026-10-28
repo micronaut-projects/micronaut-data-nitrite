@@ -57,7 +57,7 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-summary" tabindex="0">Method Summary</a></li>
 <li><a href="#constructor-detail" tabindex="0">Constructor Details</a>
 <ol class="toc-list">
-<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService)" tabindex="0">JoinFetcher(NitriteEntityMapper, Function, Function, ConversionService)</a></li>
+<li><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" tabindex="0">JoinFetcher(NitriteEntityMapper, Function, Function, ConversionService, NitriteOperationsHelper)</a></li>
 </ol>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
@@ -98,10 +98,11 @@ loadScripts(document, 'script');</script>
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService)" class="member-name-link">JoinFetcher</a><wbr>(<a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)" class="member-name-link">JoinFetcher</a><wbr>(<a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, org.dizitart.no2.collection.NitriteCollection&gt;&nbsp;collectionFactory,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&gt;&nbsp;entityFactory,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService)</code></div>
+ io.micronaut.core.convert.ConversionService&nbsp;conversionService,
+ <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates a join fetcher.</div>
 </div>
@@ -120,8 +121,8 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>&lt;R&gt;&nbsp;void</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#fetch(java.util.List,java.util.Set,java.lang.Class)" class="member-name-link">fetch</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;R&gt;&nbsp;entities,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Set.html" title="class or interface in java.util" class="external-link">Set</a>&lt;io.micronaut.data.model.query.JoinPath&gt;&nbsp;joinPaths,
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#fetch(java.util.List,java.util.Set,java.lang.Class)" class="member-name-link">fetch</a><wbr>(@Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;R&gt;&nbsp;entities,
+ @Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Set.html" title="class or interface in java.util" class="external-link">Set</a>&lt;io.micronaut.data.model.query.JoinPath&gt;&nbsp;joinPaths,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;&nbsp;entityType)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Fetches the requested associations for the given entities.</div>
@@ -144,13 +145,14 @@ loadScripts(document, 'script');</script>
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService)">
+<section class="detail" id="&lt;init&gt;(io.micronaut.data.nitrite.runtime.mapping.NitriteEntityMapper,java.util.function.Function,java.util.function.Function,io.micronaut.core.convert.ConversionService,io.micronaut.data.nitrite.runtime.NitriteOperationsHelper)">
 <h3>JoinFetcher</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">JoinFetcher</span><wbr><span class="parameters">(<a href="../mapping/NitriteEntityMapper.html" title="class in io.micronaut.data.nitrite.runtime.mapping">NitriteEntityMapper</a>&nbsp;entityMapper,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, org.dizitart.no2.collection.NitriteCollection&gt;&nbsp;collectionFactory,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/function/Function.html" title="class or interface in java.util.function" class="external-link">Function</a>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;, io.micronaut.data.model.runtime.RuntimePersistentEntity&lt;?&gt;&gt;&nbsp;entityFactory,
- io.micronaut.core.convert.ConversionService&nbsp;conversionService)</span></div>
+ io.micronaut.core.convert.ConversionService&nbsp;conversionService,
+ <a href="../NitriteOperationsHelper.html" title="interface in io.micronaut.data.nitrite.runtime">NitriteOperationsHelper</a>&nbsp;helper)</span></div>
 <div class="block">Creates a join fetcher.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
@@ -158,6 +160,7 @@ loadScripts(document, 'script');</script>
 <dd><code>collectionFactory</code> - The collection factory</dd>
 <dd><code>entityFactory</code> - The persistent entity factory</dd>
 <dd><code>conversionService</code> - The conversion service</dd>
+<dd><code>helper</code> - The operations helper that logs each executed operation</dd>
 </dl>
 </div>
 </section>
@@ -174,8 +177,10 @@ loadScripts(document, 'script');</script>
 <section class="detail" id="fetch(java.util.List,java.util.Set,java.lang.Class)">
 <h3>fetch</h3>
 <div class="horizontal-scroll">
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="type-parameters">&lt;R&gt;</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">fetch</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;R&gt;&nbsp;entities,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Set.html" title="class or interface in java.util" class="external-link">Set</a>&lt;io.micronaut.data.model.query.JoinPath&gt;&nbsp;joinPaths,
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="type-parameters">&lt;R&gt;</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">fetch</span><wbr><span class="parameters">(@Nullable
+ @Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;R&gt;&nbsp;entities,
+ @Nullable
+ @Nullable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Set.html" title="class or interface in java.util" class="external-link">Set</a>&lt;io.micronaut.data.model.query.JoinPath&gt;&nbsp;joinPaths,
  <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Class.html" title="class or interface in java.lang" class="external-link">Class</a>&lt;?&gt;&nbsp;entityType)</span></div>
 <div class="block">Fetches the requested associations for the given entities.</div>
 <dl class="notes">
