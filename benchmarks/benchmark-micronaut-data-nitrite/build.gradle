@@ -7,7 +7,7 @@ dependencies {
     // Required on the processor path: without it the query builder falls back to JPQL.
     annotationProcessor projects.micronautDataNitrite
     implementation projects.micronautDataNitrite
-    implementation libs.nitrite.rocksdb.adapter
+    implementation projects.micronautDataNitriteRocksdb
     implementation(libs.nitrite.spatial) {
         exclude group: "tools.jackson.core", module: "jackson-databind"
     }

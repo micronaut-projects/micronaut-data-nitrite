@@ -37,12 +37,14 @@ gradle.afterProject { proj ->
 include 'doc-examples:nitrite-example-groovy'
 include 'doc-examples:nitrite-example-java'
 include 'doc-examples:nitrite-example-kotlin'
+include 'benchmarks:benchmark-micronaut-data-nitrite'
 
 enableFeaturePreview 'TYPESAFE_PROJECT_ACCESSORS'
 
 micronautBuild {
     useStandardizedProjectNames = true
     importMicronautCatalog()
+    importMicronautCatalog("boms-micronaut-data")
     importMicronautCatalog("micronaut-kotlin")
     importMicronautCatalog("micronaut-serde")
     importMicronautCatalog("micronaut-sql")

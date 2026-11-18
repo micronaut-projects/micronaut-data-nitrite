@@ -12,8 +12,8 @@ dependencies {
 
     testImplementation libs.micronaut.jakarta.data.support.tck
     testImplementation projects.micronautDataNitrite
-    testImplementation libs.managed.jakarta.data.api
-    testImplementation libs.jakarta.data.tck
+    testImplementation mnData.jakarta.data.api
+    testImplementation "jakarta.data:jakarta.data-tck:${mnData.versions.jakarta.data.get()}"
     testImplementation libs.jakarta.persistence.tck.api
     testImplementation libs.apiguardian.api
     testImplementation mnValidation.micronaut.validation
@@ -32,8 +32,8 @@ dependencies {
 
 configurations.configureEach {
     resolutionStrategy.force(
-        "jakarta.data:jakarta.data-api:${libs.versions.managed.jakarta.data.get()}",
-        "jakarta.data:jakarta.data-tck:${libs.versions.managed.jakarta.data.get()}",
+        "jakarta.data:jakarta.data-api:${mnData.versions.jakarta.data.get()}",
+        "jakarta.data:jakarta.data-tck:${mnData.versions.jakarta.data.get()}",
         "jakarta.persistence:jakarta.persistence-api:${libs.versions.jakarta.persistence.tck.get()}"
     )
 }

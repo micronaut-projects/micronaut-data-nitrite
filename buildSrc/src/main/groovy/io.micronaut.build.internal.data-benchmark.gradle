@@ -1,0 +1,52 @@
+plugins {
+    id "io.micronaut.build.internal.data-nitrite-dependencies"
+    id "java"
+    id "application"
+    id "com.gradleup.shadow"
+    id "me.champeau.jmh"
+}
+
+version "0.1"
+group "example"
+
+configurations.configureEach {
+    resolutionStrategy.preferProjectModules()
+}
+
+dependencies {
+    testImplementation mnTest.junit.jupiter.api
+    testImplementation mnTest.junit.platform.suite
+    testRuntimeOnly mnTest.junit.jupiter.engine
+
+    jmh libs.jmh.core
+    jmh libs.jmh.annprocess
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+}
+
+tasks.withType(Javadoc).configureEach {
+    // Disable doclint warnings for benchmark projects to avoid "no comment" noise in generated Javadoc
+    options.addBooleanOption('Xdoclint:none', true)
+    options.addBooleanOption('quiet', true)
+}
+
+application {
+    mainClass = "example.Application"
+}
+
+tasks.named("run") {
+    jvmArgs('-noverify', '-XX:TieredStopAtLevel=1', '-Dcom.sun.management.jmxremote')
+}
+
+jmh {
+    duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
+    jvmArgsPrepend = ['--sun-misc-unsafe-memory-access=allow']
+}
+
+jmhJar {
+    configurations = [project.configurations.runtimeClasspath]
+    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
