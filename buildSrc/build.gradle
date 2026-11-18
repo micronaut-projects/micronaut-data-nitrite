@@ -15,5 +15,7 @@ dependencies {
     implementation libs.gradle.micronaut
     implementation libs.gradle.kotlin
     implementation libs.gradle.kotlin.allopen
+    implementation libs.gradle.jmh
+    implementation libs.gradle.shadow
     implementation libs.gradle.errorprone
 }

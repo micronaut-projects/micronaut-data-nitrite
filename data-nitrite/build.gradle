@@ -68,7 +68,7 @@ dependencies {
 
     // Compile-only APIs remain available to the compatibility artifact's test sources.
     compileOnly mnSql.jakarta.persistence.api
-    compileOnly libs.managed.jakarta.data.api
+    compileOnly mnData.jakarta.data.api
     compileOnly mn.micronaut.inject.groovy
 
     testAnnotationProcessor libs.micronaut.data.document.processor
@@ -79,7 +79,7 @@ dependencies {
     testAnnotationProcessor mnLogging.logback.classic
 
     testImplementation mnSql.jakarta.persistence.api
-    testImplementation libs.managed.jakarta.data.api
+    testImplementation mnData.jakarta.data.api
 
     testImplementation libs.micronaut.data.runtime
     testImplementation mn.micronaut.inject.groovy
